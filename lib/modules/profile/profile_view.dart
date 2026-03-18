@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:justcards/routes/app_routes.dart';
+import 'package:just_cards/routes/app_routes.dart';
 
 import '../../core/theme/app_colors.dart';
 

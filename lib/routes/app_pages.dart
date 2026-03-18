@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:justcards/modules/bottomNavigation/bottm_navigation_bindings.dart';
+import 'package:just_cards/modules/bottomNavigation/bottm_navigation_bindings.dart';
 
 import '../modules/auth/login/login_binding.dart';
 import '../modules/auth/login/login_view.dart';

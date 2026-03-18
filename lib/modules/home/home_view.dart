@@ -87,6 +87,25 @@ class HomeView extends GetView<HomeController> {
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.40),
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.dashboard_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Text(
                       'Overview',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -107,17 +126,40 @@ class HomeView extends GetView<HomeController> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
               sliver: SliverToBoxAdapter(
-                child: Text(
-                  'Events',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentTeal.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.accentTeal.withValues(alpha: 0.40),
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.event_rounded,
+                        size: 16,
+                        color: AppColors.accentTeal,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Events',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
+                    ),
+                  ],
                 ),
               ),
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 95,
+                height: 118,
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                   scrollDirection: Axis.horizontal,
@@ -233,11 +275,10 @@ class _OverviewStats extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, c) {
-        final compact = c.maxWidth < 360;
-        final cardWidth = compact ? 138.0 : (c.maxWidth) / 4;
+        final cardWidth = (c.maxWidth / 4).clamp(140.0, 180.0);
 
         return SizedBox(
-          height: 85,
+          height: 92,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: stats.length,
@@ -265,36 +306,89 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.ink.withValues(alpha: 0.60),
-              fontWeight: FontWeight.w700,
+    final config = switch (label) {
+      'Contacts' => (tint: AppColors.accentTeal, icon: Icons.person_rounded),
+      'Scans' => (tint: AppColors.primary, icon: Icons.qr_code_scanner_rounded),
+      'Events' => (tint: AppColors.accentPurple, icon: Icons.event_available_rounded),
+      'Scans Left' => (tint: AppColors.accentPurple, icon: Icons.hourglass_bottom_rounded),
+      _ => (tint: AppColors.primary, icon: Icons.circle_rounded),
+    };
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 84,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: 0.02),
+              blurRadius: 16,
+              offset: const Offset(0, 10),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: AppColors.ink,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 14,
+              bottom: 14,
+              width: 4,
+              child: Container(color: config.tint),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: config.tint.withValues(alpha: 0.10),
+                      border: Border.all(
+                        color: config.tint.withValues(alpha: 0.40),
+                        width: 1,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(config.icon, size: 18, color: config.tint),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.56),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          value,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: AppColors.ink,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.22,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -307,6 +401,9 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const cardsCount = 143;
+    const location = 'Greater Noida, India';
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -316,50 +413,124 @@ class _EventCard extends StatelessWidget {
               Routes.manageEvent,
               arguments: <String, dynamic>{
                 'title': event.title,
-                'location': 'Greater Noida, India',
-                'membersCount': 12,
-                'cardsCount': 143,
+                'location': location,
+                'membersCount': event.count,
+                'cardsCount': cardsCount,
               },
             ),
+        splashColor: AppColors.primary.withValues(alpha: 0.12),
+        highlightColor: AppColors.primary.withValues(alpha: 0.06),
         child: Ink(
-          width: 174,
-          padding: const EdgeInsets.all(12),
+          width: 192,
+          height: 112,
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.020),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: AppColors.ink.withValues(alpha: 0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.40),
+                        width: 1,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.event_rounded, size: 18, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      event.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.78),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
               Text(
-                event.title,
+                location,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.ink.withValues(alpha: 0.65),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.ink.withValues(alpha: 0.48),
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const Spacer(),
-              Text(
-                '${event.count}',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _MetricPill(
+                        icon: Icons.group_rounded,
+                        color: AppColors.primary,
+                        label: '${event.count} Members',
+                      ),
+                    ),
+                  ),
+                  
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.ink.withValues(alpha: 0.70),
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
       ),
     );
   }
