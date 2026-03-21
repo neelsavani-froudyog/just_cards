@@ -2,26 +2,38 @@ abstract class Routes {
   static const splash = _Paths.splash;
   static const login = _Paths.login;
   static const otp = _Paths.otp;
+  static const completeProfile = _Paths.completeProfile;
   static const home = _Paths.home;
   static const bottomNavigation = _Paths.bottomNavigation;
   static const createOrganization = _Paths.createOrganization;
+  static const manageOrganization = _Paths.manageOrganization;
   static const manageEvent = _Paths.manageEvent;
   static const notifications = _Paths.notifications;
   static const joinOrganization = _Paths.joinOrganization;
   static const contactDetails = _Paths.contactDetails;
   static const inviteMembers = _Paths.inviteMembers;
+  static const termsPrivacy = _Paths.termsPrivacy;
+  static const termsConditions = _Paths.termsConditions;
+  static const privacyPolicy = _Paths.privacyPolicy;
+  static const scanResult = _Paths.scanResult;
 }
 
 abstract class _Paths {
   static const splash = '/';
   static const login = '/login';
   static const otp = '/otp';
+  static const completeProfile = '/completeProfile';
   static const home = '/home';
   static const bottomNavigation = '/bottomNavigation';
   static const createOrganization = '/createOrganization';
+  static const manageOrganization = '/manageOrganization';
   static const manageEvent = '/manageEvent';
   static const notifications = '/notifications';
   static const joinOrganization = '/joinOrganization';
   static const contactDetails = '/contactDetails';
   static const inviteMembers = '/inviteMembers';
+  static const termsPrivacy = '/termsPrivacy';
+  static const termsConditions = '/termsConditions';
+  static const privacyPolicy = '/privacyPolicy';
+  static const scanResult = '/scanResult';
 }

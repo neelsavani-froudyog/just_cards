@@ -129,12 +129,12 @@ class _SoftBlobs extends StatelessWidget {
           Positioned(
             left: -120,
             top: 40,
-            child: _Blob(color: AppColors.primary.withValues(alpha: 0.22)),
+            child: _Blob(color: AppColors.primary.withValues(alpha: 0.12)),
           ),
           Positioned(
             right: -140,
             bottom: 80,
-            child: _Blob(color: AppColors.primaryLight.withValues(alpha: 0.24)),
+            child: _Blob(color: AppColors.primaryLight.withValues(alpha: 0.14)),
           ),
         ],
       ),

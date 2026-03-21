@@ -4,13 +4,13 @@ class AppColors {
   const AppColors._();
 
   /// Brand / Theme color: #FFA25F
-  static const Color seed = Color(0xFFFFA25F);
+  static const Color seed = Color.fromARGB(255, 55, 55, 55);
 
   /// Primary brand color (same as seed)
   static const Color primary = seed;
 
   /// Darker brand shade for gradients/buttons
-  static const Color primaryDark = Color(0xFFF07A2A);
+  static const Color primaryDark = Color.fromARGB(255, 55, 55, 55);
 
   /// Lighter brand tint for gradients/backgrounds
   static const Color primaryLight = Color(0xFFFFC9A6);
@@ -19,9 +19,14 @@ class AppColors {
   static const Color accentTeal = primary;
   static const Color accentPurple = Color(0xFF7A5CFF);
 
-  // Neutrals
+  // Common neutrals
+  // Use this for all primary text/icon color (dark grey theme).
+  static const Color darkGrey = seed;
+  // Keep the original “ink” used across existing UI styles/components.
+  // Default theme typography can still be overridden via `AppTextStyles`.
   static const Color ink = Color(0xFF0B1220);
-  static const Color surface = Color(0xFFFFFFFF);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color surface = white;
 
   // App background (light theme)
   static const List<Color> appBackgroundGradient = <Color>[
@@ -35,11 +40,13 @@ class AppColors {
 
   // Feedback
   static const Color danger = Color(0xFFB42318);
+  static const Color success = Color(0xFF16A34A);
 
   // Contact action colors (use real app-like colors)
   static const Color contactCall = Color(0xFF2563EB); // blue
   static const Color contactEmail = Color(0xFF94A3B8); // cool gray
   static const Color contactWhatsApp = Color(0xFF22C55E); // WhatsApp green
+  static const Color buttonColor = Color(0xFF4ADE80); // WhatsApp green
   static const Color contactShare = Color(0xFF2563EB); // blue
 
   static const List<Color> splashGradient = <Color>[

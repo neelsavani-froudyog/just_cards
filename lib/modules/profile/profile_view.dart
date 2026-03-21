@@ -132,7 +132,7 @@ class _HeaderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
         boxShadow: [
@@ -220,7 +220,7 @@ class _SettingTile extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            color: Colors.white,
+            color: AppColors.white,
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
             boxShadow: [
               BoxShadow(

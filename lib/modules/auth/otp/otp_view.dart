@@ -133,7 +133,7 @@ class _OtpHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             color: AppColors.primary,
           ),
-          child: const Icon(Icons.shield_moon_rounded, color: Colors.white),
+          child: const Icon(Icons.shield_moon_rounded, color: AppColors.white),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -189,7 +189,7 @@ class _VerifyButton extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   )
                 : const Text(
@@ -347,7 +347,7 @@ class _OtpBox extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
+        color: AppColors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: selected ? AppColors.accentTeal : AppColors.ink.withValues(alpha: 0.10),

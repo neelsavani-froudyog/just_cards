@@ -48,10 +48,17 @@ class CreateOrganizationController extends GetxController {
     try {
       await Future<void>.delayed(const Duration(milliseconds: 800));
       Get.snackbar('Organisation', 'Created successfully');
-      Get.toNamed(Routes.inviteMembers);
+      Get.toNamed(
+        Routes.manageOrganization,
+        arguments: <String, dynamic>{
+          'name': name,
+          'membersCount': 12,
+          'pendingInvites': 3,
+          'eventsCount': 7,
+        },
+      );
     } finally {
       isSubmitting.value = false;
     }
   }
 }
-

@@ -66,22 +66,22 @@ class CreateEventController extends GetxController {
         final themed = base.copyWith(
           colorScheme: scheme.copyWith(
             primary: AppColors.primary,
-            onPrimary: Colors.white,
+            onPrimary: AppColors.white,
             secondary: AppColors.primary,
-            onSecondary: Colors.white,
-            surface: Colors.white,
+            onSecondary: AppColors.white,
+            surface: AppColors.white,
             onSurface: AppColors.ink,
           ),
           dialogTheme: DialogThemeData(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           datePickerTheme: DatePickerThemeData(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: AppColors.white,
+            surfaceTintColor: AppColors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             headerBackgroundColor: AppColors.primary,
-            headerForegroundColor: Colors.white,
+            headerForegroundColor: AppColors.white,
             todayBorder: BorderSide(color: AppColors.primary.withValues(alpha: 0.55)),
             todayForegroundColor: WidgetStateProperty.resolveWith((states) {
               // Use dark text on brand fill for better visibility.
@@ -130,7 +130,8 @@ class CreateEventController extends GetxController {
     isSaving.value = true;
     try {
       await Future<void>.delayed(const Duration(milliseconds: 700));
-      Get.back(); // close sheet
+      // Close only the current bottom sheet overlay.
+      Get.back(closeOverlays: false);
       Get.snackbar('Event', 'Saved');
     } finally {
       isSaving.value = false;

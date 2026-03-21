@@ -46,7 +46,7 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                       inputType: TextInputType.text,
                       borderRadius: 10,
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.white,
                       borderColor: AppColors.ink.withValues(alpha: 0.08),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       onChanged: (_) => controller.errorText.value = null,
@@ -87,7 +87,7 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                       enabled: false,
                       borderRadius: 10,
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.white,
                       borderColor: AppColors.ink.withValues(alpha: 0.08),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       textStyle: theme.textTheme.bodyMedium?.copyWith(
@@ -125,7 +125,7 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                               key: ValueKey('loading'),
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                             )
                           : Row(
                               key: const ValueKey('label'),
@@ -134,12 +134,12 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                                 Text(
                                   'Create Organization',
                                   style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 18),
                               ],
                             ),
                     ),
@@ -219,7 +219,7 @@ class _DropdownField extends StatelessWidget {
         showSearchBox: true,
         itemAsString: (s) => s,
         onChanged: onChanged,
-        bgColor: Colors.white,
+        bgColor: AppColors.white,
         borderColor: AppColors.ink.withValues(alpha: 0.08),
         borderRadius: 10,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -238,7 +238,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
       ),
@@ -318,7 +318,7 @@ class _SettingTile extends StatelessWidget {
             return CupertinoSwitch(
               value: value.value,
               onChanged: (v) => value.value = v,
-              activeTrackColor: AppColors.primary,
+              activeTrackColor: AppColors.buttonColor,
             );
           }),
         ],

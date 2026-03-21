@@ -26,7 +26,7 @@ class ManageEventController extends GetxController {
     const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Editor', status: 'Pending'),
     const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Viewer', status: null),
     const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Viewer', status: null),
-  ];
+  ].obs;
 
   final sentInvites = <SentInvite>[
   ].obs;
@@ -54,11 +54,24 @@ class ManageEventController extends GetxController {
     inviteRole.value = v;
   }
 
+  String _inviteRoleFromMemberRole(String memberRole) {
+    final v = memberRole.toLowerCase();
+    if (v.contains('admin')) return 'Admin';
+    if (v.contains('editor')) return 'Editor';
+    if (v.contains('viewer')) return 'Viewer';
+    return 'Editor';
+  }
+
+  String _memberRoleFromInviteRole(String inviteRole) {
+    if (inviteRole == 'Admin') return 'Admin / Owner';
+    return inviteRole;
+  }
+
   Future<void> sendInvite() async {
     if (isInviting.value) return;
     final email = inviteEmailController.text.trim();
     if (email.isEmpty) {
-      Get.snackbar('Invite', 'Please enter email');
+      // Get.snackbar('Invite', 'Please enter email');
       return;
     }
     isInviting.value = true;
@@ -77,6 +90,31 @@ class ManageEventController extends GetxController {
   }
 
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
+
+  Future<void> resendInviteForMember(EventMember member) async {
+    // Reuse the same invite flow (email + role) for a member.
+    inviteEmailController.text = member.email;
+    inviteRole.value = _inviteRoleFromMemberRole(member.role);
+    inviteMessageController.clear();
+    await sendInvite();
+  }
+
+  void updateMemberRole(int index, String inviteRole) {
+    if (index < 0 || index >= members.length) return;
+    final existing = members[index];
+    final nextRole = _memberRoleFromInviteRole(inviteRole);
+    members[index] = EventMember(
+      name: existing.name,
+      email: existing.email,
+      role: nextRole,
+      status: existing.status,
+    );
+  }
+
+  void deleteMember(int index) {
+    if (index < 0 || index >= members.length) return;
+    members.removeAt(index);
+  }
 }
 
 class ManageEventArgs {

@@ -46,7 +46,7 @@ class CustomSearchDropdown<T> extends StatelessWidget {
     final container = Container(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: bgColor ?? Colors.white,
+        color: bgColor ?? AppColors.white,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: borderColor ?? AppColors.ink.withValues(alpha: 0.08)),
       ),
@@ -79,7 +79,7 @@ class CustomSearchDropdown<T> extends StatelessWidget {
           fit: FlexFit.loose,
           menuProps: MenuProps(
             borderRadius: BorderRadius.circular(borderRadius),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.white,
           ),
           searchFieldProps: TextFieldProps(
             decoration: InputDecoration(

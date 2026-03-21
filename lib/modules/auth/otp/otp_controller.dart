@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/auth_session_service.dart';
 import '../../../routes/app_routes.dart';
 
 class OtpController extends GetxController {
@@ -15,12 +16,16 @@ class OtpController extends GetxController {
   bool _didRedirect = false;
 
   late final String email;
+  late final AuthSessionService _session;
 
   @override
   void onInit() {
     super.onInit();
-    final args = (Get.arguments as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+    final args =
+        (Get.arguments as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
     email = (args['email'] as String?) ?? '';
+    _session = Get.find<AuthSessionService>();
+    _session.setEmail(email);
     _startTimer();
   }
 
@@ -49,7 +54,10 @@ class OtpController extends GetxController {
       await Future<void>.delayed(const Duration(milliseconds: 850));
       if (_didRedirect || isClosed) return;
       _didRedirect = true;
-      Get.offAllNamed(Routes.bottomNavigation);
+      Get.offNamed(
+        Routes.completeProfile,
+        arguments: <String, dynamic>{'email': email},
+      );
     } finally {
       isVerifying.value = false;
     }

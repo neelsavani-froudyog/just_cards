@@ -19,7 +19,7 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -39,7 +39,7 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
         child: Column(
           children: [
             Container(
-              color: Colors.white,
+              color: AppColors.white,
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
               child: Column(
                 children: [
@@ -122,13 +122,13 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                               )
-                            : const Icon(Icons.save_rounded, color: Colors.white),
+                            : const Icon(Icons.save_rounded, color: AppColors.white),
                         label: Text(
                           t == ContactDetailsTab.notes ? 'Send Changes' : 'Save Changes',
                           style: theme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -440,7 +440,7 @@ class _InfoRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
       ),
@@ -501,7 +501,7 @@ class _NotesTab extends GetView<ContactDetailsController> {
           maxLines: 6,
           maxLength: 600,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.white,
           borderRadius: 14,
           borderColor: AppColors.ink.withValues(alpha: 0.10),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -637,7 +637,7 @@ class _AddThumb extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.ink.withValues(alpha: 0.18), width: 1.5),
       ),
@@ -655,7 +655,7 @@ class _ImageThumb extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         color: AppColors.ink.withValues(alpha: 0.06),
-        child: const Icon(Icons.image_rounded, color: Colors.black45),
+        child: Icon(Icons.image_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
       ),
     );
   }
@@ -670,7 +670,7 @@ class _DocThumb extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         color: AppColors.ink.withValues(alpha: 0.06),
-        child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.black45),
+        child: Icon(Icons.picture_as_pdf_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
       ),
     );
   }

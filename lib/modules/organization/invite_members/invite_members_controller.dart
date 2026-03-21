@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SentInvite {
-  const SentInvite({required this.email, required this.role, required this.status});
+  const SentInvite({
+    required this.email,
+    required this.role,
+    required this.status,
+  });
 
   final String email;
   final String role;
@@ -41,7 +45,10 @@ class InviteMembersController extends GetxController {
     isInviting.value = true;
     try {
       await Future<void>.delayed(const Duration(milliseconds: 650));
-      sentInvites.insert(0, SentInvite(email: email, role: inviteRole.value, status: 'Sent'));
+      sentInvites.insert(
+        0,
+        SentInvite(email: email, role: inviteRole.value, status: 'Sent'),
+      );
       inviteEmailController.clear();
       Get.snackbar('Invite', 'Invite added');
     } finally {
@@ -50,6 +57,10 @@ class InviteMembersController extends GetxController {
   }
 
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
+
+  void skipForNow() {
+    Get.back();
+  }
 
   Future<void> sendInvites() async {
     if (sentInvites.isEmpty) {
@@ -68,4 +79,3 @@ class InviteMembersController extends GetxController {
     }
   }
 }
-

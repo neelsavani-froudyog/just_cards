@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/document_scanner_service.dart';
+import '../../../routes/app_routes.dart';
 import '../../events/create/create_event_sheet.dart';
 
 class AddContactSheet extends StatelessWidget {
@@ -15,7 +16,7 @@ class AddContactSheet extends StatelessWidget {
       top: false,
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         ),
         child: Column(
@@ -72,7 +73,10 @@ class AddContactSheet extends StatelessWidget {
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: false);
                       if (images.isNotEmpty) {
-                        Get.snackbar('Scan complete', '${images.length} page(s) captured');
+                        Get.toNamed(
+                          Routes.scanResult,
+                          arguments: <String, dynamic>{'images': images},
+                        );
                       }
                     },
                   ),
@@ -85,7 +89,10 @@ class AddContactSheet extends StatelessWidget {
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: true);
                       if (images.isNotEmpty) {
-                        Get.snackbar('Scan complete', '${images.length} page(s) captured');
+                        Get.toNamed(
+                          Routes.scanResult,
+                          arguments: <String, dynamic>{'images': images},
+                        );
                       }
                     },
                   ),
@@ -155,7 +162,7 @@ class _SheetTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
-            color: Colors.white,
+            color: AppColors.white,
           ),
           child: Row(
             children: [

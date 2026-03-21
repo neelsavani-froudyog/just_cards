@@ -29,7 +29,7 @@ class CreateEventSheet extends StatelessWidget {
           top: false,
           child: Container(
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             ),
             padding: EdgeInsets.only(
@@ -212,13 +212,13 @@ class CreateEventSheet extends StatelessWidget {
                                   key: ValueKey('loading'),
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                                 )
                               : Text(
                                   'Save Event',
                                   key: const ValueKey('label'),
                                   style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),

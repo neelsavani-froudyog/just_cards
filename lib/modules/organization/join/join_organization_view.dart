@@ -123,7 +123,7 @@ class JoinOrganizationView extends GetView<JoinOrganizationController> {
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
                       ),
@@ -178,7 +178,7 @@ class JoinOrganizationView extends GetView<JoinOrganizationController> {
                                   key: ValueKey('loading'),
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                                 )
                               : Row(
                                   key: const ValueKey('label'),
@@ -187,12 +187,12 @@ class JoinOrganizationView extends GetView<JoinOrganizationController> {
                                     Text(
                                       'Accept & Join',
                                       style: theme.textTheme.titleMedium?.copyWith(
-                                        color: Colors.white,
+                                        color: AppColors.white,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                    const Icon(Icons.arrow_forward_rounded, color: AppColors.white, size: 18),
                                   ],
                                 ),
                         ),
@@ -251,7 +251,7 @@ class _AbilityTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
       ),

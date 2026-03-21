@@ -24,7 +24,7 @@ class HomeView extends GetView<HomeController> {
               backgroundColor: Colors.transparent,
             ),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.white,
         elevation: 10,
         child: const Icon(Icons.badge_rounded),
       ),
@@ -88,16 +88,8 @@ class HomeView extends GetView<HomeController> {
                 child: Row(
                   children: [
                     Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.10),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.40),
-                          width: 1,
-                        ),
-                      ),
+                      width: 16,
+                      height: 16,
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.dashboard_rounded,
@@ -109,7 +101,7 @@ class HomeView extends GetView<HomeController> {
                     Text(
                       'Overview',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.55),
+                        color: AppColors.ink,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -118,7 +110,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+              padding: const EdgeInsets.fromLTRB(18, 5, 18, 10),
               sliver: SliverToBoxAdapter(
                 child: _OverviewStats(stats: controller.overview),
               ),
@@ -129,16 +121,8 @@ class HomeView extends GetView<HomeController> {
                 child: Row(
                   children: [
                     Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentTeal.withValues(alpha: 0.10),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.accentTeal.withValues(alpha: 0.40),
-                          width: 1,
-                        ),
-                      ),
+                      width: 16,
+                      height: 16,
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.event_rounded,
@@ -157,7 +141,9 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(0, 5, 18, 10),
+              sliver: SliverToBoxAdapter(
               child: SizedBox(
                 height: 118,
                 child: ListView.separated(
@@ -170,6 +156,7 @@ class HomeView extends GetView<HomeController> {
                   itemCount: controller.events.length,
                 ),
               ),
+            ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
@@ -191,7 +178,7 @@ class HomeView extends GetView<HomeController> {
                           selectedColor: AppColors.accentTeal.withValues(
                             alpha: 0.18,
                           ),
-                          backgroundColor: Colors.white,
+                          backgroundColor: AppColors.white,
                           labelStyle: Theme.of(
                             context,
                           ).textTheme.labelLarge?.copyWith(
@@ -225,7 +212,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 6, 18, 90),
+              padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
               sliver: SliverList.separated(
                 itemCount: controller.contacts.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -257,8 +244,8 @@ class _SearchBar extends StatelessWidget {
         color: AppColors.ink.withValues(alpha: 0.55),
       ),
       onChanged: onChanged,
-      borderRadius: 18,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      borderRadius: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       filled: true,
       fillColor: AppColors.surface,
       borderColor: AppColors.ink.withValues(alpha: 0.2),
@@ -306,22 +293,15 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final config = switch (label) {
-      'Contacts' => (tint: AppColors.accentTeal, icon: Icons.person_rounded),
-      'Scans' => (tint: AppColors.primary, icon: Icons.qr_code_scanner_rounded),
-      'Events' => (tint: AppColors.accentPurple, icon: Icons.event_available_rounded),
-      'Scans Left' => (tint: AppColors.accentPurple, icon: Icons.hourglass_bottom_rounded),
-      _ => (tint: AppColors.primary, icon: Icons.circle_rounded),
-    };
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         height: 84,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
               color: AppColors.ink.withValues(alpha: 0.02),
@@ -332,42 +312,20 @@ class _StatCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned(
-              left: 0,
-              top: 14,
-              bottom: 14,
-              width: 4,
-              child: Container(color: config.tint),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               child: Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: config.tint.withValues(alpha: 0.10),
-                      border: Border.all(
-                        color: config.tint.withValues(alpha: 0.40),
-                        width: 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(config.icon, size: 18, color: config.tint),
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
+                          style: theme.textTheme.labelLarge?.copyWith(
                             color: AppColors.ink.withValues(alpha: 0.56),
                             fontWeight: FontWeight.w800,
                           ),
@@ -425,9 +383,9 @@ class _EventCard extends StatelessWidget {
           height: 112,
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
                 color: AppColors.ink.withValues(alpha: 0.03),
@@ -437,26 +395,12 @@ class _EventCard extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary.withValues(alpha: 0.10),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.40),
-                        width: 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.event_rounded, size: 18, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       event.title,
@@ -470,7 +414,6 @@ class _EventCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
               Text(
                 location,
                 maxLines: 1,
@@ -480,7 +423,7 @@ class _EventCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Expanded(
@@ -552,7 +495,7 @@ class _ContactTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
+            color: AppColors.white.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
             boxShadow: [

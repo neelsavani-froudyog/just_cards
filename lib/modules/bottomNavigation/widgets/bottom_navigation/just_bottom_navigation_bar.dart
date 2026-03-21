@@ -21,7 +21,7 @@ class JustBottomNavigationBar extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            color: Colors.white.withValues(alpha: 0.94),
+            color: AppColors.white.withValues(alpha: 0.94),
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
             boxShadow: [
               BoxShadow(

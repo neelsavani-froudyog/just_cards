@@ -3,6 +3,8 @@ import 'package:just_cards/modules/bottomNavigation/bottm_navigation_bindings.da
 
 import '../modules/auth/login/login_binding.dart';
 import '../modules/auth/login/login_view.dart';
+import '../modules/auth/complete_profile/complete_profile_binding.dart';
+import '../modules/auth/complete_profile/complete_profile_view.dart';
 import '../modules/auth/otp/otp_binding.dart';
 import '../modules/auth/otp/otp_view.dart';
 import '../modules/bottomNavigation/bottom_navigation_view.dart';
@@ -18,6 +20,11 @@ import '../modules/organization/invite_members/invite_members_binding.dart';
 import '../modules/organization/invite_members/invite_members_view.dart';
 import '../modules/organization/join/join_organization_binding.dart';
 import '../modules/organization/join/join_organization_view.dart';
+import '../modules/organization/manage/manage_organization_binding.dart';
+import '../modules/organization/manage/manage_organization_view.dart';
+import '../modules/legal/terms_conditions_view.dart';
+import '../modules/legal/privacy_policy_view.dart';
+import '../modules/contacts/scan_result/scan_result_view.dart';
 import '../modules/splash/splash_binding.dart';
 import '../modules/splash/splash_view.dart';
 import 'app_routes.dart';
@@ -29,15 +36,12 @@ class AppPages {
       page: SplashView.new,
       binding: SplashBinding(),
     ),
+    GetPage(name: Routes.login, page: LoginView.new, binding: LoginBinding()),
+    GetPage(name: Routes.otp, page: OtpView.new, binding: OtpBinding()),
     GetPage(
-      name: Routes.login,
-      page: LoginView.new,
-      binding: LoginBinding(),
-    ),
-    GetPage(
-      name: Routes.otp,
-      page: OtpView.new,
-      binding: OtpBinding(),
+      name: Routes.completeProfile,
+      page: CompleteProfileView.new,
+      binding: CompleteProfileBinding(),
     ),
     GetPage(
       name: Routes.bottomNavigation,
@@ -48,6 +52,11 @@ class AppPages {
       name: Routes.createOrganization,
       page: CreateOrganizationView.new,
       binding: CreateOrganizationBinding(),
+    ),
+    GetPage(
+      name: Routes.manageOrganization,
+      page: ManageOrganizationView.new,
+      binding: ManageOrganizationBinding(),
     ),
     GetPage(
       name: Routes.manageEvent,
@@ -74,5 +83,8 @@ class AppPages {
       page: InviteMembersView.new,
       binding: InviteMembersBinding(),
     ),
+    GetPage(name: Routes.termsConditions, page: TermsConditionsView.new),
+    GetPage(name: Routes.privacyPolicy, page: PrivacyPolicyView.new),
+    GetPage(name: Routes.scanResult, page: ScanResultView.new),
   ];
 }

@@ -17,13 +17,26 @@ class InviteMembersView extends GetView<InviteMembersController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Get.back(),
         ),
         title: const Text('Invite Members'),
+        actions: [
+          TextButton(
+            onPressed: controller.skipForNow,
+            child: Text(
+              'Skip for now',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.ink.withValues(alpha: 0.78),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -35,7 +48,9 @@ class InviteMembersView extends GetView<InviteMembersController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Obx(() {
-                      if (controller.sentInvites.isEmpty) return const SizedBox.shrink();
+                      if (controller.sentInvites.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
                       return Column(
                         children: [
                           ...controller.sentInvites.map(
@@ -72,9 +87,12 @@ class InviteMembersView extends GetView<InviteMembersController> {
                       inputType: TextInputType.emailAddress,
                       borderRadius: 12,
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.white,
                       borderColor: AppColors.ink.withValues(alpha: 0.10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Text(
@@ -93,10 +111,13 @@ class InviteMembersView extends GetView<InviteMembersController> {
                         showSearchBox: false,
                         itemAsString: (s) => s,
                         onChanged: controller.setInviteRole,
-                        bgColor: Colors.white,
+                        bgColor: AppColors.white,
                         borderColor: AppColors.ink.withValues(alpha: 0.10),
                         borderRadius: 12,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
                       );
                     }),
                     const SizedBox(height: 14),
@@ -108,7 +129,9 @@ class InviteMembersView extends GetView<InviteMembersController> {
                           onPressed: busy ? null : controller.sendInvite,
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -116,12 +139,15 @@ class InviteMembersView extends GetView<InviteMembersController> {
                               Text(
                                 busy ? 'Adding...' : 'Add',
                                 style: theme.textTheme.titleSmall?.copyWith(
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+                              const Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: AppColors.white,
+                              ),
                             ],
                           ),
                         );
@@ -143,9 +169,12 @@ class InviteMembersView extends GetView<InviteMembersController> {
                       maxLines: 5,
                       borderRadius: 12,
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.white,
                       borderColor: AppColors.ink.withValues(alpha: 0.10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                     ),
                   ],
                 ),
@@ -162,7 +191,9 @@ class InviteMembersView extends GetView<InviteMembersController> {
                     onPressed: busy ? null : controller.sendInvites,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 160),
@@ -171,7 +202,10 @@ class InviteMembersView extends GetView<InviteMembersController> {
                               key: ValueKey('loading'),
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.white,
+                              ),
                             )
                           : Row(
                               key: const ValueKey('label'),
@@ -180,12 +214,16 @@ class InviteMembersView extends GetView<InviteMembersController> {
                                 Text(
                                   'Send Invites',
                                   style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: AppColors.white,
+                                  size: 18,
+                                ),
                               ],
                             ),
                     ),
@@ -211,9 +249,12 @@ class _SentInvitePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.55), width: 1.2),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.55),
+          width: 1.2,
+        ),
       ),
       child: Row(
         children: [
@@ -221,17 +262,23 @@ class _SentInvitePill extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(invite.email, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  invite.email,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 3),
                 RichText(
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.72),
-                        ),
+                      color: AppColors.ink.withValues(alpha: 0.72),
+                    ),
                     children: [
                       TextSpan(text: invite.role),
                       const TextSpan(text: '   '),
-                      TextSpan(text: invite.status, style: TextStyle(color: AppColors.primary)),
+                      TextSpan(
+                        text: invite.status,
+                        style: TextStyle(color: AppColors.primary),
+                      ),
                     ],
                   ),
                 ),
@@ -248,7 +295,10 @@ class _SentInvitePill extends StatelessWidget {
                 color: AppColors.ink.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.close_rounded, color: AppColors.ink.withValues(alpha: 0.70)),
+              child: Icon(
+                Icons.close_rounded,
+                color: AppColors.ink.withValues(alpha: 0.70),
+              ),
             ),
           ),
         ],
@@ -256,4 +306,3 @@ class _SentInvitePill extends StatelessWidget {
     );
   }
 }
-

@@ -15,7 +15,7 @@ class NotificationsView extends GetView<NotificationsController> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -26,7 +26,7 @@ class NotificationsView extends GetView<NotificationsController> {
       body: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: AppColors.white,
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,7 +44,7 @@ class NotificationsView extends GetView<NotificationsController> {
                   prefixIcon: Icon(Icons.search_rounded, color: AppColors.ink.withValues(alpha: 0.55)),
                   borderRadius: 12,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppColors.white,
                   borderColor: AppColors.ink.withValues(alpha: 0.10),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   onChanged: controller.setQuery,
@@ -61,7 +61,7 @@ class NotificationsView extends GetView<NotificationsController> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: active ? AppColors.primary.withValues(alpha: 0.16) : Colors.white,
+                          color: active ? AppColors.primary.withValues(alpha: 0.16) : AppColors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: active ? AppColors.primary.withValues(alpha: 0.55) : AppColors.ink.withValues(alpha: 0.10),
@@ -87,7 +87,7 @@ class NotificationsView extends GetView<NotificationsController> {
                               child: Text(
                                 '$count',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: active ? Colors.white : AppColors.ink.withValues(alpha: 0.75),
+                                  color: active ? AppColors.white : AppColors.ink.withValues(alpha: 0.75),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -238,7 +238,7 @@ class _InviteCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
             boxShadow: [

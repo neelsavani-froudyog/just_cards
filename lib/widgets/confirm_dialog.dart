@@ -62,12 +62,12 @@ class _ConfirmDialogBody extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 18),
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: AppColors.darkGrey.withValues(alpha: 0.12),
                 blurRadius: 34,
                 offset: const Offset(0, 18),
               ),
@@ -136,14 +136,14 @@ class _ConfirmDialogBody extends StatelessWidget {
                       onPressed: () => Get.back(result: true),
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
                         confirmText,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
