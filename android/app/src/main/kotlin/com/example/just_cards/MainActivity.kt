@@ -1,4 +1,4 @@
-package com.example.just_cards
+package com.forudyog.justcards
 
 import io.flutter.embedding.android.FlutterActivity
 
