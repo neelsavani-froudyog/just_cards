@@ -11,7 +11,7 @@ class DocumentScannerService {
       documentFormats: const {DocumentFormat.jpeg},
       mode: ScannerMode.full,
       pageLimit: allowMultiple ? 20 : 1,
-      isGalleryImport: true0,
+      isGalleryImport: true,
     );
 
     final scanner = DocumentScanner(options: options);
