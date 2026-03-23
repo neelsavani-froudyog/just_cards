@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/api.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/services/auth_session_service.dart';
 import '../../../routes/app_routes.dart';
 
@@ -11,6 +13,7 @@ class CompleteProfileController extends GetxController {
 
   late final String email;
   late final AuthSessionService _session;
+  late final ApiService _apiService;
 
   @override
   void onInit() {
@@ -19,6 +22,7 @@ class CompleteProfileController extends GetxController {
         (Get.arguments as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
     email = (args['email'] as String?) ?? '';
     _session = Get.find<AuthSessionService>();
+    _apiService = Get.find<ApiService>();
     _session.setEmail(email);
   }
 
@@ -36,13 +40,27 @@ class CompleteProfileController extends GetxController {
       errorText.value = 'Please enter your full name';
       return;
     }
-    if (isSaving.value) return;
 
     isSaving.value = true;
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 450));
-      _session.completeProfile(name: name, emailAddress: email);
-      Get.offAllNamed(Routes.bottomNavigation);
+      await _apiService.postRequest(
+        url: ApiUrl.createProfile,
+        data: <String, dynamic>{
+          'p_full_name': name,
+          'p_email': email,
+        },
+        showSuccessToast: true,
+        successToastMessage: 'Profile created successfully',
+        showErrorToast: true,
+        onSuccess: (_) {
+          _session.completeProfile(name: name, emailAddress: email);
+          Get.offAllNamed(Routes.bottomNavigation);
+        },
+        onError: (message) {
+          errorText.value =
+              message.isNotEmpty ? message : 'Failed to save profile';
+        },
+      );
     } finally {
       isSaving.value = false;
     }

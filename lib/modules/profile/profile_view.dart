@@ -5,6 +5,7 @@ import 'package:just_cards/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 
 import 'profile_controller.dart';
+import 'profile_shimmer_view.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -48,8 +49,8 @@ class ProfileView extends GetView<ProfileController> {
                 delegate: SliverChildListDelegate.fixed([
                   _SettingTile(
                     icon: Icons.groups_2_outlined,
-                    title: 'Create Organisation',
-                    onTap: () => Get.toNamed(Routes.createOrganization),
+                    title: 'Organizations',
+                    onTap: () => Get.toNamed(Routes.manageOrganization),
                   ),
                   _SettingTile(
                     icon: Icons.public_rounded,
@@ -104,7 +105,9 @@ class ProfileView extends GetView<ProfileController> {
                     icon: Icons.logout_rounded,
                     title: 'Logout',
                     danger: true,
-                    onTap: controller.onLogout,
+                    onTap: () {
+                      controller.onLogout();
+                    },
                   ),
                   _SettingTile(
                     icon: Icons.delete_forever_rounded,
@@ -129,70 +132,79 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.020),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.75), width: 3),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.18),
-                  AppColors.primaryLight.withValues(alpha: 0.24),
-                ],
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const ProfileHeaderShimmerCard();
+      }
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: 0.020),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.75),
+                  width: 3,
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.18),
+                    AppColors.primaryLight.withValues(alpha: 0.24),
+                  ],
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.person_rounded,
+                color: AppColors.ink,
+                size: 34,
               ),
             ),
-            alignment: Alignment.center,
-            child: const Icon(Icons.person_rounded, color: AppColors.ink, size: 34),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Obx(() {
-                  return Text(
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     controller.displayName.value,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           letterSpacing: -0.2,
                           color: AppColors.ink,
                         ),
-                  );
-                }),
-                const SizedBox(height: 4),
-                Obx(() {
-                  return Text(
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     controller.email.value,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.ink.withValues(alpha: 0.62),
                           fontWeight: FontWeight.w700,
                         ),
-                  );
-                }),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 }
 

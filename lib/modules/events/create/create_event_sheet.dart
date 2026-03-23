@@ -20,6 +20,9 @@ class CreateEventSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    final keyboardInset = media.viewInsets.bottom;
+    final maxSheetHeight = media.size.height * (keyboardInset > 0 ? 0.70 : 0.65);
 
     return GetBuilder<CreateEventController>(
       init: CreateEventController(),
@@ -27,21 +30,30 @@ class CreateEventSheet extends StatelessWidget {
       builder: (c) {
         return SafeArea(
           top: false,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-            ),
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: keyboardInset > 0 ? 0.70 : 0.62,
+            minChildSize: 0.55,
+            maxChildSize: 0.70,
+            builder: (context, scrollController) {
+              return Container(
+                constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                ),
+                child: NotificationListener<UserScrollNotification>(
+                  onNotification: (notification) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    return false;
+                  },
+                  child: ListView(
+                    controller: scrollController,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.fromLTRB(18, 10, 18, 18 + keyboardInset),
+                    children: [
+                      Center(
                     child: Container(
                       width: 44,
                       height: 4,
@@ -90,7 +102,7 @@ class CreateEventSheet extends StatelessWidget {
                   const SizedBox(height: 8),
                   CustomTextField(
                     controller: c.nameController,
-                    hint: 'e.g. Electronica Expo 2026',
+                    hint: 'e.g. Electronica Expo',
                     borderRadius: 12,
                     filled: true,
                     fillColor: const Color(0xFFF5F7FB),
@@ -116,19 +128,24 @@ class CreateEventSheet extends StatelessWidget {
                       Expanded(
                         child: _SmallField(
                           label: 'DATE',
-                          child: Obx(() {
-                            return CustomTextField(
-                              hint: c.dateLabel,
-                              readOnly: true,
-                              onTap: () => c.pickDate(context),
-                              borderRadius: 12,
-                              filled: true,
-                              fillColor: const Color(0xFFF5F7FB),
-                              borderColor: AppColors.ink.withValues(alpha: 0.10),
-                              prefixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.ink.withValues(alpha: 0.55)),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            );
-                          }),
+                          child: CustomTextField(
+                            controller: c.dateController,
+                            readOnly: true,
+                            onTap: () => c.pickDate(context),
+                            borderRadius: 12,
+                            filled: true,
+                            fillColor: const Color(0xFFF5F7FB),
+                            borderColor: AppColors.ink.withValues(alpha: 0.10),
+                            prefixIcon: Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: AppColors.ink.withValues(alpha: 0.55),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -194,41 +211,47 @@ class CreateEventSheet extends StatelessWidget {
                     );
                   }),
                   const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: Obx(() {
-                      final busy = c.isSaving.value;
-                      return FilledButton(
-                        onPressed: busy ? null : c.save,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: Obx(() {
+                            final busy = c.isSaving.value;
+                            return FilledButton(
+                              onPressed: busy ? null : c.save,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 160),
+                                child: busy
+                                    ? const SizedBox(
+                                        key: ValueKey('loading'),
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.white),
+                                      )
+                                    : Text(
+                                        'Save Event',
+                                        key: const ValueKey('label'),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: AppColors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                              ),
+                            );
+                          }),
                         ),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 160),
-                          child: busy
-                              ? const SizedBox(
-                                  key: ValueKey('loading'),
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                                )
-                              : Text(
-                                  'Save Event',
-                                  key: const ValueKey('label'),
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: AppColors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                        ),
-                      );
-                    }),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         );
       },

@@ -108,7 +108,10 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.edit_note_rounded,
                     title: 'Add Manually',
                     subtitle: 'Type details yourself',
-                    onTap: () => Get.back(),
+                    onTap: () {
+                      Get.back();
+                      Get.toNamed(Routes.manualEntry);
+                    },
                   ),
                 ],
               ),
@@ -209,4 +212,3 @@ class _SheetTile extends StatelessWidget {
     );
   }
 }
-

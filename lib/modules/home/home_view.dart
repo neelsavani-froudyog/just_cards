@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/services/auth_session_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/custom_text_field.dart';
@@ -13,6 +14,7 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final greeting = controller.greeting();
+    final session = Get.find<AuthSessionService>();
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -40,13 +42,15 @@ class HomeView extends GetView<HomeController> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Hi, Coffee Lover',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.55),
-                              fontWeight: FontWeight.w700,
+                          Obx(
+                            () => Text(
+                              'Hi, ${session.displayName.value}',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.55),
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../routes/app_routes.dart';
+
 class SentInvite {
   const SentInvite({
     required this.email,
@@ -18,6 +20,14 @@ class InviteMembersController extends GetxController {
   final inviteMessageController = TextEditingController();
 
   final inviteRole = 'Editor'.obs;
+
+  Map<String, dynamic>? _orgArgs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _orgArgs = Get.arguments as Map<String, dynamic>?;
+  }
   final isInviting = false.obs;
 
   final roles = const <String>['Admin', 'Editor', 'Viewer'];
@@ -59,7 +69,11 @@ class InviteMembersController extends GetxController {
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
 
   void skipForNow() {
-    Get.back();
+    if (_orgArgs != null) {
+      Get.offNamed(Routes.manageOrganization, arguments: _orgArgs);
+    } else {
+      Get.back();
+    }
   }
 
   Future<void> sendInvites() async {

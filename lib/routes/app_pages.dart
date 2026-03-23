@@ -25,6 +25,8 @@ import '../modules/organization/manage/manage_organization_view.dart';
 import '../modules/legal/terms_conditions_view.dart';
 import '../modules/legal/privacy_policy_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
+import '../modules/contacts/manual_entry/manual_entry_binding.dart';
+import '../modules/contacts/manual_entry/manual_entry_view.dart';
 import '../modules/splash/splash_binding.dart';
 import '../modules/splash/splash_view.dart';
 import 'app_routes.dart';
@@ -86,5 +88,10 @@ class AppPages {
     GetPage(name: Routes.termsConditions, page: TermsConditionsView.new),
     GetPage(name: Routes.privacyPolicy, page: PrivacyPolicyView.new),
     GetPage(name: Routes.scanResult, page: ScanResultView.new),
+    GetPage(
+      name: Routes.manualEntry,
+      page: ManualEntryView.new,
+      binding: ManualEntryBinding(),
+    ),
   ];
 }

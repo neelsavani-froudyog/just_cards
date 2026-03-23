@@ -710,7 +710,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 ),
                                 Switch(
                                   value: _shareWithOrganization,
-                                  activeThumbColor: AppColors.white,
                                   activeTrackColor: AppColors.darkGrey,
                                   inactiveThumbColor: AppColors.white,
                                   inactiveTrackColor: AppColors.ink.withValues(

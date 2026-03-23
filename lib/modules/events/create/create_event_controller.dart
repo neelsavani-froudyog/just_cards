@@ -5,7 +5,8 @@ import '../../../core/theme/app_colors.dart';
 
 class CreateEventController extends GetxController {
   final nameController = TextEditingController();
-  final locationController = TextEditingController(text: 'Greater Noida, UP');
+  final dateController = TextEditingController();
+  final locationController = TextEditingController();
   final notesController = TextEditingController();
 
   final selectedDate = DateTime.now().obs;
@@ -23,12 +24,14 @@ class CreateEventController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    dateController.text = dateLabel;
     selectedOrganization.value = organizations.first;
   }
 
   @override
   void onClose() {
     nameController.dispose();
+    dateController.dispose();
     locationController.dispose();
     notesController.dispose();
     super.onClose();
@@ -115,7 +118,10 @@ class CreateEventController extends GetxController {
         return Theme(data: themed, child: child!);
       },
     );
-    if (picked != null) selectedDate.value = picked;
+    if (picked != null) {
+      selectedDate.value = picked;
+      dateController.text = dateLabel;
+    }
   }
 
   void setOrganization(String? v) => selectedOrganization.value = v;

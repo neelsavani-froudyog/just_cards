@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/animation.dart';
 import 'package:get/get.dart';
 
+import '../../core/services/auth_session_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 
@@ -13,10 +14,12 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
 
   final appName = 'JustCards'.obs;
   final tagline = 'Business Card Scanner'.obs;
+  late final AuthSessionService _session;
 
   @override
   void onInit() {
     super.onInit();
+    _session = Get.find<AuthSessionService>();
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -38,7 +41,12 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
     animationController.repeat(reverse: true);
     Timer(const Duration(milliseconds: 2400), () {
       if (!isClosed) {
-        Get.offAllNamed(Routes.login);
+        final hasToken = _session.accessToken.value.trim().isNotEmpty;
+        if (hasToken) {
+          Get.offAllNamed(Routes.bottomNavigation);
+        } else {
+          Get.offAllNamed(Routes.login);
+        }
       }
     });
   }

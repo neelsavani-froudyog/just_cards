@@ -52,20 +52,6 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                       onChanged: (_) => controller.errorText.value = null,
                     ),
                     const SizedBox(height: 14),
-                    Obx(() {
-                      final err = controller.errorText.value;
-                      if (err == null) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          err,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    }),
                     _FieldLabel(
                       label: 'Industry',
                       optional: true,
@@ -77,7 +63,39 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
                       items: controller.industries,
                       onChanged: controller.setIndustry,
                     ),
-                    const SizedBox(height: 14),
+                    Obx(() {
+                      final showCustomIndustry =
+                          controller.selectedIndustry.value == 'Other';
+                      if (!showCustomIndustry) {
+                        return const SizedBox(height: 14);
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          const _FieldLabel(
+                            label: 'Industry Name',
+                            required: true,
+                          ),
+                          const SizedBox(height: 8),
+                          CustomTextField(
+                            controller: controller.otherIndustryController,
+                            hint: 'Enter industry name',
+                            inputType: TextInputType.text,
+                            borderRadius: 10,
+                            filled: true,
+                            fillColor: AppColors.white,
+                            borderColor: AppColors.ink.withValues(alpha: 0.08),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            onChanged: (_) => controller.errorText.value = null,
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                      );
+                    }),
                     const _FieldLabel(label: 'Your Role'),
                     const SizedBox(height: 8),
                     CustomTextField(

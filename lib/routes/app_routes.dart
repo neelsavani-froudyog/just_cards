@@ -16,6 +16,7 @@ abstract class Routes {
   static const termsConditions = _Paths.termsConditions;
   static const privacyPolicy = _Paths.privacyPolicy;
   static const scanResult = _Paths.scanResult;
+  static const manualEntry = _Paths.manualEntry;
 }
 
 abstract class _Paths {
@@ -36,4 +37,5 @@ abstract class _Paths {
   static const termsConditions = '/termsConditions';
   static const privacyPolicy = '/privacyPolicy';
   static const scanResult = '/scanResult';
+  static const manualEntry = '/manualEntry';
 }
