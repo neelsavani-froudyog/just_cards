@@ -5,7 +5,7 @@
 class ApiUrl {
   /// Base URL for all app API calls.
   /// Change this for different environments.
-  static String baseUrl = 'http://127.0.0.1:3000';
+  static String baseUrl = 'https://just-card-backend.vercel.app';
 
   /// Auth
   static const String sendOtp = '/auth/otp/send';

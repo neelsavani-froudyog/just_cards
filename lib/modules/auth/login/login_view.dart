@@ -169,19 +169,6 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _EmailField(isCompact: isCompact),
-            const SizedBox(height: 10),
-            Obx(() {
-              final err = controller.errorText.value;
-              if (err == null) return const SizedBox.shrink();
-              return Text(
-                err,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.danger,
-                      fontWeight: FontWeight.w700,
-                    ),
-              );
-            }),
             const SizedBox(height: 12),
             _PrimaryButton(label: 'Send OTP', onPressed: controller.sendOtp),
             const SizedBox(height: 10),
