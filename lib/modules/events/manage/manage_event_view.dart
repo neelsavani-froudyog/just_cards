@@ -7,6 +7,7 @@ import '../../../widgets/custom_search_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/confirm_dialog.dart';
 import 'manage_event_controller.dart';
+import 'manage_event_members_shimmer_view.dart';
 
 class ManageEventView extends GetView<ManageEventController> {
   const ManageEventView({super.key});
@@ -18,119 +19,132 @@ class ManageEventView extends GetView<ManageEventController> {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
-        appBar: AppBar(
-          backgroundColor: AppColors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Manage Event'),
-          actions: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.more_vert_rounded),
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F7FB),
+            appBar: AppBar(
+              backgroundColor: AppColors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Get.back(),
+              ),
+              title: const Text('Manage Event'),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.more_vert_rounded),
+                ),
+              ],
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            body: Column(
+              children: [
+                Container(
+                  color: AppColors.white,
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primaryLight.withValues(alpha: 0.35),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(Icons.event_rounded, color: AppColors.ink.withValues(alpha: 0.75)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${a.title} ${a.location}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryLight.withValues(alpha: 0.35),
                             ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 8,
+                            alignment: Alignment.center,
+                            child: Icon(Icons.event_rounded, color: AppColors.ink.withValues(alpha: 0.75)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _InfoChip(
-                                  icon: Icons.group_rounded,
-                                  label: '${a.membersCount} Members',
-                                  tint: AppColors.primary,
+                                Text(
+                                  '${a.title} ${a.location}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                                _InfoChip(
-                                  icon: Icons.credit_card_rounded,
-                                  label: '${a.cardsCount} Cards',
-                                  tint: AppColors.primary,
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 16,
+                                  runSpacing: 8,
+                                  children: [
+                                    _InfoChip(
+                                      icon: Icons.group_rounded,
+                                      label: '${a.membersCount} Members',
+                                      tint: AppColors.primary,
+                                    ),
+                                    _InfoChip(
+                                      icon: Icons.credit_card_rounded,
+                                      label: '${a.cardsCount} Cards',
+                                      tint: AppColors.primary,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                Container(
+                  color: AppColors.white,
+                  child: TabBar(
+                    labelColor: AppColors.ink,
+                    unselectedLabelColor: AppColors.ink.withValues(alpha: 0.55),
+                    indicatorColor: AppColors.primary,
+                    indicatorWeight: 2.4,
+                    tabs: const [
+                      Tab(text: 'Contacts'),
+                      Tab(text: 'Members'),
+                      Tab(text: 'Invites'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _ContactsTab(controller: controller),
+                      _MembersTab(controller: controller),
+                      _InvitesTab(controller: controller),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Container(
-              color: AppColors.white,
-              child: TabBar(
-                labelColor: AppColors.ink,
-                unselectedLabelColor: AppColors.ink.withValues(alpha: 0.55),
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 2.4,
-                tabs: const [
-                  Tab(text: 'Contacts'),
-                  Tab(text: 'Members'),
-                  Tab(text: 'Invites'),
-                ],
-              ),
+            floatingActionButton: AnimatedBuilder(
+              animation: tabController.animation!,
+              builder: (context, _) {
+                if (tabController.index != 0) {
+                  return const SizedBox.shrink();
+                }
+                return FloatingActionButton(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  onPressed: () async {
+                    final images = await DocumentScannerService.scan(allowMultiple: false);
+                    if (images.isNotEmpty) {
+                      Get.snackbar('Scan complete', '${images.length} page(s) captured');
+                    }
+                    Get.back();
+                  },
+                  child: const Icon(Icons.badge_rounded),
+                );
+              },
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _ContactsTab(controller: controller),
-                  _MembersTab(controller: controller),
-                  _InvitesTab(controller: controller),
-                ],
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
-          onPressed: () async {
-            final images = await DocumentScannerService.scan(allowMultiple: false);
-            if (images.isNotEmpty) {
-              Get.snackbar('Scan complete', '${images.length} page(s) captured');
-            }
-            Get.back();
-          },
-          child: const Icon(Icons.badge_rounded),
-        ),
+          );
+        },
       ),
     );
   }
@@ -213,6 +227,70 @@ class _MembersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      if (controller.isMembersLoading.value) {
+        return const ManageEventMembersShimmerView();
+      }
+      if (controller.members.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.group_off_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No members found',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    controller.membersErrorText.value ??
+                        'Members will appear here once users join this event.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.ink.withValues(alpha: 0.60),
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton.tonal(
+                    onPressed: controller.fetchMembers,
+                    style: FilledButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Refresh'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
       return ListView.separated(
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
         itemCount: controller.members.length,
@@ -602,56 +680,88 @@ class _PersonTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isProtectedRole = _isOwnerOrAdmin(subtitle2);
+    final canShowActions =
+        !isProtectedRole && (onUpdate != null || onDelete != null);
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.09)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
+            color: AppColors.ink.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.ink.withValues(alpha: 0.06),
             ),
-            child: Icon(Icons.person_rounded, color: AppColors.ink.withValues(alpha: 0.55)),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.person_rounded,
+              size: 21,
+              color: AppColors.ink.withValues(alpha: 0.55),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle1, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.ink.withValues(alpha: 0.80))),
-                const SizedBox(height: 2),
-                Row(
+                Text(
+                  subtitle1,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.ink.withValues(alpha: 0.62),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
-                    Text(
-                      subtitle2,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _roleColor(subtitle2),
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      child: Text(
+                        subtitle2,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _roleColor(subtitle2),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    if (status != null) ...[
-                      const SizedBox(width: 10),
-                      Text(
-                        status!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.60),
-                          fontWeight: FontWeight.w600,
+                    if (status != null && status != 'accepted') ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: Text(
+                          status!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.60),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -660,28 +770,29 @@ class _PersonTile extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 30, maxWidth: 30),
-                visualDensity: VisualDensity.compact,
-                onPressed: onUpdate,
-                icon: Icon(Icons.edit_rounded, size: 20, color: AppColors.ink.withValues(alpha: 0.70)),
-                tooltip: 'Update',
-              ),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 30, maxWidth: 30),
-                visualDensity: VisualDensity.compact,
-                onPressed: onDelete,
-                icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.danger),
-                tooltip: 'Delete',
-              ),
-            ],
-          ),
+          const SizedBox(width: 4),
+          if (canShowActions)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onUpdate != null)
+                  _ActionButton(
+                    icon: Icons.edit_rounded,
+                    color: AppColors.ink.withValues(alpha: 0.68),
+                    tooltip: 'Update',
+                    onTap: onUpdate!,
+                  ),
+                if (onDelete != null) ...[
+                  const SizedBox(width: 6),
+                  _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                    tooltip: 'Delete',
+                    onTap: onDelete!,
+                  ),
+                ],
+              ],
+            ),
         ],
       ),
     );
@@ -692,6 +803,45 @@ class _PersonTile extends StatelessWidget {
     if (v.contains('admin')) return const Color(0xFFB42318);
     if (v.contains('editor')) return const Color(0xFF12B76A);
     return const Color(0xFF2E90FA);
+  }
+
+  bool _isOwnerOrAdmin(String role) {
+    final v = role.toLowerCase();
+    return v.contains('owner') || v.contains('admin');
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Ink(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 17, color: color),
+        ),
+      ),
+    );
   }
 }
 

@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/api.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
+import 'event_organizations_model.dart';
 
 class CreateEventController extends GetxController {
+  static const String noneOrganization = 'None';
+
+  late final ApiService _apiService;
   final nameController = TextEditingController();
   final dateController = TextEditingController();
   final locationController = TextEditingController();
@@ -11,21 +17,21 @@ class CreateEventController extends GetxController {
 
   final selectedDate = DateTime.now().obs;
   final selectedOrganization = RxnString();
-
-  final organizations = const <String>[
-    'None',
-    'Electronica Expo',
-    'Ombyte Systems LLP',
-  ];
+  final organizations = <String>[noneOrganization].obs;
+  final selectedOrganizationId = RxnString();
+  final isOrganizationsLoading = false.obs;
 
   final isSaving = false.obs;
   final errorText = RxnString();
+  final locationErrorText = RxnString();
 
   @override
   void onInit() {
     super.onInit();
+    _apiService = Get.find<ApiService>();
     dateController.text = dateLabel;
-    selectedOrganization.value = organizations.first;
+    selectedOrganization.value = noneOrganization;
+    fetchOrganizations();
   }
 
   @override
@@ -124,21 +130,107 @@ class CreateEventController extends GetxController {
     }
   }
 
-  void setOrganization(String? v) => selectedOrganization.value = v;
+  void setOrganization(String? v) {
+    selectedOrganization.value = v;
+    if (v == null || v == noneOrganization) {
+      selectedOrganizationId.value = null;
+      return;
+    }
+    EventOrganizationOption? selected;
+    for (final item in _organizationOptions) {
+      if (item.name == v) {
+        selected = item;
+        break;
+      }
+    }
+    selectedOrganizationId.value = selected?.id;
+  }
+
+  final _organizationOptions = <EventOrganizationOption>[];
+
+  Future<void> fetchOrganizations() async {
+    if (isOrganizationsLoading.value) return;
+    isOrganizationsLoading.value = true;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.profileOrganizationsSimple,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) return;
+          final parsed = EventOrganizationsResponse.fromJson(raw);
+          if (!parsed.ok) return;
+
+          _organizationOptions
+            ..clear()
+            ..addAll(parsed.data);
+
+          final names = <String>[
+            noneOrganization,
+            ..._organizationOptions
+                .map((e) => e.name.trim())
+                .where((e) => e.isNotEmpty),
+          ];
+          organizations.assignAll(names);
+          selectedOrganization.value = noneOrganization;
+          selectedOrganizationId.value = null;
+        },
+        onError: (_) {},
+      );
+    } finally {
+      isOrganizationsLoading.value = false;
+    }
+  }
 
   Future<void> save() async {
     errorText.value = null;
-    if (nameController.text.trim().isEmpty) {
+    locationErrorText.value = null;
+    final name = nameController.text.trim();
+    final location = locationController.text.trim();
+    final notes = notesController.text.trim();
+
+    if (name.isEmpty) {
       errorText.value = 'Event name is required';
       return;
     }
+    if (location.isEmpty) {
+      locationErrorText.value = 'Location is required';
+      return;
+    }
+
     if (isSaving.value) return;
     isSaving.value = true;
+
+    final d = selectedDate.value;
+    final eventDate =
+        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      // Close only the current bottom sheet overlay.
-      Get.back(closeOverlays: false);
-      Get.snackbar('Event', 'Saved');
+      final payload = <String, dynamic>{
+        'p_name': name,
+        'p_event_date': eventDate,
+        'p_location_text': location,
+        'p_organization_id': selectedOrganizationId.value,
+      };
+      if (notes.isNotEmpty) {
+        payload['p_notes'] = notes;
+      }
+
+      await _apiService.postRequest(
+        url: ApiUrl.events,
+        data: payload,
+        showSuccessToast: true,
+        successToastMessage: 'Event created successfully',
+        showErrorToast: true,
+        onSuccess: (_) {
+          Get.back(result: true, closeOverlays: false);
+        },
+        onError: (message) {
+          errorText.value =
+              message.isNotEmpty ? message : 'Failed to create event';
+        },
+      );
     } finally {
       isSaving.value = false;
     }

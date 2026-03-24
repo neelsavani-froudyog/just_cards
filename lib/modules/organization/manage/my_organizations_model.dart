@@ -2,11 +2,17 @@ class MyOrganizationsResponse {
   final bool ok;
   final String message;
   final List<OrganizationSummary> data;
+  final int limit;
+  final int total;
+  final int offset;
 
   const MyOrganizationsResponse({
     required this.ok,
     required this.message,
     required this.data,
+    required this.limit,
+    required this.total,
+    required this.offset,
   });
 
   factory MyOrganizationsResponse.fromJson(Map<String, dynamic> json) {
@@ -24,7 +30,15 @@ class MyOrganizationsResponse {
       ok: json['ok'] == true,
       message: (json['message'] ?? '').toString(),
       data: items,
+      limit: _toInt(json['limit']),
+      total: _toInt(json['total']),
+      offset: _toInt(json['offset']),
     );
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
 

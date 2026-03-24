@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -12,6 +13,7 @@ import 'toast_service.dart';
 class ApiService extends GetxService {
   final AuthSessionService _session = Get.find<AuthSessionService>();
 
+
   void _logRequest({
     required String method,
     required Uri uri,
@@ -21,6 +23,10 @@ class ApiService extends GetxService {
     if (!kDebugMode) return;
     debugPrint('[API][$method] ${uri.toString()}');
     debugPrint('[API][headers] $headers');
+    final auth = headers['Authorization'];
+    if (auth != null && auth.isNotEmpty) {
+      log('[API][auth-full] $auth');
+    }
     if (body != null && body.isNotEmpty) {
       debugPrint('[API][body] $body');
     }

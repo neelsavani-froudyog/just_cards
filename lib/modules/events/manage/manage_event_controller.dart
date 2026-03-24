@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/api.dart';
+import '../../../core/services/api_service.dart';
+import 'event_members_model.dart';
+
 class ManageEventController extends GetxController {
   late final ManageEventArgs args;
+  late final ApiService _apiService;
 
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
@@ -21,12 +26,9 @@ class ManageEventController extends GetxController {
   ];
 
   final members = <EventMember>[
-    const EventMember(name: 'Alok Shaw [ You ]', email: 'sarah.shaw@forudyog.com', role: 'Admin / Owner', status: null),
-    const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Editor', status: null),
-    const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Editor', status: 'Pending'),
-    const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Viewer', status: null),
-    const EventMember(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', role: 'Viewer', status: null),
   ].obs;
+  final isMembersLoading = false.obs;
+  final membersErrorText = RxnString();
 
   final sentInvites = <SentInvite>[
   ].obs;
@@ -36,7 +38,9 @@ class ManageEventController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _apiService = Get.find<ApiService>();
     args = ManageEventArgs.from(Get.arguments);
+    fetchMembers();
   }
 
   @override
@@ -115,16 +119,80 @@ class ManageEventController extends GetxController {
     if (index < 0 || index >= members.length) return;
     members.removeAt(index);
   }
+
+  Future<void> fetchMembers() async {
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty || isMembersLoading.value) return;
+    isMembersLoading.value = true;
+    membersErrorText.value = null;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.eventsMembers,
+        queryParameters: <String, dynamic>{'id': eventId},
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            membersErrorText.value = 'Invalid members response';
+            return;
+          }
+          final parsed = EventMembersResponse.fromJson(raw);
+          if (!parsed.ok) {
+            membersErrorText.value =
+                parsed.message.isNotEmpty ? parsed.message : 'Failed to load members';
+            return;
+          }
+          members.assignAll(
+            parsed.data
+                .map(
+                  (m) => EventMember(
+                    name: m.fullName.isNotEmpty ? m.fullName : 'Unknown',
+                    email: m.email,
+                    role: _normalizeRole(m.role),
+                    status: m.status,
+                  ),
+                )
+                .toList(),
+          );
+        },
+        onError: (message) {
+          membersErrorText.value =
+              (message?.isNotEmpty ?? false) ? message! : 'Failed to load members';
+        },
+      );
+    } finally {
+      isMembersLoading.value = false;
+    }
+  }
+
+  String _normalizeRole(String role) {
+    final value = role.trim().toLowerCase();
+    switch (value) {
+      case 'owner':
+        return 'Admin / Owner';
+      case 'admin':
+        return 'Admin';
+      case 'editor':
+        return 'Editor';
+      case 'viewer':
+        return 'Viewer';
+      default:
+        return role;
+    }
+  }
 }
 
 class ManageEventArgs {
   const ManageEventArgs({
+    required this.eventId,
     required this.title,
     required this.location,
     required this.membersCount,
     required this.cardsCount,
   });
 
+  final String eventId;
   final String title;
   final String location;
   final int membersCount;
@@ -133,6 +201,7 @@ class ManageEventArgs {
   static ManageEventArgs from(dynamic args) {
     final map = (args as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     return ManageEventArgs(
+      eventId: (map['eventId'] ?? '').toString(),
       title: (map['title'] as String?) ?? 'Event',
       location: (map['location'] as String?) ?? 'Greater Noida, India',
       membersCount: (map['membersCount'] as int?) ?? 12,

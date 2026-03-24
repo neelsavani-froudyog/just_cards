@@ -67,17 +67,20 @@ class CreateOrganizationController extends GetxController {
     isSubmitting.value = true;
 
     try {
+      final industry = selected == 'Other' ? customIndustry : (selected ?? '');
+      final payload = <String, dynamic>{
+        'p_name': name,
+        'p_private_by_default': isPrivateByDefault.value,
+        'p_export_allowed': isExportAllowed.value,
+        'p_admin_approval_required': isAdminApprovalRequired.value,
+      };
+      if (industry.trim().isNotEmpty) {
+        payload['p_industry'] = industry.trim();
+      }
+
       await _apiService.postRequest(
         url: ApiUrl.profileCreateOrganizations,
-        data: <String, dynamic>{
-          'p_name': name,
-          'p_industry': selected == 'Other'
-              ? customIndustry
-              : (selected ?? ''),
-          'p_private_by_default': isPrivateByDefault.value,
-          'p_export_allowed': isExportAllowed.value,
-          'p_admin_approval_required': isAdminApprovalRequired.value,
-        },
+        data: payload,
         showSuccessToast: true,
         successToastMessage: 'Organization created successfully',
         showErrorToast: true,

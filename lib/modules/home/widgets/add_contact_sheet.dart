@@ -126,9 +126,11 @@ class AddContactSheet extends StatelessWidget {
                 icon: Icons.calendar_month_rounded,
                 title: 'Create new event',
                 subtitle: 'Add or Scan Cards under segment',
-                onTap: () {
-                  // Get.back();
-                  CreateEventSheet.open();
+                onTap: () async {
+                  final created = await CreateEventSheet.open();
+                  if (created == true) {
+                    Get.back(result: true);
+                  }
                 },
               ),
             ),

@@ -105,10 +105,18 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
         return RefreshIndicator(
           onRefresh: controller.fetchOrganizations,
           child: ListView.separated(
+            controller: controller.scrollController,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            itemCount: controller.organizations.length,
+            itemCount: controller.organizations.length +
+                (controller.isFetchingMore.value ? 1 : 0),
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
+              if (index >= controller.organizations.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               final org = controller.organizations[index];
               return _OrganizationCard(org: org);
             },

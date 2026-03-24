@@ -16,6 +16,7 @@ class CreateOrganizationView extends GetView<CreateOrganizationController> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.surface,

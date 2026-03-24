@@ -9,8 +9,8 @@ import 'create_event_controller.dart';
 class CreateEventSheet extends StatelessWidget {
   const CreateEventSheet({super.key});
 
-  static void open() {
-    Get.bottomSheet(
+  static Future<dynamic> open() {
+    return Get.bottomSheet(
       const CreateEventSheet(),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -22,7 +22,7 @@ class CreateEventSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final keyboardInset = media.viewInsets.bottom;
-    final maxSheetHeight = media.size.height * (keyboardInset > 0 ? 0.70 : 0.65);
+    final maxSheetHeight = media.size.height * (keyboardInset > 0 ? 0.70 : 0.70);
 
     return GetBuilder<CreateEventController>(
       init: CreateEventController(),
@@ -32,8 +32,8 @@ class CreateEventSheet extends StatelessWidget {
           top: false,
           child: DraggableScrollableSheet(
             expand: false,
-            initialChildSize: keyboardInset > 0 ? 0.70 : 0.62,
-            minChildSize: 0.55,
+            initialChildSize: keyboardInset > 0 ? 0.70 : 0.70,
+            minChildSize: 0.68,
             maxChildSize: 0.70,
             builder: (context, scrollController) {
               return Container(
@@ -44,13 +44,13 @@ class CreateEventSheet extends StatelessWidget {
                 ),
                 child: NotificationListener<UserScrollNotification>(
                   onNotification: (notification) {
-                    FocusManager.instance.primaryFocus?.unfocus();
+                    // FocusManager.instance.primaryFocus?.unfocus();
                     return false;
                   },
                   child: ListView(
                     controller: scrollController,
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    // keyboardDismissBehavior:
+                    //     ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: EdgeInsets.fromLTRB(18, 10, 18, 18 + keyboardInset),
                     children: [
                       Center(
@@ -161,11 +161,28 @@ class CreateEventSheet extends StatelessWidget {
                             borderColor: AppColors.ink.withValues(alpha: 0.10),
                             prefixIcon: Icon(Icons.location_on_rounded, size: 18, color: AppColors.ink.withValues(alpha: 0.55)),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            onChanged: (_) => c.locationErrorText.value = null,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  Obx(() {
+                    final err = c.locationErrorText.value;
+                    if (err == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          err,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                   const SizedBox(height: 14),
                   Text(
                     'NOTES',
@@ -197,6 +214,7 @@ class CreateEventSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Obx(() {
+                    final loadingOrganizations = c.isOrganizationsLoading.value;
                     return CustomSearchDropdown<String>(
                       items: c.organizations,
                       selectedItem: c.selectedOrganization.value,
@@ -204,10 +222,14 @@ class CreateEventSheet extends StatelessWidget {
                       showSearchBox: false,
                       itemAsString: (s) => s,
                       onChanged: c.setOrganization,
+                      enabled: !loadingOrganizations,
                       bgColor: const Color(0xFFF5F7FB),
                       borderColor: AppColors.ink.withValues(alpha: 0.10),
                       borderRadius: 12,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      showShadow: true,
+                      searchHintText: 'Search organization',
+                      label: loadingOrganizations ? 'Loading organizations...' : null,
                     );
                   }),
                   const SizedBox(height: 18),

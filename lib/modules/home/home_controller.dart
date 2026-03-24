@@ -1,6 +1,12 @@
 import 'package:get/get.dart';
 
+import '../../core/services/api.dart';
+import '../../core/services/api_service.dart';
+import 'home_events_model.dart';
+
 class HomeController extends GetxController {
+  late final ApiService _apiService;
+
   final selectedFilter = 0.obs;
   final searchQuery = ''.obs;
 
@@ -13,11 +19,9 @@ class HomeController extends GetxController {
     HomeOverviewStat('Scans Left', '530'),
   ];
 
-  final events = const <HomeMiniEvent>[
-    HomeMiniEvent('Electronica 2026', 36),
-    HomeMiniEvent('PlastIndia 2026', 68),
-    HomeMiniEvent('Aahar 2026', 12),
-  ];
+  final events = <HomeMiniEvent>[].obs;
+  final isEventsLoading = false.obs;
+  final eventsErrorText = RxnString();
 
   final contacts = const <HomeContact>[
     HomeContact(name: 'Randy Rudolph', email: 'name@domain.com', company: 'Company Name'),
@@ -25,6 +29,60 @@ class HomeController extends GetxController {
     HomeContact(name: 'Priya Shah', email: 'priya@startup.io', company: 'Startup Studio'),
     HomeContact(name: 'Daniel Kim', email: 'daniel@domain.com', company: 'Kim & Co'),
   ];
+
+  @override
+  void onInit() {
+    super.onInit();
+    _apiService = Get.find<ApiService>();
+    fetchEvents();
+  }
+
+  Future<void> fetchEvents() async {
+    if (isEventsLoading.value) return;
+    isEventsLoading.value = true;
+    eventsErrorText.value = null;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.events,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            eventsErrorText.value = 'Invalid events response';
+            return;
+          }
+          final parsed = HomeEventsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            eventsErrorText.value =
+                parsed.message.isNotEmpty ? parsed.message : 'Failed to load events';
+            return;
+          }
+          events.assignAll(
+            parsed.data
+                .map(
+                  (e) => HomeMiniEvent(
+                    e.title.isNotEmpty ? e.title : 'Untitled Event',
+                    e.membersCount,
+                    id: e.id,
+                    location: e.location,
+                    eventDate: e.eventDate,
+                    scope: e.scope,
+                    organizationId: e.organizationId,
+                  ),
+                )
+                .toList(),
+          );
+        },
+        onError: (message) {
+          eventsErrorText.value =
+              (message?.isNotEmpty ?? false) ? message : 'Failed to load events';
+        },
+      );
+    } finally {
+      isEventsLoading.value = false;
+    }
+  }
 
   void setFilter(int index) => selectedFilter.value = index;
 
@@ -39,10 +97,23 @@ class HomeController extends GetxController {
 }
 
 class HomeMiniEvent {
-  const HomeMiniEvent(this.title, this.count);
+  const HomeMiniEvent(
+    this.title,
+    this.count, {
+    required this.id,
+    this.location = '',
+    this.eventDate = '',
+    this.scope = '',
+    this.organizationId,
+  });
 
+  final String id;
   final String title;
   final int count;
+  final String location;
+  final String eventDate;
+  final String scope;
+  final String? organizationId;
 }
 
 class HomeOverviewStat {

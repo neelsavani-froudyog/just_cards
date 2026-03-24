@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/custom_text_field.dart';
 import 'home_controller.dart';
+import 'home_events_shimmer_view.dart';
 import 'widgets/add_contact_sheet.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -19,12 +20,16 @@ class HomeView extends GetView<HomeController> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       floatingActionButton: FloatingActionButton(
-        onPressed:
-            () => Get.bottomSheet(
-              const AddContactSheet(),
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-            ),
+        onPressed: () async {
+          final result = await Get.bottomSheet(
+            const AddContactSheet(),
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+          );
+          if (result == true) {
+            await controller.fetchEvents();
+          }
+        },
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 10,
@@ -141,6 +146,20 @@ class HomeView extends GetView<HomeController> {
                         context,
                       ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
                     ),
+                    if (controller.events.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    Obx(() {
+                      final count = controller.events.length;
+                      return Text(
+                        '($count)',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.ink.withValues(alpha: 0.62),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    }),
+                    ]
+                    
                   ],
                 ),
               ),
@@ -148,19 +167,95 @@ class HomeView extends GetView<HomeController> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(0, 5, 18, 10),
               sliver: SliverToBoxAdapter(
-              child: SizedBox(
-                height: 118,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder:
-                      (context, index) =>
+                child: Obx(() {
+                  if (controller.isEventsLoading.value) {
+                    return const HomeEventsShimmerView();
+                  }
+                  if (controller.events.isEmpty) {
+                    return SizedBox(
+                      height: 118,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 18),
+                        child: Container(
+                          padding: const EdgeInsets.only(left: 25),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.ink.withValues(alpha: 0.12),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.ink.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primary.withValues(alpha: 0.10),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.event_busy_rounded,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'No events found',
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: AppColors.ink,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      controller.eventsErrorText.value ??
+                                          'Create your first event to get started.',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: AppColors.ink.withValues(alpha: 0.60),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return SizedBox(
+                    height: 118,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) =>
                           _EventCard(event: controller.events[index]),
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemCount: controller.events.length,
-                ),
+                      separatorBuilder: (_, __) => const SizedBox(width: 14),
+                      itemCount: controller.events.length,
+                    ),
+                  );
+                }),
               ),
-            ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
@@ -364,7 +459,9 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const cardsCount = 143;
-    const location = 'Greater Noida, India';
+    final location = event.location.isNotEmpty
+        ? event.location
+        : 'Location not specified';
 
     return Material(
       color: Colors.transparent,
@@ -374,6 +471,7 @@ class _EventCard extends StatelessWidget {
             () => Get.toNamed(
               Routes.manageEvent,
               arguments: <String, dynamic>{
+                'eventId': event.id,
                 'title': event.title,
                 'location': location,
                 'membersCount': event.count,
