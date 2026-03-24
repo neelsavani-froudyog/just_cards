@@ -14,7 +14,12 @@ class ApiUrl {
   static const String profileMe = '/profile/me';
   static const String createProfile = '/profile';
   static const String profileOrganizations = '/profile/organizations';
-  static const String profileCreateOrganizations = '/profile/createOrganizations';
+  static const String profileOrganizationsSimple =
+      '/profile/organizations/simple';
+  static const String profileCreateOrganizations =
+      '/profile/createOrganizations';
+  static const String events = '/events';
+  static const String eventsMembers = '/events/members';
 
   /// Call this once before making any API calls.
   static void configure({required String baseUrl}) {
@@ -22,4 +27,3 @@ class ApiUrl {
     ApiUrl.baseUrl = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
   }
 }
-
