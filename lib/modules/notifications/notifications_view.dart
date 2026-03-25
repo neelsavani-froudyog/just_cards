@@ -5,6 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/custom_text_field.dart';
 import 'notifications_controller.dart';
+import 'notifications_model.dart';
+import 'notifications_shimmer_view.dart';
 
 class NotificationsView extends GetView<NotificationsController> {
   const NotificationsView({super.key});
@@ -119,18 +121,52 @@ class NotificationsView extends GetView<NotificationsController> {
           ),
           Expanded(
             child: Obx(() {
-              final items = controller.filtered;
-              if (items.isEmpty) {
-                return _EmptyInvites();
+              if (controller.isLoading.value && controller.notifications.isEmpty) {
+                return const NotificationsShimmerView();
               }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final inv = items[index];
-                  return _InviteCard(invite: inv);
+              if (controller.errorText.value != null &&
+                  controller.notifications.isEmpty) {
+                return _ErrorState(
+                  message: controller.errorText.value!,
+                  onRetry: () => controller.fetchNotifications(reset: true),
+                );
+              }
+
+              final items = controller.notifications;
+              if (items.isEmpty) {
+                return const _EmptyInvites();
+              }
+              return NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.metrics.pixels >= n.metrics.maxScrollExtent - 220) {
+                    controller.loadMore();
+                  }
+                  return false;
                 },
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+                  itemCount:
+                      items.length + (controller.isLoadingMore.value ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    if (index >= items.length) {
+                      return Container(
+                        height: 56,
+                        alignment: Alignment.center,
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    }
+                    final item = items[index];
+                    return _NotificationCard(item: item);
+                  },
+                ),
               );
             }),
           ),
@@ -199,27 +235,64 @@ class _EmptyInvites extends StatelessWidget {
   }
 }
 
-class _InviteCard extends StatelessWidget {
-  const _InviteCard({required this.invite});
+// (Old mock invite card removed; the screen now renders `_NotificationCard`.)
 
-  final OrganizationInvite invite;
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+}
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.item});
+
+  final AppNotificationItem item;
+
+  String _timeAgo() {
+    final created = DateTime.tryParse(item.createdAt);
+    if (created == null) return '';
+    final diff = DateTime.now().toUtc().difference(created.toUtc());
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${created.year}-${created.month.toString().padLeft(2, '0')}-${created.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final status = invite.status;
-    final statusText = switch (status) {
-      InviteStatus.pending => 'Pending',
-      InviteStatus.accepted => 'Accepted',
-      InviteStatus.declined => 'Declined',
+    final status = item.actionStatus.toLowerCase();
+    final statusText = status.isNotEmpty ? status : 'pending';
+    final statusColor = switch (statusText) {
+      'accepted' => AppColors.primaryDark,
+      'declined' => AppColors.ink.withValues(alpha: 0.55),
+      _ => AppColors.primary,
     };
 
-    final statusColor = switch (status) {
-      InviteStatus.pending => AppColors.primary,
-      InviteStatus.accepted => AppColors.primaryDark,
-      InviteStatus.declined => AppColors.ink.withValues(alpha: 0.55),
-    };
+    final orgName =
+        item.organizationName ?? item.payload.organizationName ?? 'Organization';
 
     return Material(
       color: Colors.transparent,
@@ -229,9 +302,11 @@ class _InviteCard extends StatelessWidget {
           Get.toNamed(
             Routes.joinOrganization,
             arguments: {
-              'orgName': invite.orgName,
-              'role': invite.role,
-              'invitedBy': invite.invitedBy,
+              'orgName': orgName,
+              'role': item.role,
+              'invitedBy': item.invitedByName ?? '',
+              'inviteId': item.payload.inviteId,
+              'organizationId': item.payload.organizationId,
             },
           );
         },
@@ -265,9 +340,13 @@ class _InviteCard extends StatelessWidget {
                       AppColors.primary.withValues(alpha: 0.22),
                     ],
                   ),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+                  border:
+                      Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
                 ),
-                child: Icon(Icons.apartment_rounded, color: AppColors.ink.withValues(alpha: 0.80)),
+                child: Icon(
+                  Icons.notifications_rounded,
+                  color: AppColors.ink.withValues(alpha: 0.80),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -278,12 +357,12 @@ class _InviteCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            invite.orgName,
+                            item.title.isNotEmpty ? item.title : 'Notification',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: AppColors.ink,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -291,26 +370,59 @@ class _InviteCard extends StatelessWidget {
                         _StatusPill(text: statusText, color: statusColor),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      'Invited by ${invite.invitedBy} • ${invite.timeAgo}',
+                      orgName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.82),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.ink.withValues(alpha: 0.62),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.badge_rounded, size: 16, color: AppColors.ink.withValues(alpha: 0.55)),
+                        Icon(Icons.badge_rounded,
+                            size: 16,
+                            color: AppColors.ink.withValues(alpha: 0.55)),
                         const SizedBox(width: 6),
                         Text(
-                          invite.role,
+                          item.role,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.ink.withValues(alpha: 0.78),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '• ${_timeAgo()}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.55),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (!item.isSeen) ...[
+                          const Spacer(),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -324,27 +436,48 @@ class _InviteCard extends StatelessWidget {
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.text, required this.color});
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
 
-  final String text;
-  final Color color;
+  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.30)),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded,
+                size: 44, color: AppColors.danger),
+            const SizedBox(height: 10),
+            Text(
+              'Couldn’t load notifications',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w800,
+              ),
             ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink.withValues(alpha: 0.65),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.tonal(
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }

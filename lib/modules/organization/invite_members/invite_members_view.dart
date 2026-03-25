@@ -246,14 +246,15 @@ class _SentInvitePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.55),
-          width: 1.2,
+          color: AppColors.buttonColor.withValues(alpha: 0.45),
+          width: 1.1,
         ),
       ),
       child: Row(
@@ -264,21 +265,18 @@ class _SentInvitePill extends StatelessWidget {
               children: [
                 Text(
                   invite.email,
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.lightHubInk,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 RichText(
                   text: TextSpan(
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.ink.withValues(alpha: 0.72),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.buttonColor,
                     ),
                     children: [
-                      TextSpan(text: invite.role),
-                      const TextSpan(text: '   '),
-                      TextSpan(
-                        text: invite.status,
-                        style: TextStyle(color: AppColors.primary),
-                      ),
+                      TextSpan(text: '${invite.role} '),
                     ],
                   ),
                 ),

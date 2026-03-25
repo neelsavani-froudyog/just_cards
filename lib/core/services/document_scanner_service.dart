@@ -8,7 +8,7 @@ class DocumentScannerService {
     required bool allowMultiple,
   }) async {
     final options = DocumentScannerOptions(
-      documentFormat: DocumentFormat.jpeg,
+      documentFormats: const {DocumentFormat.jpeg},
       mode: ScannerMode.full,
       pageLimit: allowMultiple ? 20 : 1,
       isGalleryImport: true,

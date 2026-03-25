@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../routes/app_routes.dart';
+import '../../../core/services/api.dart';
+import '../../../core/services/api_service.dart';
 
 class SentInvite {
   const SentInvite({
@@ -22,11 +23,13 @@ class InviteMembersController extends GetxController {
   final inviteRole = 'Editor'.obs;
 
   Map<String, dynamic>? _orgArgs;
+  late final ApiService _apiService;
 
   @override
   void onInit() {
     super.onInit();
     _orgArgs = Get.arguments as Map<String, dynamic>?;
+    _apiService = Get.find<ApiService>();
   }
   final isInviting = false.obs;
 
@@ -52,6 +55,13 @@ class InviteMembersController extends GetxController {
       Get.snackbar('Invite', 'Please enter email');
       return;
     }
+    final alreadyAdded = sentInvites.any(
+      (i) => i.email.toLowerCase() == email.toLowerCase(),
+    );
+    if (alreadyAdded) {
+      Get.snackbar('Invite', 'This email is already added');
+      return;
+    }
     isInviting.value = true;
     try {
       await Future<void>.delayed(const Duration(milliseconds: 650));
@@ -69,11 +79,8 @@ class InviteMembersController extends GetxController {
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
 
   void skipForNow() {
-    if (_orgArgs != null) {
-      Get.offNamed(Routes.manageOrganization, arguments: _orgArgs);
-    } else {
-      Get.back();
-    }
+    Get.back();
+    Get.back();
   }
 
   Future<void> sendInvites() async {
@@ -82,12 +89,40 @@ class InviteMembersController extends GetxController {
       return;
     }
     if (isInviting.value) return;
+    final orgId = _orgArgs?['organizationId']?.toString().trim() ?? '';
+    if (orgId.isEmpty) {
+      Get.snackbar('Invite', 'Organization ID is missing');
+      return;
+    }
     isInviting.value = true;
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
-      inviteMessageController.clear();
-      Get.snackbar('Invite', 'Invites sent');
-      Get.back();
+      final users = sentInvites
+          .map(
+            (invite) => <String, dynamic>{
+              'email': invite.email,
+              'role': invite.role.toLowerCase(),
+              'invited_user_id': null,
+            },
+          )
+          .toList();
+
+      await _apiService.postRequest(
+        url: ApiUrl.organizationsInvites,
+        data: <String, dynamic>{
+          'organization_id': orgId,
+          'note': inviteMessageController.text.isNotEmpty ? inviteMessageController.text.trim() : null,
+          'users': users,
+        },
+        showSuccessToast: true,
+        successToastMessage: 'Invites sent successfully',
+        showErrorToast: true,
+        onSuccess: (_) {
+          inviteMessageController.clear();
+          sentInvites.clear();
+          Get.back();
+        },
+        onError: (_) {},
+      );
     } finally {
       isInviting.value = false;
     }

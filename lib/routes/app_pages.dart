@@ -20,8 +20,12 @@ import '../modules/organization/invite_members/invite_members_binding.dart';
 import '../modules/organization/invite_members/invite_members_view.dart';
 import '../modules/organization/join/join_organization_binding.dart';
 import '../modules/organization/join/join_organization_view.dart';
+import '../modules/organization/detail/organization_detail_binding.dart';
+import '../modules/organization/detail/organization_detail_view.dart';
 import '../modules/organization/manage/manage_organization_binding.dart';
 import '../modules/organization/manage/manage_organization_view.dart';
+import '../modules/organization/settings/organization_settings_binding.dart';
+import '../modules/organization/settings/organization_settings_view.dart';
 import '../modules/legal/terms_conditions_view.dart';
 import '../modules/legal/privacy_policy_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
@@ -59,6 +63,16 @@ class AppPages {
       name: Routes.manageOrganization,
       page: ManageOrganizationView.new,
       binding: ManageOrganizationBinding(),
+    ),
+    GetPage(
+      name: Routes.organizationDetail,
+      page: OrganizationDetailView.new,
+      binding: OrganizationDetailBinding(),
+    ),
+    GetPage(
+      name: Routes.organizationSettings,
+      page: OrganizationSettingsView.new,
+      binding: OrganizationSettingsBinding(),
     ),
     GetPage(
       name: Routes.manageEvent,

@@ -56,5 +56,28 @@ class AppColors {
   ];
 
   static const Color cardFill = surface;
+
+  /// Dark grey hub (organization detail, org settings) — layered on brand seed.
+  static const Color darkBg = Color(0xFF1A1A1A);
+  /// App bar + org header strip
+  static const Color darkSoft = Color(0xFF1F1F1F);
+  static const Color darkSurface = Color(0xFF242424);
+  static const Color darkCard = Color(0xFF2E2E2E);
+  static const Color darkBorder = Color(0xFF3F3F3F);
+  static const Color darkOnSurface = Color(0xFFF4F4F5);
+  static const Color darkOnSurfaceMuted = Color(0xFFA1A1AA);
+  /// Tab / link accent on dark backgrounds (readable contrast).
+  static const Color darkAccent = Color(0xFF5B9FFF);
+
+  /// Light hub — same feel as **Manage Event** (cool grey page, white chrome).
+  static const Color lightHubBg = Color(0xFFF8F9FB);
+  static const Color lightHubSurface = Color(0xFFFFFFFF);
+  static const Color lightHubInk = Color(0xFF1A1C1E);
+  static const Color lightHubMuted = Color(0xFF74777F);
+  static const Color lightHubBlue = Color(0xFF007AFF);
+  static const Color lightHubHint = Color(0xFFC4C7C5);
+  static const Color lightHubBorder = Color(0xFFE3E5E8);
+  static const Color lightHubFab = Color(0xFF303030);
+  static const Color lightHubAvatarFill = Color(0xFFF0F0F2);
 }
 

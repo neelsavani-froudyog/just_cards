@@ -1,90 +1,124 @@
 import 'package:get/get.dart';
 
-enum InviteStatus { pending, accepted, declined }
+import '../../core/services/api.dart';
+import '../../core/services/api_service.dart';
+import 'notifications_model.dart';
 
 enum InviteFilter { all, pending, accepted, declined }
 
-class OrganizationInvite {
-  const OrganizationInvite({
-    required this.id,
-    required this.orgName,
-    required this.role,
-    required this.invitedBy,
-    required this.timeAgo,
-    required this.status,
-  });
-
-  final String id;
-  final String orgName;
-  final String role;
-  final String invitedBy;
-  final String timeAgo;
-  final InviteStatus status;
-
-  OrganizationInvite copyWith({InviteStatus? status}) {
-    return OrganizationInvite(
-      id: id,
-      orgName: orgName,
-      role: role,
-      invitedBy: invitedBy,
-      timeAgo: timeAgo,
-      status: status ?? this.status,
-    );
-  }
-}
-
 class NotificationsController extends GetxController {
+  final ApiService _apiService = Get.find<ApiService>();
+
   final query = ''.obs;
   final filter = InviteFilter.all.obs;
 
-  final invites = <OrganizationInvite>[
-    const OrganizationInvite(
-      id: '1',
-      orgName: 'Electronica 2026',
-      role: 'Editor',
-      invitedBy: 'Alok Shaw',
-      timeAgo: '2h ago',
-      status: InviteStatus.pending,
-    ),
-    const OrganizationInvite(
-      id: '2',
-      orgName: 'Ombyte Systems LLP',
-      role: 'Viewer',
-      invitedBy: 'Sarah Shaw',
-      timeAgo: 'Yesterday',
-      status: InviteStatus.pending,
-    ),
-    const OrganizationInvite(
-      id: '3',
-      orgName: 'Startup Studio',
-      role: 'Admin',
-      invitedBy: 'Priya Shah',
-      timeAgo: '3d ago',
-      status: InviteStatus.accepted,
-    ),
-  ].obs;
+  final isLoading = false.obs;
+  final isLoadingMore = false.obs;
+  final errorText = RxnString();
+
+  final counts = const NotificationCounts(
+    all: 0,
+    pending: 0,
+    accepted: 0,
+    declined: 0,
+  ).obs;
+
+  final notifications = <AppNotificationItem>[].obs;
+
+  final int limit = 10;
+  int _offset = 0;
+  bool _hasMore = true;
+  int _requestSeq = 0;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchNotifications(reset: true);
+  }
 
   int countFor(InviteFilter f) {
-    if (f == InviteFilter.all) return invites.length;
-    return invites.where((i) => i.status.name == f.name).length;
+    final c = counts.value;
+    return switch (f) {
+      InviteFilter.all => c.all,
+      InviteFilter.pending => c.pending,
+      InviteFilter.accepted => c.accepted,
+      InviteFilter.declined => c.declined,
+    };
   }
 
-  List<OrganizationInvite> get filtered {
-    final q = query.value.trim().toLowerCase();
-    final f = filter.value;
-    return invites.where((i) {
-      final matchesQuery = q.isEmpty ||
-          i.orgName.toLowerCase().contains(q) ||
-          i.invitedBy.toLowerCase().contains(q) ||
-          i.role.toLowerCase().contains(q);
-      final matchesFilter =
-          f == InviteFilter.all ? true : i.status.name == f.name;
-      return matchesQuery && matchesFilter;
-    }).toList(growable: false);
+  void setQuery(String v) {
+    query.value = v;
+    fetchNotifications(reset: true);
   }
 
-  void setQuery(String v) => query.value = v;
+  void setFilter(InviteFilter v) {
+    if (filter.value == v) return;
+    filter.value = v;
+    fetchNotifications(reset: true);
+  }
 
-  void setFilter(InviteFilter v) => filter.value = v;
+  Future<void> fetchNotifications({required bool reset}) async {
+    if (isLoading.value) return;
+    if (!reset && (isLoadingMore.value || !_hasMore)) return;
+
+    final int seq = ++_requestSeq;
+    if (reset) {
+      _offset = 0;
+      _hasMore = true;
+      errorText.value = null;
+      isLoading.value = true;
+    } else {
+      isLoadingMore.value = true;
+    }
+
+    try {
+      final payload = <String, dynamic>{
+        'status': filter.value.name,
+        'search': query.value.trim(),
+        'limit': limit,
+        'offset': _offset,
+      };
+
+      await _apiService.postRequest(
+        url: ApiUrl.notifications,
+        data: payload,
+        showErrorToast: false,
+        onSuccess: (res) {
+          if (seq != _requestSeq) return;
+
+          final decoded = res['response'];
+          if (decoded is! Map<String, dynamic>) {
+            errorText.value = 'Invalid response';
+            return;
+          }
+
+          final parsed = NotificationsResponse.fromJson(decoded);
+          counts.value = parsed.data.counts;
+
+          final items = parsed.data.notifications;
+          if (reset) {
+            notifications.assignAll(items);
+          } else {
+            notifications.addAll(items);
+          }
+
+          _offset = notifications.length;
+          _hasMore = items.length >= limit;
+        },
+        onError: (message) {
+          if (seq != _requestSeq) return;
+          errorText.value =
+              message.isNotEmpty ? message : 'Failed to load';
+        },
+      );
+    } finally {
+      if (seq == _requestSeq) {
+        isLoading.value = false;
+        isLoadingMore.value = false;
+      }
+    }
+  }
+
+  Future<void> loadMore() => fetchNotifications(reset: false);
 }
 

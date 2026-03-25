@@ -229,7 +229,6 @@ class CreateEventSheet extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       showShadow: true,
                       searchHintText: 'Search organization',
-                      label: loadingOrganizations ? 'Loading organizations...' : null,
                     );
                   }),
                   const SizedBox(height: 18),

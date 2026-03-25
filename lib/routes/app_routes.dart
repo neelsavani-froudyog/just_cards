@@ -7,6 +7,8 @@ abstract class Routes {
   static const bottomNavigation = _Paths.bottomNavigation;
   static const createOrganization = _Paths.createOrganization;
   static const manageOrganization = _Paths.manageOrganization;
+  static const organizationDetail = _Paths.organizationDetail;
+  static const organizationSettings = _Paths.organizationSettings;
   static const manageEvent = _Paths.manageEvent;
   static const notifications = _Paths.notifications;
   static const joinOrganization = _Paths.joinOrganization;
@@ -28,6 +30,8 @@ abstract class _Paths {
   static const bottomNavigation = '/bottomNavigation';
   static const createOrganization = '/createOrganization';
   static const manageOrganization = '/manageOrganization';
+  static const organizationDetail = '/organizationDetail';
+  static const organizationSettings = '/organizationSettings';
   static const manageEvent = '/manageEvent';
   static const notifications = '/notifications';
   static const joinOrganization = '/joinOrganization';

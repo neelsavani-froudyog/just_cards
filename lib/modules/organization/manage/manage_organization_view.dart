@@ -27,10 +27,8 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final created = await Get.toNamed(Routes.createOrganization);
-          if (created == true) {
-            controller.fetchOrganizations();
-          }
+          await Get.toNamed(Routes.createOrganization);
+          controller.fetchOrganizations();
         },
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
@@ -136,10 +134,12 @@ class _OrganizationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => Get.toNamed(
-        Routes.inviteMembers,
+        Routes.organizationDetail,
         arguments: <String, dynamic>{
           'organizationId': org.id,
           'name': org.name,
+          'industry': org.industry,
+          'isActive': org.isActive,
         },
       ),
       borderRadius: BorderRadius.circular(18),

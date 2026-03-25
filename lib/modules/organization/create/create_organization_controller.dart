@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../routes/app_routes.dart';
+import '../manage/manage_organization_controller.dart';
 
 class CreateOrganizationController extends GetxController {
   final organizationNameController = TextEditingController();
@@ -50,6 +52,51 @@ class CreateOrganizationController extends GetxController {
     }
   }
 
+  String? _extractCreatedOrganizationId(dynamic raw) {
+    final fromRoot = _parseOrganizationIdFromMap(raw);
+    if (fromRoot != null) return fromRoot;
+    if (raw is Map && raw['response'] != null) {
+      return _parseOrganizationIdFromMap(raw['response']);
+    }
+    return null;
+  }
+
+  String? _parseOrganizationIdFromMap(dynamic raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+
+    final data = map['data'];
+    if (data is Map) {
+      final inner = Map<String, dynamic>.from(data);
+      final id = inner['id'] ?? inner['organization_id'];
+      if (id != null && id.toString().trim().isNotEmpty) {
+        return id.toString();
+      }
+    }
+    if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      if (first is Map) {
+        final inner = Map<String, dynamic>.from(first);
+        final id = inner['id'] ?? inner['organization_id'];
+        if (id != null && id.toString().trim().isNotEmpty) {
+          return id.toString();
+        }
+      }
+    }
+
+    final id = map['id'] ?? map['organization_id'];
+    if (id != null && id.toString().trim().isNotEmpty) {
+      return id.toString();
+    }
+    return null;
+  }
+
+  void _refreshOrganizationsList() {
+    if (Get.isRegistered<ManageOrganizationController>()) {
+      Get.find<ManageOrganizationController>().fetchOrganizations();
+    }
+  }
+
   Future<void> submit() async {
     errorText.value = null;
     final name = organizationNameController.text.trim();
@@ -84,8 +131,25 @@ class CreateOrganizationController extends GetxController {
         showSuccessToast: true,
         successToastMessage: 'Organization created successfully',
         showErrorToast: true,
-        onSuccess: (_) {
-          Get.back(result: true);
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          final orgId = _extractCreatedOrganizationId(raw);
+          _refreshOrganizationsList();
+          if (orgId != null && orgId.isNotEmpty) {
+            Get.offNamed(
+              Routes.inviteMembers,
+              arguments: <String, dynamic>{
+                'organizationId': orgId,
+                'name': name,
+              },
+            );
+          } else {
+            Get.snackbar(
+              'Organization created',
+              'Open your organization from the list to invite members.',
+            );
+            Get.back(result: true);
+          }
         },
         onError: (message) {
           errorText.value = message.isNotEmpty

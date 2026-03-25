@@ -99,11 +99,11 @@ class _OtpBody extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Obx(() {
-                          final s = c.secondsRemaining.value;
-                          final enabled = s == 0;
+                          final enabled = c.secondsRemaining.value == 0 &&
+                              !c.isResending.value;
                           return TextButton(
                             onPressed: enabled ? c.resend : null,
-                            child: Text(enabled ? 'Resend' : 'Resend in ${s}s'),
+                            child: Text(c.resendButtonText),
                           );
                         }),
                       ],

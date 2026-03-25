@@ -367,6 +367,110 @@ class ApiService extends GetxService {
     }
   }
 
+  Future<void> patchRequest({
+    required String url,
+    dynamic params,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool showSuccessToast = false,
+    String? successToastMessage,
+    bool showErrorToast = false,
+    required Function(Map<String, dynamic>) onSuccess,
+    required Function(String?) onError,
+  }) async {
+    try {
+      final uri = _resolveUri(url, queryParameters);
+
+      final Map<String, String> headers = <String, String>{
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      };
+      final token = _session.accessToken.value;
+      if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
+
+      final Object? payload = data ?? params;
+      final String? body = payload == null
+          ? null
+          : payload is String
+              ? payload
+              : json.encode(payload);
+      _logRequest(method: 'PATCH', uri: uri, headers: headers, body: body);
+
+      final response = await sendHttpRequest(
+        method: 'PATCH',
+        uri: uri,
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 401) {
+        _handleUnauthorized();
+        return;
+      }
+
+      final decodedBody = _tryDecode(response.bodyText);
+      _logResponse(
+        method: 'PATCH',
+        uri: uri,
+        statusCode: response.statusCode,
+        decodedBody: decodedBody,
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final message = _extractErrorMessage(decodedBody);
+        _logError(method: 'PATCH', endpoint: uri.toString(), message: message);
+        if (showErrorToast) {
+          await ToastService.error(message);
+        }
+        onError(message);
+        return;
+      }
+
+      if (decodedBody is Map) {
+        final dynamic statusCode = decodedBody['statusCode'];
+        if (statusCode != null && statusCode.toString() != '200') {
+          final message = decodedBody['message']?.toString() ??
+              decodedBody['error']?.toString() ??
+              'Request failed';
+          _logError(method: 'PATCH', endpoint: uri.toString(), message: message);
+          if (showErrorToast) {
+            await ToastService.error(message);
+          }
+          onError(message);
+          return;
+        }
+
+        final dynamic success = decodedBody['success'];
+        if (success is bool && success == false) {
+          final message = decodedBody['error']?.toString() ??
+              decodedBody['message']?.toString() ??
+              'Request failed';
+          _logError(method: 'PATCH', endpoint: uri.toString(), message: message);
+          if (showErrorToast) {
+            await ToastService.error(message);
+          }
+          onError(message);
+          return;
+        }
+      }
+
+      if (showSuccessToast) {
+        await ToastService.success(
+          successToastMessage ?? _extractSuccessMessage(decodedBody),
+        );
+      }
+
+      onSuccess(<String, dynamic>{'response': decodedBody});
+    } catch (e) {
+      final message = e.toString();
+      _logError(method: 'PATCH', endpoint: url, message: message);
+      if (showErrorToast) {
+        await ToastService.error(message);
+      }
+      onError(message);
+    }
+  }
+
   Future<void> deleteRequest({
     required String url,
     dynamic header,

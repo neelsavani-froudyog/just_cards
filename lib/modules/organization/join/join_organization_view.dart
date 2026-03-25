@@ -7,10 +7,91 @@ import 'join_organization_controller.dart';
 class JoinOrganizationView extends GetView<JoinOrganizationController> {
   const JoinOrganizationView({super.key});
 
+  List<_AbilitySpec> _abilitiesForRole(String roleRaw) {
+    final role = roleRaw.trim().toLowerCase();
+
+    // Viewer
+    if (role.contains('viewer')) {
+      return const [
+        _AbilitySpec(
+          icon: Icons.contacts_rounded,
+          title: 'Contacts view',
+          subtitle: 'Browse and search shared contacts in the organisation',
+        ),
+        _AbilitySpec(
+          icon: Icons.event_rounded,
+          title: 'Events view',
+          subtitle: 'View organisation events you have access to',
+        ),
+        _AbilitySpec(
+          icon: Icons.visibility_rounded,
+          title: 'View shared contacts',
+          subtitle: "Access the team’s shared business card database",
+        ),
+      ];
+    }
+
+    // Editor
+    if (role.contains('editor')) {
+      return const [
+        _AbilitySpec(
+          icon: Icons.document_scanner_rounded,
+          title: 'Card scan & add contacts',
+          subtitle: 'Scan business cards and add contacts to shared lists',
+        ),
+        _AbilitySpec(
+          icon: Icons.edit_rounded,
+          title: 'Edit contact details',
+          subtitle: 'Update and refine information on shared contacts',
+        ),
+        _AbilitySpec(
+          icon: Icons.visibility_rounded,
+          title: 'View shared contacts',
+          subtitle: "Access the team’s shared business card database",
+        ),
+      ];
+    }
+
+    // Admin (default)
+    return const [
+      _AbilitySpec(
+        icon: Icons.document_scanner_rounded,
+        title: 'Card scan & add contacts',
+        subtitle: 'Scan business cards and add contacts to shared lists',
+      ),
+      _AbilitySpec(
+        icon: Icons.edit_rounded,
+        title: 'Edit contact details',
+        subtitle: 'Update and refine information on shared contacts',
+      ),
+      _AbilitySpec(
+        icon: Icons.visibility_rounded,
+        title: 'View shared contacts',
+        subtitle: "Access the team’s shared business card database",
+      ),
+      _AbilitySpec(
+        icon: Icons.ios_share_rounded,
+        title: 'Contact export',
+        subtitle: 'Export shared contacts when needed',
+      ),
+      _AbilitySpec(
+        icon: Icons.add_circle_outline_rounded,
+        title: 'New event create',
+        subtitle: 'Create new events for your organisation',
+      ),
+      _AbilitySpec(
+        icon: Icons.person_add_alt_rounded,
+        title: 'New member invite',
+        subtitle: 'Invite members and manage organisation access',
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final a = controller.args;
+    final abilities = _abilitiesForRole(a.role);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -101,22 +182,15 @@ class JoinOrganizationView extends GetView<JoinOrganizationController> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const _AbilityTile(
-                      icon: Icons.visibility_rounded,
-                      title: 'View shared contacts',
-                      subtitle: "Access the team’s collective business card database",
-                    ),
-                    const SizedBox(height: 12),
-                    const _AbilityTile(
-                      icon: Icons.document_scanner_rounded,
-                      title: 'Scan and add contacts',
-                      subtitle: 'Use AI scanning to contribute new cards to the organisation',
-                    ),
-                    const SizedBox(height: 12),
-                    const _AbilityTile(
-                      icon: Icons.edit_rounded,
-                      title: 'Edit contact details',
-                      subtitle: 'Update and refine information on existing shared contacts',
+                    ...abilities.expand(
+                      (a) => [
+                        _AbilityTile(
+                          icon: a.icon,
+                          title: a.title,
+                          subtitle: a.subtitle,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -293,5 +367,17 @@ class _AbilityTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AbilitySpec {
+  const _AbilitySpec({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
 }
 

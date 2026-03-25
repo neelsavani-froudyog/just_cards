@@ -11,8 +11,10 @@ import '../../../routes/app_routes.dart';
 class OtpController extends GetxController {
   final codeController = TextEditingController();
   final isVerifying = false.obs;
+  final isResending = false.obs;
   final errorText = RxnString();
   final secondsRemaining = 59.obs;
+  final resendCount = 0.obs;
 
   Timer? _timer;
   bool _didRedirect = false;
@@ -150,11 +152,36 @@ class OtpController extends GetxController {
   Future<void> resend() async {
     errorText.value = null;
     if (secondsRemaining.value > 0) return;
-    secondsRemaining.value = 30;
-    _startTimer();
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (!isClosed) {
-      Get.snackbar('OTP sent', 'Check your inbox for a new code.');
+    if (isResending.value) return;
+    if (email.trim().isEmpty) {
+      errorText.value = 'Email is missing';
+      return;
+    }
+
+    isResending.value = true;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.resendOtp,
+        data: <String, dynamic>{'email': email.trim()},
+        showSuccessToast: true,
+        successToastMessage: 'OTP sent',
+        showErrorToast: true,
+        onSuccess: (_) {
+          codeController.clear();
+          resendCount.value = resendCount.value + 1;
+
+          final cooldownSeconds =
+              resendCount.value <= 3 ? 60 : (15 * 60);
+          secondsRemaining.value = cooldownSeconds;
+          _startTimer();
+        },
+        onError: (message) {
+          errorText.value =
+              message.isNotEmpty ? message : 'Failed to resend OTP';
+        },
+      );
+    } finally {
+      isResending.value = false;
     }
   }
 
@@ -162,10 +189,19 @@ class OtpController extends GetxController {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       final next = secondsRemaining.value - 1;
-      secondsRemaining.value = next.clamp(0, 59);
+      secondsRemaining.value = next < 0 ? 0 : next;
       if (secondsRemaining.value == 0) {
         t.cancel();
       }
     });
+  }
+
+  String get resendButtonText {
+    final s = secondsRemaining.value;
+    if (s <= 0) return 'Resend';
+    if (s < 60) return 'Resend in ${s}s';
+    final m = (s ~/ 60).toString().padLeft(2, '0');
+    final r = (s % 60).toString().padLeft(2, '0');
+    return 'Resend in $m:$r';
   }
 }
