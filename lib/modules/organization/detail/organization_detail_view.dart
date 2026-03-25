@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:just_cards/modules/organization/detail/organization_events_model.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_routes.dart';
@@ -286,7 +287,7 @@ class _EventsSection extends StatelessWidget {
               firstChild: Obx(() {
                 final events = controller.orgEvents;
                 return SizedBox(
-                  height: 100,
+                  height: 120,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -294,12 +295,12 @@ class _EventsSection extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final e = events[index];
-                      return _EventCard(preview: e);
+                      return _EventCard(event: e);
                     },
                   ),
                 );
               }),
-              secondChild: Container()
+              secondChild: const SizedBox.shrink(),
             ),
           ],
         ),
@@ -309,15 +310,15 @@ class _EventsSection extends StatelessWidget {
 }
 
 class _EventCard extends StatelessWidget {
-  const _EventCard({required this.preview});
+  const _EventCard({required this.event});
 
-  final OrgEventPreview preview;
+  final OrganizationEvent event;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 150,
+      width: 210,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         color: AppColors.lightHubSurface,
@@ -325,30 +326,74 @@ class _EventCard extends StatelessWidget {
         border: Border.all(color: AppColors.lightHubBorder),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            preview.title,
-            maxLines: 2,
+            event.eventName.isNotEmpty ? event.eventName : 'Event',
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.lightHubMuted,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.lightHubInk,
+              fontWeight: FontWeight.w800,
             ),
           ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_rounded,
+                size: 16,
+                color: AppColors.lightHubMuted,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  event.locationText.isNotEmpty ? event.locationText : '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.lightHubMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const Spacer(),
-          Text(
-            '${preview.contactCount}',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: AppColors.lightHubInk,
-              fontWeight: FontWeight.w900,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.lightHubAvatarFill,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${event.contactCount} Contacts',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.lightHubInk,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  String _formatEventDate(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return '—';
+    final dt = DateTime.tryParse(v);
+    if (dt == null) return v;
+    const months = <String>[
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final m = (dt.month >= 1 && dt.month <= 12) ? months[dt.month - 1] : '';
+    return '${dt.day.toString().padLeft(2, '0')} $m ${dt.year}';
   }
 }
 
@@ -782,7 +827,7 @@ class MemberTile extends StatelessWidget {
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing:0,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

@@ -5,6 +5,7 @@ import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
 import '../../events/manage/manage_event_controller.dart'
     show EventPerson, SentInvite;
+import 'organization_events_model.dart';
 import 'organization_members_model.dart';
 
 class OrganizationDetailArgs {
@@ -39,13 +40,6 @@ class OrganizationDetailArgs {
   }
 }
 
-class OrgEventPreview {
-  const OrgEventPreview({required this.title, required this.contactCount});
-
-  final String title;
-  final int contactCount;
-}
-
 class OrganizationDetailController extends GetxController {
   late final OrganizationDetailArgs args;
 
@@ -61,11 +55,9 @@ class OrganizationDetailController extends GetxController {
   final inviteRole = 'Editor'.obs;
   final isInviting = false.obs;
 
-  final orgEvents = <OrgEventPreview>[
-    const OrgEventPreview(title: 'Electronica 2026', contactCount: 36),
-    const OrgEventPreview(title: 'PlastIndia 2026', contactCount: 68),
-    const OrgEventPreview(title: 'Aahar Expo 2026', contactCount: 24),
-  ].obs;
+  final orgEvents = <OrganizationEvent>[].obs;
+  final isEventsLoading = false.obs;
+  final eventsErrorText = RxnString();
 
   final contacts = <EventPerson>[
     const EventPerson(
@@ -105,6 +97,7 @@ class OrganizationDetailController extends GetxController {
     args = OrganizationDetailArgs.from(Get.arguments);
     _apiService = Get.find<ApiService>();
     fetchMembers();
+    fetchOrganizationEvents();
   }
 
   @override
@@ -160,6 +153,47 @@ class OrganizationDetailController extends GetxController {
       );
     } finally {
       isMembersLoading.value = false;
+    }
+  }
+
+  Future<void> fetchOrganizationEvents() async {
+    final orgId = args.organizationId.trim();
+    if (orgId.isEmpty || isEventsLoading.value) return;
+
+    isEventsLoading.value = true;
+    eventsErrorText.value = null;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.eventsOrganization,
+        queryParameters: <String, dynamic>{'organizationId': orgId},
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            eventsErrorText.value = 'Invalid events response';
+            orgEvents.clear();
+            return;
+          }
+
+          final parsed = OrganizationEventsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            eventsErrorText.value =
+                parsed.message.isNotEmpty ? parsed.message : 'Failed to load events';
+            orgEvents.clear();
+            return;
+          }
+
+          orgEvents.assignAll(parsed.data);
+        },
+        onError: (message) {
+          eventsErrorText.value =
+              (message?.isNotEmpty ?? false) ? message! : 'Failed to load events';
+          orgEvents.clear();
+        },
+      );
+    } finally {
+      isEventsLoading.value = false;
     }
   }
 
@@ -289,7 +323,7 @@ class OrganizationDetailController extends GetxController {
         url: ApiUrl.organizationsInvites,
         data: <String, dynamic>{
           'organization_id': orgId,
-          'note': inviteMessageController.text.trim(),
+          'note': inviteMessageController.text.isNotEmpty ? inviteMessageController.text.trim() : null,
           'users': users,
         },
         showSuccessToast: true,

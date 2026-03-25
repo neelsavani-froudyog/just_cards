@@ -5,8 +5,8 @@
 class ApiUrl {
   /// Base URL for all app API calls.
   /// Change this for different environments.
-  // static String baseUrl = 'https://just-card-backend.vercel.app';
-  static String baseUrl = 'http://localhost:3000';
+  static String baseUrl = 'https://just-card-backend.vercel.app';
+  // static String baseUrl = 'http://localhost:3000';
 
   /// Auth
   static const String sendOtp = '/auth/otp/send';
@@ -31,6 +31,7 @@ class ApiUrl {
   static const String notifications = '/notifications';
   static const String events = '/events';
   static const String eventsMembers = '/events/members';
+  static const String eventsOrganization = '/events/organization';
 
   /// Call this once before making any API calls.
   static void configure({required String baseUrl}) {
