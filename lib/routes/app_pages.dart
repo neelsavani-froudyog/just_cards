@@ -12,6 +12,8 @@ import '../modules/contacts/details/contact_details_binding.dart';
 import '../modules/contacts/details/contact_details_view.dart';
 import '../modules/events/manage/manage_event_binding.dart';
 import '../modules/events/manage/manage_event_view.dart';
+import '../modules/events/join/join_event_binding.dart';
+import '../modules/events/join/join_event_view.dart';
 import '../modules/notifications/notifications_binding.dart';
 import '../modules/notifications/notifications_view.dart';
 import '../modules/organization/create/create_organization_binding.dart';
@@ -88,6 +90,11 @@ class AppPages {
       name: Routes.joinOrganization,
       page: JoinOrganizationView.new,
       binding: JoinOrganizationBinding(),
+    ),
+    GetPage(
+      name: Routes.joinEvent,
+      page: JoinEventView.new,
+      binding: JoinEventBinding(),
     ),
     GetPage(
       name: Routes.contactDetails,

@@ -285,7 +285,77 @@ class _EventsSection extends StatelessWidget {
                   : CrossFadeState.showSecond,
               duration: const Duration(milliseconds: 220),
               firstChild: Obx(() {
+                final isLoading = controller.isEventsLoading.value;
                 final events = controller.orgEvents;
+
+                if (isLoading) {
+                  return const SizedBox(
+                    height: 120,
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      ),
+                    ),
+                  );
+                }
+
+                if (events.isEmpty) {
+                  return SizedBox(
+                    height: 120,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primary.withValues(alpha: 0.10),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.event_busy_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No events found',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: AppColors.lightHubInk,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.eventsErrorText.value ??
+                                  'Create your first event to get started.',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.lightHubInk.withValues(alpha: 0.60),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
                 return SizedBox(
                   height: 120,
                   child: ListView.separated(
@@ -381,19 +451,6 @@ class _EventCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatEventDate(String raw) {
-    final v = raw.trim();
-    if (v.isEmpty) return '—';
-    final dt = DateTime.tryParse(v);
-    if (dt == null) return v;
-    const months = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final m = (dt.month >= 1 && dt.month <= 12) ? months[dt.month - 1] : '';
-    return '${dt.day.toString().padLeft(2, '0')} $m ${dt.year}';
   }
 }
 

@@ -14,8 +14,8 @@ class NotificationsResponse {
       ok: json['ok'] == true,
       success: json['success'] == true,
       data: NotificationsData.fromJson(
-        (json['data'] is Map<String, dynamic>)
-            ? (json['data'] as Map<String, dynamic>)
+        json['data'] is Map<String, dynamic>
+            ? json['data']
             : <String, dynamic>{},
       ),
     );
@@ -34,6 +34,7 @@ class NotificationsData {
   factory NotificationsData.fromJson(Map<String, dynamic> json) {
     final raw = json['notifications'];
     final items = <AppNotificationItem>[];
+
     if (raw is List) {
       for (final e in raw) {
         if (e is Map<String, dynamic>) {
@@ -41,10 +42,11 @@ class NotificationsData {
         }
       }
     }
+
     return NotificationsData(
       counts: NotificationCounts.fromJson(
-        (json['counts'] is Map<String, dynamic>)
-            ? (json['counts'] as Map<String, dynamic>)
+        json['counts'] is Map<String, dynamic>
+            ? json['counts']
             : <String, dynamic>{},
       ),
       notifications: items,
@@ -67,6 +69,7 @@ class NotificationCounts {
 
   factory NotificationCounts.fromJson(Map<String, dynamic> json) {
     int parseInt(dynamic v) => int.tryParse((v ?? 0).toString()) ?? 0;
+
     return NotificationCounts(
       all: parseInt(json['all']),
       pending: parseInt(json['pending']),
@@ -112,6 +115,14 @@ class AppNotificationItem {
   });
 
   factory AppNotificationItem.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic v) {
+      try {
+        return v != null ? DateTime.parse(v.toString()) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
     return AppNotificationItem(
       id: (json['id'] ?? '').toString(),
       role: (json['role'] ?? '').toString(),
@@ -119,12 +130,12 @@ class AppNotificationItem {
       isSeen: json['is_seen'] == true,
       message: (json['message'] ?? '').toString(),
       payload: NotificationPayload.fromJson(
-        (json['payload'] is Map<String, dynamic>)
-            ? (json['payload'] as Map<String, dynamic>)
+        json['payload'] is Map<String, dynamic>
+            ? json['payload']
             : <String, dynamic>{},
       ),
       entityId: (json['entity_id'] ?? '').toString(),
-      createdAt: (json['created_at'] ?? '').toString(),
+      createdAt: json['created_at'],
       actionType: (json['action_type'] ?? '').toString(),
       entityType: (json['entity_type'] ?? '').toString(),
       actionStatus: (json['action_status'] ?? '').toString(),
@@ -139,13 +150,21 @@ class AppNotificationItem {
 class NotificationPayload {
   final String? note;
   final String? role;
+
+  // Common
   final String? inviteId;
   final String? invitedBy;
   final String? appOpenPath;
   final String? accessSummary;
-  final String? organizationId;
   final String? appDownloadUrl;
+
+  // Organization
+  final String? organizationId;
   final String? organizationName;
+
+  // Event ✅ (NEW)
+  final String? eventId;
+  final String? eventName;
 
   const NotificationPayload({
     required this.note,
@@ -155,8 +174,10 @@ class NotificationPayload {
     required this.appOpenPath,
     required this.accessSummary,
     required this.organizationId,
-    required this.appDownloadUrl,
     required this.organizationName,
+    required this.appDownloadUrl,
+    required this.eventId,
+    required this.eventName,
   });
 
   factory NotificationPayload.fromJson(Map<String, dynamic> json) {
@@ -168,9 +189,12 @@ class NotificationPayload {
       appOpenPath: json['app_open_path']?.toString(),
       accessSummary: json['access_summary']?.toString(),
       organizationId: json['organization_id']?.toString(),
-      appDownloadUrl: json['app_download_url']?.toString(),
       organizationName: json['organization_name']?.toString(),
+      appDownloadUrl: json['app_download_url']?.toString(),
+
+      // ✅ Event fields (FIX)
+      eventId: json['event_id']?.toString(),
+      eventName: json['event_name']?.toString(),
     );
   }
 }
-

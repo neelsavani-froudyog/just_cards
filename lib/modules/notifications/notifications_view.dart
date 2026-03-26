@@ -121,7 +121,8 @@ class NotificationsView extends GetView<NotificationsController> {
           ),
           Expanded(
             child: Obx(() {
-              if (controller.isLoading.value && controller.notifications.isEmpty) {
+              // Show shimmer during filter/search refresh even if old data exists.
+              if (controller.isLoading.value) {
                 return const NotificationsShimmerView();
               }
               if (controller.errorText.value != null &&
@@ -294,21 +295,37 @@ class _NotificationCard extends StatelessWidget {
     final orgName =
         item.organizationName ?? item.payload.organizationName ?? 'Organization';
 
+    final entityType = item.entityType.toLowerCase();
+    final notificationType = item.notificationType.toLowerCase();
+    final isEventInvite = entityType.contains('event') || notificationType.contains('event');
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Get.toNamed(
-            Routes.joinOrganization,
-            arguments: {
-              'orgName': orgName,
-              'role': item.role,
-              'invitedBy': item.invitedByName ?? '',
-              'inviteId': item.payload.inviteId,
-              'organizationId': item.payload.organizationId,
-            },
+        onTap: () async {
+          final shouldRefresh = await Get.toNamed(
+            isEventInvite ? Routes.joinEvent : Routes.joinOrganization,
+            arguments: isEventInvite
+                ? <String, dynamic>{
+                    'eventName': item.payload.eventName,
+                    'role': item.role,
+                    'invitedBy': item.invitedByName ?? '',
+                    // Prefer payload inviteId; fall back to notification entityId.
+                    'inviteId': item.payload.inviteId ?? item.entityId,
+                    'eventId': item.entityId,
+                  }
+                : <String, dynamic>{
+                    'orgName': orgName,
+                    'role': item.role,
+                    'invitedBy': item.invitedByName ?? '',
+                    'inviteId': item.payload.inviteId,
+                    'organizationId': item.payload.organizationId,
+                  },
           );
+          if (shouldRefresh == true) {
+            Get.find<NotificationsController>().fetchNotifications(reset: true);
+          }
         },
         child: Ink(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -372,7 +389,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      orgName,
+                      isEventInvite ? item.payload.eventName ?? "" : orgName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(

@@ -71,36 +71,96 @@ class ManageEventController extends GetxController {
     return inviteRole;
   }
 
-  Future<void> sendInvite() async {
-    if (isInviting.value) return;
+  void addInviteToLocalList() {
     final email = inviteEmailController.text.trim();
-    if (email.isEmpty) {
-      // Get.snackbar('Invite', 'Please enter email');
+    if (email.isEmpty) return;
+
+    // Keep message as a shared note for the whole batch (same payload for all users).
+    sentInvites.insert(
+      0,
+      SentInvite(
+        email: email,
+        role: inviteRole.value,
+        status: 'Pending',
+      ),
+    );
+    inviteEmailController.clear();
+    Get.snackbar('Invite', 'Added to invite list');
+  }
+
+  String _apiRoleFromUiRole(String uiRole) {
+    final v = uiRole.toLowerCase();
+    if (v.contains('admin') || v.contains('owner')) return 'admin';
+    if (v.contains('editor')) return 'editor';
+    if (v.contains('viewer')) return 'viewer';
+    return v;
+  }
+
+  Future<void> _sendInvitesRequest(List<SentInvite> invites) async {
+    if (isInviting.value) return;
+    if (invites.isEmpty) {
+      Get.snackbar('Invite', 'Add members to the invite list first');
       return;
     }
+
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty) return;
+
+    final note = inviteMessageController.text.trim();
+    final users = invites
+        .map(
+          (i) => <String, dynamic>{
+            'email': i.email.trim(),
+            'role': _apiRoleFromUiRole(i.role),
+          },
+        )
+        .toList();
+
     isInviting.value = true;
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 650));
-      sentInvites.insert(
-        0,
-        SentInvite(email: email, role: inviteRole.value, status: 'Sent'),
+      var didSucceed = false;
+
+      await _apiService.postRequest(
+        url: ApiUrl.eventsInvites,
+        data: <String, dynamic>{
+          'event_id': eventId,
+          'note': note.isNotEmpty ? note : null,
+          'users': users,
+        },
+        showSuccessToast: true,
+        successToastMessage: 'Invites sent',
+        showErrorToast: true,
+        onSuccess: (_) {
+          didSucceed = true;
+        },
+        onError: (_) {},
       );
-      inviteEmailController.clear();
-      inviteMessageController.clear();
-      Get.snackbar('Invite', 'Invite sent');
+
+      if (didSucceed) {
+        sentInvites.clear();
+        inviteMessageController.clear();
+      }
     } finally {
       isInviting.value = false;
     }
   }
 
+  Future<void> sendInvites() => _sendInvitesRequest(sentInvites.toList());
+
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
 
   Future<void> resendInviteForMember(EventMember member) async {
-    // Reuse the same invite flow (email + role) for a member.
-    inviteEmailController.text = member.email;
-    inviteRole.value = _inviteRoleFromMemberRole(member.role);
-    inviteMessageController.clear();
-    await sendInvite();
+    // Resend for a single user (do not touch the local batch list).
+    if (isInviting.value) return;
+    await _sendInvitesRequest(
+      <SentInvite>[
+        SentInvite(
+          email: member.email,
+          role: _inviteRoleFromMemberRole(member.role),
+          status: 'Pending',
+        ),
+      ],
+    );
   }
 
   void updateMemberRole(int index, String inviteRole) {
@@ -112,6 +172,7 @@ class ManageEventController extends GetxController {
       email: existing.email,
       role: nextRole,
       status: existing.status,
+      joinedAt: existing.joinedAt,
     );
   }
 
@@ -151,6 +212,7 @@ class ManageEventController extends GetxController {
                     email: m.email,
                     role: _normalizeRole(m.role),
                     status: m.status,
+                    joinedAt: m.joinedAt?.trim().isEmpty == true ? null : m.joinedAt,
                   ),
                 )
                 .toList(),
@@ -219,12 +281,19 @@ class EventPerson {
 }
 
 class EventMember {
-  const EventMember({required this.name, required this.email, required this.role, required this.status});
+  const EventMember({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.status,
+    this.joinedAt,
+  });
 
   final String name;
   final String email;
   final String role;
   final String? status;
+  final String? joinedAt;
 }
 
 class SentInvite {

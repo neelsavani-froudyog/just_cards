@@ -28,8 +28,10 @@ class ApiUrl {
       '/organizations/invites/member';
   static const String organizationsInvitesRespond =
       '/organizations/invites/respond';
+  static const String eventsInvitesRespond = '/events/invites/respond';
   static const String notifications = '/notifications';
   static const String events = '/events';
+  static const String eventsInvites = '/events/invites';
   static const String eventsMembers = '/events/members';
   static const String eventsOrganization = '/events/organization';
 

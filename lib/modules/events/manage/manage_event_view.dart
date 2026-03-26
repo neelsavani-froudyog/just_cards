@@ -219,13 +219,45 @@ class _ContactsTab extends StatelessWidget {
   }
 }
 
-class _MembersTab extends StatelessWidget {
+class _MembersTab extends StatefulWidget {
   const _MembersTab({required this.controller});
 
   final ManageEventController controller;
 
   @override
+  State<_MembersTab> createState() => _MembersTabState();
+}
+
+class _MembersTabState extends State<_MembersTab> {
+  TabController? _tabController;
+  bool _listenerAttached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tabController ??= DefaultTabController.of(context);
+    if (_listenerAttached) return;
+    _listenerAttached = true;
+    _tabController!.addListener(_handleTabChange);
+    _handleTabChange(); // fetch if members tab is already visible
+  }
+
+  void _handleTabChange() {
+    if (_tabController == null) return;
+    if (_tabController!.index == 1 && !_tabController!.indexIsChanging) {
+      widget.controller.fetchMembers();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_handleTabChange);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     return Obx(() {
       if (controller.isMembersLoading.value) {
         return const ManageEventMembersShimmerView();
@@ -411,16 +443,18 @@ class _MembersTab extends StatelessWidget {
                 emailController.dispose();
               });
             },
-            onDelete: () {
-              ConfirmDialog.show(
-                title: 'Delete member?',
-                message: 'Remove ${m.email} from event members?',
-                confirmText: 'Delete',
-                destructive: true,
-              ).then((ok) {
-                if (ok) controller.deleteMember(index);
-              });
-            },
+            onDelete: m.joinedAt == null
+                ? null
+                : () {
+                    ConfirmDialog.show(
+                      title: 'Delete member?',
+                      message: 'Remove ${m.email} from event members?',
+                      confirmText: 'Delete',
+                      destructive: true,
+                    ).then((ok) {
+                      if (ok) controller.deleteMember(index);
+                    });
+                  },
           );
         },
       );
@@ -512,7 +546,7 @@ class _InvitesTab extends StatelessWidget {
             child: Obx(() {
               final busy = controller.isInviting.value;
               return FilledButton.tonal(
-                onPressed: busy ? null : controller.sendInvite,
+                onPressed: busy ? null : controller.addInviteToLocalList,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -561,7 +595,7 @@ class _InvitesTab extends StatelessWidget {
             child: Obx(() {
               final busy = controller.isInviting.value;
               return FilledButton(
-                onPressed: busy ? null : controller.sendInvite,
+                onPressed: busy ? null : controller.sendInvites,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
@@ -618,7 +652,7 @@ class _SentInvitePill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.55), width: 1.2),
+        border: Border.all(color: AppColors.buttonColor.withValues(alpha: 0.55), width: 1.2),
       ),
       child: Row(
         children: [
@@ -632,7 +666,7 @@ class _SentInvitePill extends StatelessWidget {
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.ink.withValues(alpha: 0.72)),
                     children: [
-                      TextSpan(text: invite.role, style: TextStyle(color: AppColors.primary)),
+                      TextSpan(text: invite.role, style: TextStyle(color: AppColors.buttonColor)),
                     ],
                   ),
                 ),

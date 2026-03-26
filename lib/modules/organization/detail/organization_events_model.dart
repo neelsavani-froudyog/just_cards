@@ -12,9 +12,13 @@ class OrganizationEventsResponse {
   factory OrganizationEventsResponse.fromJson(Map<String, dynamic> json) {
     final ok = json['ok'] == true;
     final message = json['message']?.toString() ?? '';
-    final raw = json['data'];
-    final items = raw is List
-        ? raw
+    // API may return either:
+    // 1) { data: [ ... ] }
+    // 2) { data: { data: [ ... ], total: N } }
+    final dynamic raw = json['data'];
+    final dynamic rawList = raw is Map<String, dynamic> ? raw['data'] : raw;
+    final items = rawList is List
+        ? rawList
             .whereType<Map>()
             .map((e) => OrganizationEvent.fromJson(e.cast<String, dynamic>()))
             .toList()

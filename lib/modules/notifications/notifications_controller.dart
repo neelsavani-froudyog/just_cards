@@ -10,7 +10,7 @@ class NotificationsController extends GetxController {
   final ApiService _apiService = Get.find<ApiService>();
 
   final query = ''.obs;
-  final filter = InviteFilter.all.obs;
+  final filter = InviteFilter.pending.obs;
 
   final isLoading = false.obs;
   final isLoadingMore = false.obs;

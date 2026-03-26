@@ -10,10 +10,16 @@ class HomeEventsResponse {
   });
 
   factory HomeEventsResponse.fromJson(Map<String, dynamic> json) {
-    final rawData = json['data'];
+    // API may return either:
+    // 1) { data: [ ... ] }
+    // 2) { data: { data: [ ... ], total: N } }
+    final dynamic rawData = json['data'];
+    final dynamic rawList =
+        rawData is Map<String, dynamic> ? rawData['data'] : rawData;
+
     final items = <HomeEventItem>[];
-    if (rawData is List) {
-      for (final item in rawData) {
+    if (rawList is List) {
+      for (final item in rawList) {
         if (item is Map<String, dynamic>) {
           items.add(HomeEventItem.fromJson(item));
         }
