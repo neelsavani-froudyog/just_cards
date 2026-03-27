@@ -1,7 +1,21 @@
 import 'package:get/get.dart';
 
+import '../home/home_controller.dart';
+
 class BottomNavigationController extends GetxController {
   final selectedIndex = 0.obs;
 
-  void onSelect(int index) => selectedIndex.value = index;
+  Future<void> onSelect(int index) async {
+    selectedIndex.value = index;
+
+    if (index != 0 || !Get.isRegistered<HomeController>()) {
+      return;
+    }
+
+    final homeController = Get.find<HomeController>();
+    await Future.wait<void>([
+      homeController.fetchEvents(),
+      homeController.fetchScanQuotaStatus(),
+    ]);
+  }
 }

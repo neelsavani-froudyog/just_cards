@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'core/services/api.dart';
 import 'core/services/api_service.dart';
 import 'core/services/auth_session_service.dart';
+import 'core/services/connectivity_service.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'widgets/no_internet_overlay.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   ApiUrl.configure(baseUrl: ApiUrl.baseUrl);
   final session = Get.put<AuthSessionService>(
     AuthSessionService(),
@@ -18,6 +25,7 @@ Future<void> main() async {
   );
   await session.loadPersistedSession();
   Get.put<ApiService>(ApiService(), permanent: true);
+  Get.put<ConnectivityService>(ConnectivityService(), permanent: true);
   runApp(const JustCardsApp());
 }
 
@@ -40,6 +48,9 @@ class JustCardsApp extends StatelessWidget {
       ),
       initialRoute: Routes.splash,
       getPages: AppPages.pages,
+      builder: (context, child) {
+        return NoInternetOverlay(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }

@@ -20,6 +20,7 @@ abstract class Routes {
   static const privacyPolicy = _Paths.privacyPolicy;
   static const scanResult = _Paths.scanResult;
   static const manualEntry = _Paths.manualEntry;
+  static const importQr = _Paths.importQr;
 }
 
 abstract class _Paths {
@@ -44,4 +45,5 @@ abstract class _Paths {
   static const privacyPolicy = '/privacyPolicy';
   static const scanResult = '/scanResult';
   static const manualEntry = '/manualEntry';
+  static const importQr = '/importQr';
 }

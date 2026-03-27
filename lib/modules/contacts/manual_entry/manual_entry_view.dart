@@ -13,66 +13,76 @@ class ManualEntryView extends GetView<ManualEntryController> {
   const ManualEntryView({super.key});
 
   Widget _cardHeader() {
-    final radius = BorderRadius.circular(20);
+    final radius = BorderRadius.circular(8);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: controller.pickCardImage,
+        borderRadius: radius,
+        child: Obx(() {
+          final imagePath = controller.cardImagePath.value;
+          final hasImage = imagePath != null && imagePath.isNotEmpty;
 
-    Widget child() {
-      if (controller.hasCardImage) {
-        return Obx(
-          () => ClipRRect(
-            borderRadius: radius,
-            child: Image.file(
-              File(controller.cardImagePath.value!),
-              height: 150,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-        );
-      }
-
-      return Container(
-        height: 150,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              AppColors.darkGrey.withValues(alpha: 0.50),
-              AppColors.darkGrey.withValues(alpha: 0.25),
-            ],
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          Icons.credit_card_rounded,
-          size: 56,
-          color: AppColors.white.withValues(alpha: 0.92),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        child(),
-        Positioned(
-          right: 12,
-          bottom: 12,
-          child: Material(
-            color: AppColors.darkGrey,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              onTap: controller.pickCardImage,
-              borderRadius: BorderRadius.circular(14),
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(Icons.photo_camera_rounded, color: AppColors.white),
+          return Stack(
+            children: [
+              if (hasImage)
+                ClipRRect(
+                  borderRadius: radius,
+                  child: Image.file(
+                    File(imagePath),
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.fill,
+                    errorBuilder: (_, __, ___) {
+                      return _manualCardPlaceholder(radius);
+                    },
+                  ),
+                )
+              else
+                _manualCardPlaceholder(radius),
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkGrey,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.photo_camera_rounded,
+                    color: AppColors.white,
+                  ),
+                ),
               ),
-            ),
-          ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _manualCardPlaceholder(BorderRadius radius) {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            AppColors.darkGrey.withValues(alpha: 0.50),
+            AppColors.darkGrey.withValues(alpha: 0.25),
+          ],
         ),
-      ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.credit_card_rounded,
+        size: 56,
+        color: AppColors.white.withValues(alpha: 0.92),
+      ),
     );
   }
 

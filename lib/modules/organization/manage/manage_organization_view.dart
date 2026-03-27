@@ -139,6 +139,7 @@ class _OrganizationCard extends StatelessWidget {
           'organizationId': org.id,
           'name': org.name,
           'industry': org.industry,
+          'role': org.role,
           'isActive': org.isActive,
         },
       ),

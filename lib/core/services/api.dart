@@ -31,6 +31,7 @@ class ApiUrl {
   static const String eventsInvitesRespond = '/events/invites/respond';
   static const String notifications = '/notifications';
   static const String events = '/events';
+  static const String scanQuotaStatus = '/scan-quota/status';
   static const String eventsInvites = '/events/invites';
   static const String eventsMembers = '/events/members';
   static const String eventsOrganization = '/events/organization';

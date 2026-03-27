@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/document_scanner_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../events/create/create_event_sheet.dart';
+import '../home_controller.dart';
 
 class AddContactSheet extends StatelessWidget {
   const AddContactSheet({super.key});
@@ -101,16 +103,33 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.qr_code_scanner_rounded,
                     title: 'Import from QR',
                     subtitle: null,
-                    onTap: () => Get.back(),
+                    onTap: () {
+                      Get.back();
+                      Get.toNamed(Routes.importQr);
+                    },
                   ),
                   const SizedBox(height: 10),
                   _SheetTile(
                     icon: Icons.edit_note_rounded,
                     title: 'Add Manually',
                     subtitle: 'Type details yourself',
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed(Routes.manualEntry);
+                    onTap: () async {
+                      if (!Get.isRegistered<HomeController>()) {
+                        Get.back();
+                        Get.toNamed(Routes.manualEntry);
+                        return;
+                      }
+
+                      final homeController = Get.find<HomeController>();
+                      await homeController.fetchScanQuotaStatus();
+
+                      if (homeController.canProceedManualEntry) {
+                        Get.back();
+                        Get.toNamed(Routes.manualEntry);
+                        return;
+                      }
+
+                      await ToastService.error('Your scan quota is full.');
                     },
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/services/api.dart';
 import '../../core/services/api_service.dart';
 import 'home_events_model.dart';
+import 'scan_quota_status_model.dart';
 
 class HomeController extends GetxController {
   late final ApiService _apiService;
@@ -12,16 +13,20 @@ class HomeController extends GetxController {
 
   final filters = const ['All', 'Today', 'Yesterday', 'Last 7 days', 'Last 30 days'];
 
-  final overview = const <HomeOverviewStat>[
-    HomeOverviewStat('Contacts', '125'),
-    HomeOverviewStat('Scans', '43'),
-    HomeOverviewStat('Events', '04'),
-    HomeOverviewStat('Scans Left', '530'),
-  ];
+  final overview = <HomeOverviewStat>[
+    const HomeOverviewStat('Contacts', '125'),
+    const HomeOverviewStat('Scans', '--'),
+    const HomeOverviewStat('Events', '--'),
+    const HomeOverviewStat('Scans Left', '--'),
+  ].obs;
 
   final events = <HomeMiniEvent>[].obs;
   final isEventsLoading = false.obs;
   final eventsErrorText = RxnString();
+  final scansCount = 0.obs;
+  final scansLeftCount = 0.obs;
+  final isScanQuotaLoading = false.obs;
+  final scanQuota = Rxn<ScanQuotaStatusItem>();
 
   final contacts = const <HomeContact>[
     HomeContact(name: 'Randy Rudolph', email: 'name@domain.com', company: 'Company Name'),
@@ -35,6 +40,7 @@ class HomeController extends GetxController {
     super.onInit();
     _apiService = Get.find<ApiService>();
     fetchEvents();
+    fetchScanQuotaStatus();
   }
 
   Future<void> fetchEvents() async {
@@ -69,6 +75,7 @@ class HomeController extends GetxController {
                     eventDate: e.eventDate,
                     scope: e.scope,
                     organizationId: e.organizationId,
+                    role: e.role,
                   ),
                 )
                 .toList(),
@@ -81,8 +88,50 @@ class HomeController extends GetxController {
       );
     } finally {
       isEventsLoading.value = false;
+      _syncOverview();
     }
   }
+
+  Future<void> fetchScanQuotaStatus() async {
+    if (isScanQuotaLoading.value) return;
+    isScanQuotaLoading.value = true;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.scanQuotaStatus,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final root = payload['response'];
+          if (root is! Map<String, dynamic>) {
+            _syncOverview();
+            return;
+          }
+          final parsed = ScanQuotaStatusResponse.fromJson(root);
+          final item = parsed.primary;
+          scanQuota.value = item;
+          scansCount.value = item?.usedCount ?? 0;
+          scansLeftCount.value = item?.remainingCount ?? 0;
+          _syncOverview();
+        },
+        onError: (_) {
+          _syncOverview();
+        },
+      );
+    } finally {
+      isScanQuotaLoading.value = false;
+    }
+  }
+
+  void _syncOverview() {
+    overview.assignAll(<HomeOverviewStat>[
+      const HomeOverviewStat('Contacts', '125'),
+      HomeOverviewStat('Scans', scansCount.value.toString()),
+      HomeOverviewStat('Events', events.length.toString()),
+      HomeOverviewStat('Scans Left', scansLeftCount.value.toString()),
+    ]);
+  }
+
+  bool get canProceedManualEntry => (scanQuota.value?.remainingCount ?? 0) > 0;
 
   void setFilter(int index) => selectedFilter.value = index;
 
@@ -105,6 +154,7 @@ class HomeMiniEvent {
     this.eventDate = '',
     this.scope = '',
     this.organizationId,
+    this.role = '',
   });
 
   final String id;
@@ -114,6 +164,7 @@ class HomeMiniEvent {
   final String eventDate;
   final String scope;
   final String? organizationId;
+  final String role;
 }
 
 class HomeOverviewStat {

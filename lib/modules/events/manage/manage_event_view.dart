@@ -17,136 +17,151 @@ class ManageEventView extends GetView<ManageEventController> {
     final a = controller.args;
     final theme = Theme.of(context);
 
-    return DefaultTabController(
-      length: 3,
-      child: Builder(
-        builder: (context) {
-          final tabController = DefaultTabController.of(context);
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F7FB),
-            appBar: AppBar(
-              backgroundColor: AppColors.white,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => Get.back(),
+    return Obx(() {
+      final canShowInvitesTab = controller.canShowInvitesTab;
+      final tabCount = canShowInvitesTab ? 3 : 2;
+      final maxIndex = tabCount - 1;
+      final safeIndex = controller.selectedTabIndex.value.clamp(0, maxIndex);
+
+      return DefaultTabController(
+        key: ValueKey<String>('manage-event-tabs-$tabCount-$safeIndex'),
+        length: tabCount,
+        initialIndex: safeIndex,
+        child: Builder(
+          builder: (context) {
+            final tabController = DefaultTabController.of(context);
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F7FB),
+              appBar: AppBar(
+                backgroundColor: AppColors.white,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: () => Get.back(),
+                ),
+                title: const Text('Manage Event'),
+                actions: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.more_vert_rounded),
+                  ),
+                ],
               ),
-              title: const Text('Manage Event'),
-              actions: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.more_vert_rounded),
-                ),
-              ],
-            ),
-            body: Column(
-              children: [
-                Container(
-                  color: AppColors.white,
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.primaryLight.withValues(alpha: 0.35),
+              body: Column(
+                children: [
+                  Container(
+                    color: AppColors.white,
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primaryLight.withValues(alpha: 0.35),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(Icons.event_rounded, color: AppColors.ink.withValues(alpha: 0.75)),
                             ),
-                            alignment: Alignment.center,
-                            child: Icon(Icons.event_rounded, color: AppColors.ink.withValues(alpha: 0.75)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${a.title} ${a.location}',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    color: AppColors.ink,
-                                    fontWeight: FontWeight.w700,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    a.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 16,
-                                  runSpacing: 8,
-                                  children: [
-                                    _InfoChip(
-                                      icon: Icons.group_rounded,
-                                      label: '${a.membersCount} Members',
-                                      tint: AppColors.primary,
-                                    ),
-                                    _InfoChip(
-                                      icon: Icons.credit_card_rounded,
-                                      label: '${a.cardsCount} Cards',
-                                      tint: AppColors.primary,
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 16,
+                                    runSpacing: 8,
+                                    children: [
+                                      _InfoChip(
+                                        icon: Icons.location_on_rounded,
+                                        label: capitalizeWords(a.location),
+                                        tint: AppColors.primary,
+                                      ),
+                                      _InfoChip(
+                                        icon: Icons.group_rounded,
+                                        label: '${a.membersCount} Members',
+                                        tint: AppColors.primary,
+                                      ),
+                                      _InfoChip(
+                                        icon: Icons.credit_card_rounded,
+                                        label: '${a.cardsCount} Cards',
+                                        tint: AppColors.primary,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Container(
-                  color: AppColors.white,
-                  child: TabBar(
-                    labelColor: AppColors.ink,
-                    unselectedLabelColor: AppColors.ink.withValues(alpha: 0.55),
-                    indicatorColor: AppColors.primary,
-                    indicatorWeight: 2.4,
-                    tabs: const [
-                      Tab(text: 'Contacts'),
-                      Tab(text: 'Members'),
-                      Tab(text: 'Invites'),
-                    ],
+                  Container(
+                    color: AppColors.white,
+                    child: TabBar(
+                      onTap: controller.setSelectedTab,
+                      labelColor: AppColors.ink,
+                      unselectedLabelColor: AppColors.ink.withValues(alpha: 0.55),
+                      indicatorColor: AppColors.primary,
+                      indicatorWeight: 2.4,
+                      tabs: [
+                        const Tab(text: 'Contacts'),
+                        const Tab(text: 'Members'),
+                        if (canShowInvitesTab) const Tab(text: 'Invites'),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _ContactsTab(controller: controller),
-                      _MembersTab(controller: controller),
-                      _InvitesTab(controller: controller),
-                    ],
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _ContactsTab(controller: controller),
+                        _MembersTab(controller: controller),
+                        if (canShowInvitesTab) _InvitesTab(controller: controller),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            floatingActionButton: AnimatedBuilder(
-              animation: tabController.animation!,
-              builder: (context, _) {
-                if (tabController.index != 0) {
-                  return const SizedBox.shrink();
-                }
-                return FloatingActionButton(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  onPressed: () async {
-                    final images = await DocumentScannerService.scan(allowMultiple: false);
-                    if (images.isNotEmpty) {
-                      Get.snackbar('Scan complete', '${images.length} page(s) captured');
-                    }
-                    Get.back();
-                  },
-                  child: const Icon(Icons.badge_rounded),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
+                ],
+              ),
+              floatingActionButton: AnimatedBuilder(
+                animation: tabController.animation!,
+                builder: (context, _) {
+                  if (tabController.index != 0) {
+                    return const SizedBox.shrink();
+                  }
+                  return FloatingActionButton(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    onPressed: () async {
+                      final images = await DocumentScannerService.scan(allowMultiple: false);
+                      if (images.isNotEmpty) {
+                        Get.snackbar('Scan complete', '${images.length} page(s) captured');
+                      }
+                      Get.back();
+                    },
+                    child: const Icon(Icons.badge_rounded),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 }
 
@@ -334,6 +349,7 @@ class _MembersTabState extends State<_MembersTab> {
             subtitle1: m.email,
             subtitle2: m.role,
             status: m.status,
+            allowActions: controller.canShowInvitesTab,
             onAdd: () {
               controller.resendInviteForMember(m);
             },
@@ -698,6 +714,7 @@ class _PersonTile extends StatelessWidget {
     required this.subtitle1,
     required this.subtitle2,
     required this.status,
+    this.allowActions = true,
     this.onAdd,
     this.onUpdate,
     this.onDelete,
@@ -707,6 +724,7 @@ class _PersonTile extends StatelessWidget {
   final String subtitle1;
   final String subtitle2;
   final String? status;
+  final bool allowActions;
   final VoidCallback? onAdd;
   final VoidCallback? onUpdate;
   final VoidCallback? onDelete;
@@ -716,7 +734,7 @@ class _PersonTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
     final canShowActions =
-        !isProtectedRole && (onUpdate != null || onDelete != null);
+        allowActions && !isProtectedRole && (onUpdate != null || onDelete != null);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
@@ -778,9 +796,9 @@ class _PersonTile extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
                       child: Text(
-                        subtitle2,
+                        capitalizeWords(subtitle2),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: _roleColor(subtitle2),
                           fontWeight: FontWeight.w700,
@@ -789,9 +807,9 @@ class _PersonTile extends StatelessWidget {
                     ),
                     if (status != null && status != 'accepted') ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         child: Text(
-                          status!,
+                          capitalizeWords(status!),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.ink.withValues(alpha: 0.60),
                             fontWeight: FontWeight.w600,
@@ -831,6 +849,8 @@ class _PersonTile extends StatelessWidget {
       ),
     );
   }
+
+  
 
   Color _roleColor(String role) {
     final v = role.toLowerCase();
@@ -879,3 +899,12 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+String capitalizeWords(String text) {
+    return text
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1);
+        })
+        .join(' ');
+  }

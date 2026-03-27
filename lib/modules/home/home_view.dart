@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:upgrader/upgrader.dart';
 
 import '../../core/services/auth_session_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -17,27 +20,40 @@ class HomeView extends GetView<HomeController> {
     final greeting = controller.greeting();
     final session = Get.find<AuthSessionService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Get.bottomSheet(
-            const AddContactSheet(),
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-          );
-          if (result == true) {
-            await controller.fetchEvents();
-          }
-        },
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 10,
-        child: const Icon(Icons.badge_rounded),
+    return UpgradeAlert(
+      upgrader: Upgrader(
+        debugDisplayAlways: true,
+        messages: JustCardsUpgraderMessages(),
       ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+      showIgnore: false,
+      showLater: false,
+      barrierDismissible: false,
+      showReleaseNotes: true,
+      showPrompt: false,
+      shouldPopScope: () => false,
+      dialogStyle: Platform.isIOS ? UpgradeDialogStyle.cupertino : UpgradeDialogStyle.material,
+      navigatorKey: Get.key,
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            final result = await Get.bottomSheet(
+              const AddContactSheet(),
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+            );
+            if (result == true) {
+              await controller.fetchEvents();
+            }
+          },
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.white,
+          elevation: 10,
+          child: const Icon(Icons.badge_rounded),
+        ),
+        body: SafeArea(
+          child: CustomScrollView(
+            slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
               sliver: SliverToBoxAdapter(
@@ -121,7 +137,9 @@ class HomeView extends GetView<HomeController> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 5, 18, 10),
               sliver: SliverToBoxAdapter(
-                child: _OverviewStats(stats: controller.overview),
+                child: Obx(
+                  () => _OverviewStats(stats: controller.overview.toList()),
+                ),
               ),
             ),
             SliverPadding(
@@ -146,19 +164,22 @@ class HomeView extends GetView<HomeController> {
                         context,
                       ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
                     ),
-                    if (controller.events.isNotEmpty) ...[
-                    const SizedBox(width: 4),
                     Obx(() {
                       final count = controller.events.length;
-                      return Text(
-                        '($count)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.62),
-                          fontWeight: FontWeight.w700,
-                        ),
+                      if (count == 0) return const SizedBox.shrink();
+                      return Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          Text(
+                            '($count)',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.62),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       );
                     }),
-                    ]
                     
                   ],
                 ),
@@ -321,11 +342,26 @@ class HomeView extends GetView<HomeController> {
                 },
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class JustCardsUpgraderMessages extends UpgraderMessages {
+  @override
+  String get title => 'Update JustCards';
+
+  @override
+  String get body =>
+      'A new version of {{appName}} is available (v{{currentAppStoreVersion}}).\n'
+      'You’re on v{{currentInstalledVersion}}.\n\n'
+      'Please update to continue.';
+
+  @override
+  String get buttonTitleUpdate => 'UPDATE NOW';
 }
 
 class _SearchBar extends StatelessWidget {
@@ -476,6 +512,7 @@ class _EventCard extends StatelessWidget {
                 'location': location,
                 'membersCount': event.count,
                 'cardsCount': cardsCount,
+                'role': event.role,
               },
             ),
         splashColor: AppColors.primary.withValues(alpha: 0.12),

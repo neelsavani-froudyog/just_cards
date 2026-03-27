@@ -41,6 +41,7 @@ class HomeEventItem {
   final String scope;
   final String? organizationId;
   final int membersCount;
+  final String role;
 
   const HomeEventItem({
     required this.id,
@@ -50,6 +51,7 @@ class HomeEventItem {
     required this.scope,
     required this.organizationId,
     required this.membersCount,
+    required this.role,
   });
 
   factory HomeEventItem.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,8 @@ class HomeEventItem {
       membersCount: _toInt(
         json['member_count'] ?? json['members_count'] ?? json['membersCount'],
       ),
+      role: (json['member_role'] ?? json['event_role'] ?? json['my_role'] ?? json['user_role'] ?? '')
+          .toString(),
     );
   }
 

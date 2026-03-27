@@ -4,11 +4,9 @@ import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart
 class DocumentScannerService {
   const DocumentScannerService._();
 
-  static Future<List<String>> scan({
-    required bool allowMultiple,
-  }) async {
+  static Future<List<String>> scan({required bool allowMultiple}) async {
     final options = DocumentScannerOptions(
-      documentFormat: DocumentFormat.jpeg,
+      documentFormats: {DocumentFormat.jpeg},
       mode: ScannerMode.full,
       pageLimit: allowMultiple ? 20 : 1,
       isGalleryImport: true,
@@ -26,4 +24,3 @@ class DocumentScannerService {
     }
   }
 }
-

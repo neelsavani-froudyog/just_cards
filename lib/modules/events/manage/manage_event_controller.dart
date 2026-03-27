@@ -11,6 +11,8 @@ class ManageEventController extends GetxController {
 
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
+  final selectedTabIndex = 0.obs;
+  final currentUserRole = ''.obs;
 
   // Invites tab
   final inviteEmailController = TextEditingController();
@@ -40,6 +42,7 @@ class ManageEventController extends GetxController {
     super.onInit();
     _apiService = Get.find<ApiService>();
     args = ManageEventArgs.from(Get.arguments);
+    currentUserRole.value = args.role.trim().toLowerCase();
     fetchMembers();
   }
 
@@ -52,6 +55,7 @@ class ManageEventController extends GetxController {
   }
 
   void setSearch(String v) => searchQuery.value = v;
+  void setSelectedTab(int index) => selectedTabIndex.value = index;
 
   void setInviteRole(String? v) {
     if (v == null) return;
@@ -243,6 +247,11 @@ class ManageEventController extends GetxController {
         return role;
     }
   }
+
+  bool get canShowInvitesTab {
+    final role = currentUserRole.value;
+    return role != 'editor' && role != 'viewer';
+  }
 }
 
 class ManageEventArgs {
@@ -252,6 +261,7 @@ class ManageEventArgs {
     required this.location,
     required this.membersCount,
     required this.cardsCount,
+    required this.role,
   });
 
   final String eventId;
@@ -259,6 +269,7 @@ class ManageEventArgs {
   final String location;
   final int membersCount;
   final int cardsCount;
+  final String role;
 
   static ManageEventArgs from(dynamic args) {
     final map = (args as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
@@ -268,6 +279,7 @@ class ManageEventArgs {
       location: (map['location'] as String?) ?? 'Greater Noida, India',
       membersCount: (map['membersCount'] as int?) ?? 12,
       cardsCount: (map['cardsCount'] as int?) ?? 143,
+      role: (map['role'] ?? '').toString(),
     );
   }
 }

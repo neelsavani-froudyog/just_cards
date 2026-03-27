@@ -12,6 +12,7 @@ class OrganizationDetailArgs {
   const OrganizationDetailArgs({
     required this.organizationId,
     required this.name,
+    required this.role,
     this.industry,
     this.isActive = true,
     this.initialTab = 0,
@@ -19,6 +20,7 @@ class OrganizationDetailArgs {
 
   final String organizationId;
   final String name;
+  final String role;
   final String? industry;
   final bool isActive;
   final int initialTab;
@@ -33,6 +35,7 @@ class OrganizationDetailArgs {
     return OrganizationDetailArgs(
       organizationId: map['organizationId']?.toString() ?? '',
       name: map['name']?.toString() ?? 'Organization',
+      role: map['role']?.toString() ?? '',
       industry: map['industry']?.toString(),
       isActive: map['isActive'] == true,
       initialTab: tab.clamp(0, 2),
@@ -47,6 +50,8 @@ class OrganizationDetailController extends GetxController {
 
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
+  final selectedTabIndex = 0.obs;
+  final currentUserRole = ''.obs;
 
   final eventsExpanded = false.obs;
 
@@ -95,6 +100,8 @@ class OrganizationDetailController extends GetxController {
   void onInit() {
     super.onInit();
     args = OrganizationDetailArgs.from(Get.arguments);
+    currentUserRole.value = args.role.trim().toLowerCase();
+    selectedTabIndex.value = args.initialTab;
     _apiService = Get.find<ApiService>();
     fetchMembers();
     fetchOrganizationEvents();
@@ -109,6 +116,7 @@ class OrganizationDetailController extends GetxController {
   }
 
   void setSearch(String v) => searchQuery.value = v;
+  void setSelectedTab(int index) => selectedTabIndex.value = index;
 
   void toggleEventsExpanded() =>
       eventsExpanded.value = !eventsExpanded.value;
@@ -288,7 +296,6 @@ class OrganizationDetailController extends GetxController {
         SentInvite(email: email, role: inviteRole.value, status: 'Sent'),
       );
       inviteEmailController.clear();
-      Get.snackbar('Invite', 'Invite added');
     } finally {
       isInviting.value = false;
     }
@@ -342,6 +349,11 @@ class OrganizationDetailController extends GetxController {
   }
 
   void removeInvite(SentInvite invite) => sentInvites.remove(invite);
+
+  bool get canManageOrganization {
+    final role = currentUserRole.value;
+    return role != 'editor' && role != 'viewer';
+  }
 
   List<EventPerson> get filteredContacts {
     final q = searchQuery.value.trim().toLowerCase();

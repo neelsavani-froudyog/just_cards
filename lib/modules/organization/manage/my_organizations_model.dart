@@ -47,6 +47,7 @@ class OrganizationSummary {
   final String name;
   final String? industry;
   final String? createdBy;
+  final String role;
   final bool isActive;
   final String? createdAt;
   final String? updatedAt;
@@ -56,6 +57,7 @@ class OrganizationSummary {
     required this.name,
     required this.industry,
     required this.createdBy,
+    required this.role,
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -67,6 +69,7 @@ class OrganizationSummary {
       name: (json['name'] ?? '').toString(),
       industry: json['industry']?.toString(),
       createdBy: json['created_by']?.toString(),
+      role: (json['member_role'] ?? json['my_role'] ?? json['user_role'] ?? '').toString(),
       isActive: json['is_active'] == true,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

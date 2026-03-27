@@ -33,6 +33,7 @@ import '../modules/legal/privacy_policy_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
 import '../modules/contacts/manual_entry/manual_entry_binding.dart';
 import '../modules/contacts/manual_entry/manual_entry_view.dart';
+import '../modules/contacts/import_qr/import_qr_view.dart';
 import '../modules/splash/splash_binding.dart';
 import '../modules/splash/splash_view.dart';
 import 'app_routes.dart';
@@ -114,5 +115,6 @@ class AppPages {
       page: ManualEntryView.new,
       binding: ManualEntryBinding(),
     ),
+    GetPage(name: Routes.importQr, page: ImportFromQrView.new),
   ];
 }

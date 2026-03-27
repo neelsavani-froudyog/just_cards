@@ -24,104 +24,120 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
       top: false,
       left: false,
       right: false,
-      child: DefaultTabController(
-      length: 3,
-      initialIndex: a.initialTab,
-      child: Builder(
-        builder: (context) {
-          final tabController = DefaultTabController.of(context);
-          return Scaffold(
-            backgroundColor: AppColors.lightHubBg,
-            appBar: AppBar(
-              backgroundColor: AppColors.lightHubSurface,
-              elevation: 0,
-              foregroundColor: AppColors.lightHubInk,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => Get.back(),
-              ),
-              title: Text(
-                'Organisation Detail',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: AppColors.lightHubInk,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              actions: [
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: AppColors.lightHubInk.withValues(alpha: 0.92),
+      child: Obx(() {
+        final canManageOrganization = controller.canManageOrganization;
+        final tabCount = canManageOrganization ? 3 : 2;
+        final maxIndex = tabCount - 1;
+        final safeIndex = controller.selectedTabIndex.value.clamp(0, maxIndex);
+        return DefaultTabController(
+          key: ValueKey<String>('org-detail-tabs-$tabCount-$safeIndex'),
+          length: tabCount,
+          initialIndex: safeIndex,
+          child: Builder(
+            builder: (context) {
+              final tabController = DefaultTabController.of(context);
+              return Scaffold(
+                backgroundColor: AppColors.lightHubBg,
+                appBar: AppBar(
+                  backgroundColor: AppColors.lightHubSurface,
+                  elevation: 0,
+                  foregroundColor: AppColors.lightHubInk,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    onPressed: () => Get.back(),
                   ),
-                  color: AppColors.lightHubSurface,
-                  onSelected: (value) {
-                    if (value == 'settings') {
-                      Get.toNamed(
-                        Routes.organizationSettings,
-                        arguments: <String, dynamic>{
-                          'organizationId': a.organizationId,
-                          'name': a.name,
-                          'industry': a.industry,
-                        },
-                      );
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'settings',
-                      child: Text(
-                        'Organization settings',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: AppColors.lightHubInk,
+                  title: Text(
+                    'Organization Detail',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.lightHubInk,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  actions:
+                      canManageOrganization
+                          ? [
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: AppColors.lightHubInk.withValues(
+                                  alpha: 0.92,
+                                ),
+                              ),
+                              color: AppColors.lightHubSurface,
+                              onSelected: (value) {
+                                if (value == 'settings') {
+                                  Get.toNamed(
+                                    Routes.organizationSettings,
+                                    arguments: <String, dynamic>{
+                                      'organizationId': a.organizationId,
+                                      'name': a.name,
+                                      'industry': a.industry,
+                                    },
+                                  );
+                                }
+                              },
+                              itemBuilder:
+                                  (context) => [
+                                    PopupMenuItem(
+                                      value: 'settings',
+                                      child: Text(
+                                        'Organization settings',
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: AppColors.lightHubInk,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                            ),
+                          ]
+                          : const [],
+                ),
+                body: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _OrgHeader(controller: controller),
+                    _EventsSection(controller: controller),
+                    Container(
+                      color: AppColors.lightHubSurface,
+                      child: TabBar(
+                        onTap: controller.setSelectedTab,
+                        controller: tabController,
+                        labelColor: AppColors.lightHubInk,
+                        unselectedLabelColor: AppColors.lightHubMuted,
+                        indicatorColor: AppColors.lightHubInk,
+                        indicatorWeight: 2.8,
+                        labelStyle: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
+                        unselectedLabelStyle: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                        tabs: [
+                          const Tab(text: 'Contacts'),
+                          const Tab(text: 'Members'),
+                          if (canManageOrganization) const Tab(text: 'Invites'),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: tabController,
+                        children: [
+                          _ContactsTab(controller: controller),
+                          _MembersTab(controller: controller),
+                          if (canManageOrganization)
+                            _InvitesTab(controller: controller),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _OrgHeader(controller: controller),
-                _EventsSection(controller: controller),
-                Container(
-                  color: AppColors.lightHubSurface,
-                  child: TabBar(
-                    controller: tabController,
-                    labelColor: AppColors.lightHubInk,
-                    unselectedLabelColor: AppColors.lightHubMuted,
-                    indicatorColor: AppColors.lightHubInk,
-                    indicatorWeight: 2.8,
-                    labelStyle: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    unselectedLabelStyle: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    tabs: const [
-                      Tab(text: 'Contacts'),
-                      Tab(text: 'Members'),
-                      Tab(text: 'Invites'),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    controller: tabController,
-                    children: [
-                      _ContactsTab(controller: controller),
-                      _MembersTab(controller: controller),
-                      _InvitesTab(controller: controller),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    ));
+              );
+            },
+          ),
+        );
+      }),
+    );
   }
 }
 
@@ -203,10 +219,7 @@ class _OrgHeader extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({
-    required this.icon,
-    required this.label,
-  });
+  const _StatRow({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -222,9 +235,9 @@ class _StatRow extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -253,8 +266,10 @@ class _EventsSection extends StatelessWidget {
               child: InkWell(
                 onTap: controller.toggleEventsExpanded,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Text(
@@ -280,9 +295,10 @@ class _EventsSection extends StatelessWidget {
               firstCurve: Curves.easeOutCubic,
               secondCurve: Curves.easeOutCubic,
               sizeCurve: Curves.easeOutCubic,
-              crossFadeState: expanded
-                  ? CrossFadeState.showFirst
-                  : CrossFadeState.showSecond,
+              crossFadeState:
+                  expanded
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
               duration: const Duration(milliseconds: 220),
               firstChild: Obx(() {
                 final isLoading = controller.isEventsLoading.value;
@@ -316,9 +332,13 @@ class _EventsSection extends StatelessWidget {
                               height: 44,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: AppColors.primary.withValues(alpha: 0.10),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.10,
+                                ),
                                 border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.18),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.18,
+                                  ),
                                 ),
                               ),
                               alignment: Alignment.center,
@@ -345,7 +365,9 @@ class _EventsSection extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.lightHubInk.withValues(alpha: 0.60),
+                                color: AppColors.lightHubInk.withValues(
+                                  alpha: 0.60,
+                                ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -433,7 +455,10 @@ class _EventCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.lightHubAvatarFill,
                   borderRadius: BorderRadius.circular(999),
@@ -478,12 +503,12 @@ class _ContactsTab extends StatelessWidget {
               filled: true,
               fillColor: AppColors.lightHubSurface,
               borderColor: AppColors.lightHubBorder,
-              textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.lightHubInk,
-                  ),
-              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.lightHubHint,
-                  ),
+              textStyle: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.lightHubInk),
+              hintStyle: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.lightHubHint),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               cursorColor: AppColors.lightHubBlue,
               onChanged: controller.setSearch,
@@ -577,10 +602,7 @@ class _PersonTile extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.lightHubMuted,
-          ),
+          Icon(Icons.chevron_right_rounded, color: AppColors.lightHubMuted),
         ],
       ),
     );
@@ -627,9 +649,9 @@ class _MembersTab extends StatelessWidget {
                     'No members found',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -637,16 +659,18 @@ class _MembersTab extends StatelessWidget {
                         'Members will appear here once users join this event.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.60),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: AppColors.ink.withValues(alpha: 0.60),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   FilledButton.tonal(
                     onPressed: controller.fetchMembers,
                     style: FilledButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -672,14 +696,16 @@ class _MembersTab extends StatelessWidget {
             subtitle1: m.email,
             subtitle2: m.role,
             status: m.status,
+            allowActions: controller.canManageOrganization,
             onAdd: () {
               // controller.resendInviteForMember(m);
             },
             onUpdate: () {
               final memberRole = m.role.toLowerCase();
-              String selected = memberRole.contains('admin')
-                  ? 'Admin'
-                  : memberRole.contains('editor')
+              String selected =
+                  memberRole.contains('admin')
+                      ? 'Admin'
+                      : memberRole.contains('editor')
                       ? 'Editor'
                       : 'Viewer';
 
@@ -697,10 +723,12 @@ class _MembersTab extends StatelessWidget {
                         children: [
                           Text(
                             'Name',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.ink.withValues(alpha: 0.70),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.70),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           CustomTextField(
@@ -712,15 +740,20 @@ class _MembersTab extends StatelessWidget {
                             filled: true,
                             fillColor: AppColors.white,
                             borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                           ),
                           const SizedBox(height: 14),
                           Text(
                             'Email',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.ink.withValues(alpha: 0.70),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.70),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           CustomTextField(
@@ -732,15 +765,20 @@ class _MembersTab extends StatelessWidget {
                             filled: true,
                             fillColor: AppColors.white,
                             borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                           ),
                           const SizedBox(height: 14),
                           Text(
                             'Assign Role',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.ink.withValues(alpha: 0.70),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.70),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           CustomSearchDropdown<String>(
@@ -756,7 +794,10 @@ class _MembersTab extends StatelessWidget {
                             bgColor: AppColors.white,
                             borderColor: AppColors.ink.withValues(alpha: 0.10),
                             borderRadius: 12,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
                           ),
                         ],
                       );
@@ -781,18 +822,19 @@ class _MembersTab extends StatelessWidget {
                 emailController.dispose();
               });
             },
-            onDelete: canDelete
-                ? () {
-                    ConfirmDialog.show(
-                      title: 'Delete member?',
-                      message: 'Remove ${m.email} from event members?',
-                      confirmText: 'Delete',
-                      destructive: true,
-                    ).then((ok) {
-                      if (ok) controller.deleteMember(index);
-                    });
-                  }
-                : null,
+            onDelete:
+                canDelete
+                    ? () {
+                      ConfirmDialog.show(
+                        title: 'Delete member?',
+                        message: 'Remove ${m.email} from event members?',
+                        confirmText: 'Delete',
+                        destructive: true,
+                      ).then((ok) {
+                        if (ok) controller.deleteMember(index);
+                      });
+                    }
+                    : null,
           );
         },
       );
@@ -800,13 +842,13 @@ class _MembersTab extends StatelessWidget {
   }
 }
 
-
 class MemberTile extends StatelessWidget {
   const MemberTile({
     required this.title,
     required this.subtitle1,
     required this.subtitle2,
     required this.status,
+    this.allowActions = true,
     this.onAdd,
     this.onUpdate,
     this.onDelete,
@@ -816,6 +858,7 @@ class MemberTile extends StatelessWidget {
   final String subtitle1;
   final String subtitle2;
   final String? status;
+  final bool allowActions;
   final VoidCallback? onAdd;
   final VoidCallback? onUpdate;
   final VoidCallback? onDelete;
@@ -825,7 +868,9 @@ class MemberTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
     final canShowActions =
-        !isProtectedRole && (onUpdate != null || onDelete != null);
+        allowActions &&
+        !isProtectedRole &&
+        (onUpdate != null || onDelete != null);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
@@ -884,12 +929,15 @@ class MemberTile extends StatelessWidget {
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 8,
-                  runSpacing:0,
+                  runSpacing: 0,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 2,
+                      ),
                       child: Text(
-                        subtitle2,
+                        capitalizeWords(subtitle2),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: _roleColor(subtitle2),
                           fontWeight: FontWeight.w700,
@@ -898,9 +946,12 @@ class MemberTile extends StatelessWidget {
                     ),
                     if (status != null && status != 'accepted') ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         child: Text(
-                          status!,
+                          capitalizeWords(status!),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.ink.withValues(alpha: 0.60),
                             fontWeight: FontWeight.w600,
@@ -939,6 +990,16 @@ class MemberTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String capitalizeWords(String text) {
+    return text
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1);
+        })
+        .join(' ');
   }
 
   Color _roleColor(String role) {
@@ -1042,8 +1103,10 @@ class _InvitesTab extends StatelessWidget {
                 bgColor: AppColors.lightHubSurface,
                 borderColor: AppColors.lightHubBorder,
                 borderRadius: 12,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
               );
             }),
             const SizedBox(height: 14),
@@ -1122,30 +1185,34 @@ class _InvitesTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Send Invite',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
+                  child:
+                      busy
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.white,
                             ),
-                            const SizedBox(width: 10),
-                            const Icon(Icons.send_rounded,
-                                color: AppColors.white, size: 18),
-                          ],
-                        ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Send Invite',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(
+                                Icons.send_rounded,
+                                color: AppColors.white,
+                                size: 18,
+                              ),
+                            ],
+                          ),
                 );
               }),
             ),
@@ -1193,9 +1260,7 @@ class _SentInvitePill extends StatelessWidget {
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.buttonColor,
                     ),
-                    children: [
-                      TextSpan(text: '${invite.role} '),
-                    ],
+                    children: [TextSpan(text: '${invite.role} ')],
                   ),
                 ),
               ],
@@ -1211,10 +1276,7 @@ class _SentInvitePill extends StatelessWidget {
                 color: AppColors.lightHubInk.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.close_rounded,
-                color: AppColors.lightHubMuted,
-              ),
+              child: Icon(Icons.close_rounded, color: AppColors.lightHubMuted),
             ),
           ),
         ],

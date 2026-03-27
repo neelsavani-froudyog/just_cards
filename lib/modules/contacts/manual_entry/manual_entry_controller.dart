@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -62,8 +60,7 @@ class ManualEntryController extends GetxController {
 
   bool get hasCardImage {
     final path = cardImagePath.value;
-    if (path == null || path.isEmpty) return false;
-    return File(path).existsSync();
+    return path != null && path.isNotEmpty;
   }
 
   void toggleTag(String tag) {

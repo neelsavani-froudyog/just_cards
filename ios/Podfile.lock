@@ -1,0 +1,70 @@
+PODS:
+  - barcode_scanner (1.0.0):
+    - Flutter
+    - ScanbotBarcodeSDKNativeWrapper (= 8.0.1.1)
+  - connectivity_plus (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - fluttertoast (0.0.2):
+    - Flutter
+  - google_mlkit_document_scanner (0.4.0):
+    - Flutter
+  - package_info_plus (0.4.5):
+    - Flutter
+  - ScanbotBarcodeScannerSDK (8.0.1)
+  - ScanbotBarcodeSDKNativeWrapper (8.0.1.1):
+    - ScanbotBarcodeScannerSDK (= 8.0.1)
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - url_launcher_ios (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - barcode_scanner (from `.symlinks/plugins/barcode_scanner/ios`)
+  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
+  - Flutter (from `Flutter`)
+  - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
+  - google_mlkit_document_scanner (from `.symlinks/plugins/google_mlkit_document_scanner/ios`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
+
+SPEC REPOS:
+  trunk:
+    - ScanbotBarcodeScannerSDK
+    - ScanbotBarcodeSDKNativeWrapper
+
+EXTERNAL SOURCES:
+  barcode_scanner:
+    :path: ".symlinks/plugins/barcode_scanner/ios"
+  connectivity_plus:
+    :path: ".symlinks/plugins/connectivity_plus/ios"
+  Flutter:
+    :path: Flutter
+  fluttertoast:
+    :path: ".symlinks/plugins/fluttertoast/ios"
+  google_mlkit_document_scanner:
+    :path: ".symlinks/plugins/google_mlkit_document_scanner/ios"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
+
+SPEC CHECKSUMS:
+  barcode_scanner: b63fec82521c66be47144354972ae4cc1448ce1b
+  connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
+  google_mlkit_document_scanner: b17fc45e9f935d88d6a8a7898dd169ffb680b8f4
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  ScanbotBarcodeScannerSDK: c0270115558662cc6af89991d79f724848fd480f
+  ScanbotBarcodeSDKNativeWrapper: 307bbacd4b52ad8f3714976050d3e7b724eed4e7
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+  url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
+
+PODFILE CHECKSUM: 9580a49fa2c095d51100c20f258df867100b916b
+
+COCOAPODS: 1.16.2
