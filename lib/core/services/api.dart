@@ -32,9 +32,16 @@ class ApiUrl {
   static const String notifications = '/notifications';
   static const String events = '/events';
   static const String scanQuotaStatus = '/scan-quota/status';
+  static const String parseCard = '/scan-quota/parse-card';
   static const String eventsInvites = '/events/invites';
   static const String eventsMembers = '/events/members';
   static const String eventsOrganization = '/events/organization';
+
+  /// Multipart: `event_name`, `image` — returns `data.public_url`.
+  static const String eventsBusinessCardUpload = '/events/business-card/upload';
+
+  /// Create contact (JSON body with `p_*` fields). Same host as [baseUrl].
+  static const String contacts = '/contacts';
 
   /// Call this once before making any API calls.
   static void configure({required String baseUrl}) {
