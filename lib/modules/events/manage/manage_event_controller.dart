@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
 import 'event_members_model.dart';
+import 'event_contacts_model.dart';
 
 class ManageEventController extends GetxController {
   late final ManageEventArgs args;
@@ -20,12 +23,15 @@ class ManageEventController extends GetxController {
   final inviteRole = 'Editor'.obs;
   final isInviting = false.obs;
 
-  final contacts = <EventPerson>[
-    const EventPerson(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', companyOrRole: 'Ombyte Systems LLP'),
-    const EventPerson(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', companyOrRole: 'Ombyte Systems LLP'),
-    const EventPerson(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', companyOrRole: 'Ombyte Systems LLP'),
-    const EventPerson(name: 'Alok Shaw', email: 'sarah.shaw@forudyog.com', companyOrRole: 'Ombyte Systems LLP'),
-  ];
+  // Contacts tab
+  final contacts = <EventContactItem>[].obs;
+  final isContactsLoading = false.obs;
+  final contactsErrorText = RxnString();
+  final contactsTotal = 0.obs;
+  final contactsLimit = 10.obs;
+  final contactsOffset = 0.obs;
+
+  Timer? _contactsSearchDebounce;
 
   final members = <EventMember>[
   ].obs;
@@ -43,6 +49,7 @@ class ManageEventController extends GetxController {
     _apiService = Get.find<ApiService>();
     args = ManageEventArgs.from(Get.arguments);
     currentUserRole.value = args.role.trim().toLowerCase();
+    fetchContacts(reset: true);
     fetchMembers();
   }
 
@@ -51,10 +58,17 @@ class ManageEventController extends GetxController {
     searchController.dispose();
     inviteEmailController.dispose();
     inviteMessageController.dispose();
+    _contactsSearchDebounce?.cancel();
     super.onClose();
   }
 
-  void setSearch(String v) => searchQuery.value = v;
+  void setSearch(String v) {
+    searchQuery.value = v;
+    _contactsSearchDebounce?.cancel();
+    _contactsSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+      fetchContacts(reset: true);
+    });
+  }
   void setSelectedTab(int index) => selectedTabIndex.value = index;
 
   void setInviteRole(String? v) {
@@ -98,6 +112,57 @@ class ManageEventController extends GetxController {
     if (v.contains('editor')) return 'editor';
     if (v.contains('viewer')) return 'viewer';
     return v;
+  }
+
+  Future<void> fetchContacts({required bool reset}) async {
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty || isContactsLoading.value) return;
+
+    if (reset) {
+      contactsOffset.value = 0;
+      contacts.clear();
+    }
+
+    isContactsLoading.value = true;
+    contactsErrorText.value = null;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.contactsByEvent,
+        data: <String, dynamic>{
+          'p_event_id': eventId,
+          'p_limit': contactsLimit.value,
+          'p_offset': contactsOffset.value,
+          'p_search': searchQuery.value.trim().isEmpty ? null : searchQuery.value.trim(),
+        },
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            contactsErrorText.value = 'Invalid contacts response';
+            return;
+          }
+          final parsed = EventContactsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            contactsErrorText.value = parsed.message.isNotEmpty
+                ? parsed.message
+                : 'Failed to load contacts';
+            return;
+          }
+
+          contacts.assignAll(parsed.data);
+          contactsTotal.value = parsed.total;
+          contactsLimit.value = parsed.limit == 0 ? contactsLimit.value : parsed.limit;
+          contactsOffset.value = parsed.offset;
+        },
+        onError: (message) {
+          contactsErrorText.value =
+              (message.isNotEmpty) ? message : 'Failed to load contacts';
+        },
+      );
+    } finally {
+      isContactsLoading.value = false;
+    }
   }
 
   Future<void> _sendInvitesRequest(List<SentInvite> invites) async {

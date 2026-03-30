@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../core/services/api.dart';
 import '../../core/services/api_service.dart';
+import 'home_contacts_model.dart';
 import 'home_events_model.dart';
 import 'scan_quota_status_model.dart';
 
@@ -28,19 +29,103 @@ class HomeController extends GetxController {
   final isScanQuotaLoading = false.obs;
   final scanQuota = Rxn<ScanQuotaStatusItem>();
 
-  final contacts = const <HomeContact>[
-    HomeContact(name: 'Randy Rudolph', email: 'name@domain.com', company: 'Company Name'),
-    HomeContact(name: 'Alex Carter', email: 'alex@company.com', company: 'Acme Inc'),
-    HomeContact(name: 'Priya Shah', email: 'priya@startup.io', company: 'Startup Studio'),
-    HomeContact(name: 'Daniel Kim', email: 'daniel@domain.com', company: 'Kim & Co'),
-  ];
+  final contacts = <HomeContact>[].obs;
+  final isContactsLoading = false.obs;
+  final contactsErrorText = RxnString();
+  final contactsTotal = 0.obs;
+  final contactsLimit = 20.obs;
+  final contactsOffset = 0.obs;
 
   @override
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
     fetchEvents();
+    fetchContacts(reset: true);
     fetchScanQuotaStatus();
+  }
+
+  String _apiFilterFromIndex(int index) {
+    switch (index) {
+      case 0:
+        return 'all';
+      case 1:
+        return 'today';
+      case 2:
+        return 'yesterday';
+      case 3:
+        return 'last_7_days';
+      case 4:
+        return 'last_30_days';
+      default:
+        return 'all';
+    }
+  }
+
+  Future<void> fetchContacts({required bool reset}) async {
+    if (isContactsLoading.value) return;
+    isContactsLoading.value = true;
+    contactsErrorText.value = null;
+
+    if (reset) {
+      contactsOffset.value = 0;
+      contacts.clear();
+    }
+
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.myContacts,
+        data: <String, dynamic>{
+          'p_filter': _apiFilterFromIndex(selectedFilter.value),
+          'p_limit': contactsLimit.value,
+          'p_offset': contactsOffset.value,
+        },
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            contactsErrorText.value = 'Invalid contacts response';
+            return;
+          }
+
+          final parsed = HomeContactsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            contactsErrorText.value = parsed.message.isNotEmpty
+                ? parsed.message
+                : 'Failed to load contacts';
+            return;
+          }
+
+          contacts.assignAll(
+            parsed.data
+                .map(
+                  (c) => HomeContact(
+                    name: c.fullName.trim().isNotEmpty
+                        ? c.fullName.trim()
+                        : '${c.firstName} ${c.lastName}'.trim(),
+                    email: c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1,
+                    company: c.companyName.trim().isNotEmpty
+                        ? c.companyName.trim()
+                        : c.designation.trim(),
+                  ),
+                )
+                .toList(),
+          );
+
+          contactsTotal.value = parsed.total;
+          contactsLimit.value = parsed.limit == 0 ? contactsLimit.value : parsed.limit;
+          contactsOffset.value = parsed.offset;
+        },
+        onError: (message) {
+          contactsErrorText.value =
+              message.isNotEmpty ? message : 'Failed to load contacts';
+        },
+      );
+    } finally {
+      isContactsLoading.value = false;
+      _syncOverview();
+    }
   }
 
   Future<void> fetchEvents() async {
@@ -133,7 +218,10 @@ class HomeController extends GetxController {
 
   bool get canProceedManualEntry => (scanQuota.value?.remainingCount ?? 0) > 0;
 
-  void setFilter(int index) => selectedFilter.value = index;
+  void setFilter(int index) {
+    selectedFilter.value = index;
+    fetchContacts(reset: true);
+  }
 
   void setSearch(String v) => searchQuery.value = v;
 

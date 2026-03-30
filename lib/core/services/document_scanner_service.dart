@@ -6,9 +6,9 @@ class DocumentScannerService {
 
   static Future<List<String>> scan({required bool allowMultiple}) async {
     final options = DocumentScannerOptions(
-      documentFormat: DocumentFormat.jpeg,
+      documentFormats: {DocumentFormat.jpeg},
       mode: ScannerMode.full,
-      pageLimit: allowMultiple ? 20 : 1,  
+      pageLimit: allowMultiple ? 20 : 1,
       isGalleryImport: true,
     );
 

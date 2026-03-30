@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import 'api.dart';
+import 'api_service.dart';
 import 'auth_session_service.dart';
 import 'http_sender_io.dart';
 import '../../routes/app_routes.dart';
@@ -95,9 +96,6 @@ class CreateContactService extends GetxService {
       );
     }
 
-    final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-    final uri = Uri.parse('$base${ApiUrl.contacts}');
-
     final bodyMap = <String, dynamic>{
       'p_owner_user_id': ownerUserId,
       'p_created_by': createdBy,
@@ -120,54 +118,46 @@ class CreateContactService extends GetxService {
       'p_tags': tags,
     };
 
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    final api = Get.find<ApiService>();
+    CreateContactResult result = const CreateContactResult(
+      success: false,
+      message: 'Request failed',
+    );
 
     try {
       if (kDebugMode) {
-        debugPrint('[create_contact] POST $uri');
+        debugPrint('[create_contact] POST ${ApiUrl.contacts}');
       }
 
-      final response = await sendHttpRequest(
-        method: 'POST',
-        uri: uri,
-        headers: headers,
-        body: json.encode(bodyMap),
+      await api.postRequest(
+        url: ApiUrl.contacts,
+        data: bodyMap,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is Map) {
+            final message = raw['message']?.toString().trim();
+            result = CreateContactResult(
+              success: true,
+              message: (message != null && message.isNotEmpty)
+                  ? message
+                  : 'Contact saved',
+            );
+            return;
+          }
+
+          result = const CreateContactResult(
+            success: true,
+            message: 'Contact saved',
+          );
+        },
+        onError: (message) {
+          result = CreateContactResult(success: false, message: message);
+        },
       );
 
-      if (response.statusCode == 401) {
-        session.clear();
-        Get.offAllNamed(Routes.login);
-        return const CreateContactResult(
-          success: false,
-          message: 'Session expired',
-        );
-      }
-
-      final ok = response.statusCode >= 200 && response.statusCode < 300;
-      final text = response.bodyText;
-
-      if (!ok) {
-        String msg = 'Request failed (HTTP ${response.statusCode})';
-        try {
-          final decoded = json.decode(text);
-          if (decoded is Map) {
-            final m = decoded['message'] ?? decoded['error'];
-            if (m != null && m.toString().isNotEmpty) {
-              msg = m.toString();
-            }
-          }
-        } catch (_) {
-          if (text.isNotEmpty) msg = text;
-        }
-        return CreateContactResult(success: false, message: msg);
-      }
-
-      final message = _extractSuccessMessage(text);
-      return CreateContactResult(success: true, message: message);
+      return result;
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('[create_contact] error: $e\n$st');
@@ -176,16 +166,4 @@ class CreateContactService extends GetxService {
     }
   }
 
-  String _extractSuccessMessage(String bodyText) {
-    final trimmed = bodyText.trim();
-    if (trimmed.isEmpty) return 'Contact saved';
-    try {
-      final decoded = json.decode(trimmed);
-      if (decoded is Map) {
-        final m = decoded['message'];
-        if (m != null && m.toString().isNotEmpty) return m.toString();
-      }
-    } catch (_) {}
-    return 'Contact saved';
-  }
 }

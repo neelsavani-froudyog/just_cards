@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
 import '../../events/manage/manage_event_controller.dart'
-    show EventPerson, SentInvite;
+    show SentInvite;
 import 'organization_events_model.dart';
+import 'organization_contacts_model.dart';
 import 'organization_members_model.dart';
 
 class OrganizationDetailArgs {
@@ -64,23 +67,14 @@ class OrganizationDetailController extends GetxController {
   final isEventsLoading = false.obs;
   final eventsErrorText = RxnString();
 
-  final contacts = <EventPerson>[
-    const EventPerson(
-      name: 'Alok Shaw',
-      email: 'sarah.shaw@forudyog.com',
-      companyOrRole: 'Ombyte Systems LLP',
-    ),
-    const EventPerson(
-      name: 'Alok Shaw',
-      email: 'sarah.shaw@forudyog.com',
-      companyOrRole: 'Ombyte Systems LLP',
-    ),
-    const EventPerson(
-      name: 'Alok Shaw',
-      email: 'sarah.shaw@forudyog.com',
-      companyOrRole: 'Ombyte Systems LLP',
-    ),
-  ];
+  // Contacts tab
+  final contacts = <OrganizationContactItem>[].obs;
+  final isContactsLoading = false.obs;
+  final contactsErrorText = RxnString();
+  final contactsTotal = 0.obs;
+  final contactsLimit = 10.obs;
+  final contactsOffset = 0.obs;
+  Timer? _contactsSearchDebounce;
 
   final members = <OrganizationMemberItem>[].obs;
   final isMembersLoading = false.obs;
@@ -105,6 +99,7 @@ class OrganizationDetailController extends GetxController {
     _apiService = Get.find<ApiService>();
     fetchMembers();
     fetchOrganizationEvents();
+    fetchContacts(reset: true);
   }
 
   @override
@@ -112,11 +107,70 @@ class OrganizationDetailController extends GetxController {
     searchController.dispose();
     inviteEmailController.dispose();
     inviteMessageController.dispose();
+    _contactsSearchDebounce?.cancel();
     super.onClose();
   }
 
-  void setSearch(String v) => searchQuery.value = v;
+  void setSearch(String v) {
+    searchQuery.value = v;
+    _contactsSearchDebounce?.cancel();
+    _contactsSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+      fetchContacts(reset: true);
+    });
+  }
   void setSelectedTab(int index) => selectedTabIndex.value = index;
+  Future<void> fetchContacts({required bool reset}) async {
+    final orgId = args.organizationId.trim();
+    if (orgId.isEmpty || isContactsLoading.value) return;
+
+    if (reset) {
+      contactsOffset.value = 0;
+      contacts.clear();
+    }
+
+    isContactsLoading.value = true;
+    contactsErrorText.value = null;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.contactsByOrganization,
+        data: <String, dynamic>{
+          'p_organization_id': orgId,
+          'p_limit': contactsLimit.value,
+          'p_offset': contactsOffset.value,
+          'p_search': searchQuery.value.trim().isEmpty ? null : searchQuery.value.trim(),
+        },
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            contactsErrorText.value = 'Invalid contacts response';
+            return;
+          }
+          final parsed = OrganizationContactsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            contactsErrorText.value = parsed.message.isNotEmpty
+                ? parsed.message
+                : 'Failed to load contacts';
+            return;
+          }
+
+          contacts.assignAll(parsed.data);
+          contactsTotal.value = parsed.total;
+          contactsLimit.value =
+              parsed.limit == 0 ? contactsLimit.value : parsed.limit;
+          contactsOffset.value = parsed.offset;
+        },
+        onError: (message) {
+          contactsErrorText.value =
+              message.isNotEmpty ? message : 'Failed to load contacts';
+        },
+      );
+    } finally {
+      isContactsLoading.value = false;
+    }
+  }
+
 
   void toggleEventsExpanded() =>
       eventsExpanded.value = !eventsExpanded.value;
@@ -355,18 +409,7 @@ class OrganizationDetailController extends GetxController {
     return role != 'editor' && role != 'viewer';
   }
 
-  List<EventPerson> get filteredContacts {
-    final q = searchQuery.value.trim().toLowerCase();
-    if (q.isEmpty) return contacts;
-    return contacts
-        .where(
-          (p) =>
-              p.name.toLowerCase().contains(q) ||
-              p.email.toLowerCase().contains(q) ||
-              p.companyOrRole.toLowerCase().contains(q),
-        )
-        .toList();
-  }
+  // Contacts are fetched server-side with `p_search`.
 
   Future<void> updateMemberRole(int index, String selected) async {
     if (index < 0 || index >= members.length) return;

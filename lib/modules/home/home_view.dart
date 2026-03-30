@@ -10,6 +10,7 @@ import '../../routes/app_routes.dart';
 import '../../widgets/custom_text_field.dart';
 import 'home_controller.dart';
 import 'home_events_shimmer_view.dart';
+import 'home_contacts_shimmer_sliver.dart';
 import 'widgets/add_contact_sheet.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -22,7 +23,6 @@ class HomeView extends GetView<HomeController> {
 
     return UpgradeAlert(
       upgrader: Upgrader(
-        debugDisplayAlways: true,
         messages: JustCardsUpgraderMessages(),
       ),
       showIgnore: false,
@@ -333,12 +333,94 @@ class HomeView extends GetView<HomeController> {
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
-              sliver: SliverList.separated(
-                itemCount: controller.contacts.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final contact = controller.contacts[index];
-                  return _ContactTile(contact: contact);
+              sliver: Obx(
+                () {
+                  if (controller.isContactsLoading.value) {
+                    return const HomeContactsShimmerSliver();
+                  }
+                  if (controller.contacts.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: AppColors.ink.withValues(alpha: 0.08),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.ink.withValues(alpha: 0.03),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 58,
+                                height: 58,
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.accentTeal.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.accentTeal
+                                        .withValues(alpha: 0.30),
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.person_search_rounded,
+                                  color:
+                                      AppColors.ink.withValues(alpha: 0.72),
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No contacts found',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                controller.contactsErrorText.value ??
+                                    'Scan a card or add a contact manually to see it here.',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: AppColors.ink.withValues(alpha: 0.60),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return SliverList.separated(
+                    itemCount: controller.contacts.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final contact = controller.contacts[index];
+                      return _ContactTile(contact: contact);
+                    },
+                  );
                 },
               ),
             ),
@@ -599,21 +681,19 @@ class _MetricPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.ink.withValues(alpha: 0.70),
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppColors.ink.withValues(alpha: 0.70),
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+      ],
     );
   }
 }

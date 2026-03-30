@@ -10,6 +10,7 @@ import '../../../widgets/custom_text_field.dart';
 import '../../events/manage/manage_event_controller.dart'
     show EventPerson, SentInvite;
 import 'organization_detail_controller.dart';
+import 'organization_contacts_shimmer_view.dart';
 import 'organization_members_shimmer_view.dart';
 
 class OrganizationDetailView extends GetView<OrganizationDetailController> {
@@ -516,14 +517,96 @@ class _ContactsTab extends StatelessWidget {
           ),
           Expanded(
             child: Obx(() {
-              final list = controller.filteredContacts;
+              final isLoading = controller.isContactsLoading.value;
+              final err = controller.contactsErrorText.value;
+              final items = controller.contacts;
+
+              if (isLoading) {
+                return const OrganizationContactsShimmerView();
+              }
+
+              if (items.isEmpty) {
+                final hasSearch = controller.searchQuery.value.trim().isNotEmpty;
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightHubSurface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.lightHubBorder),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.10),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.person_search_rounded,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No contacts found',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.lightHubInk,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            err ??
+                                (hasSearch
+                                    ? 'Try a different search keyword.'
+                                    : 'Contacts will appear here once cards are added to this organization.'),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.lightHubMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-                itemCount: list.length,
+                itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final p = list[index];
-                  return _PersonTile(person: p);
+                  final c = items[index];
+                  final title = c.fullName.trim().isNotEmpty
+                      ? c.fullName.trim()
+                      : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
+                          ? '${c.firstName} ${c.lastName}'.trim()
+                          : 'Unknown';
+                  final subtitle1 =
+                      c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1.trim();
+                  final subtitle2 = c.companyName.trim().isNotEmpty
+                      ? c.companyName.trim()
+                      : c.designation.trim();
+
+                  return _PersonTile(
+                    person: EventPerson(
+                      name: title,
+                      email: subtitle1.isNotEmpty ? subtitle1 : '--',
+                      companyOrRole: subtitle2.isNotEmpty ? subtitle2 : '--',
+                    ),
+                  );
                 },
               );
             }),
@@ -542,70 +625,103 @@ class _PersonTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-      decoration: BoxDecoration(
-        color: AppColors.lightHubSurface,
+    final initials = _initials(person.name);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.lightHubBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.lightHubAvatarFill,
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.person_rounded,
-              size: 22,
-              color: AppColors.lightHubMuted,
-            ),
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.040),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  person.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.lightHubInk,
-                    fontWeight: FontWeight.w800,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentTeal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: AppColors.accentTeal.withValues(alpha: 0.60),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  person.email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.lightHubMuted,
-                    fontWeight: FontWeight.w500,
+                alignment: Alignment.center,
+                child: Text(
+                  initials,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppColors.ink.withValues(alpha: 0.70),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  person.companyOrRole,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.lightHubBlue,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      person.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      person.email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      person.companyOrRole,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.ink.withValues(alpha: 0.35),
+              ),
+            ],
           ),
-          Icon(Icons.chevron_right_rounded, color: AppColors.lightHubMuted),
-        ],
+        ),
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final a = parts.isNotEmpty ? parts.first : '';
+    final b = parts.length > 1 ? parts[1] : '';
+    final i1 = a.isEmpty ? '' : a[0];
+    final i2 = b.isEmpty ? '' : b[0];
+    final result = (i1 + i2).toUpperCase();
+    return result.isEmpty ? '—' : result;
   }
 }
 
@@ -662,20 +778,6 @@ class _MembersTab extends StatelessWidget {
                       color: AppColors.ink.withValues(alpha: 0.60),
                       fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton.tonal(
-                    onPressed: controller.fetchMembers,
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text('Refresh'),
                   ),
                 ],
               ),
@@ -843,7 +945,7 @@ class _MembersTab extends StatelessWidget {
 }
 
 class MemberTile extends StatelessWidget {
-  const MemberTile({
+  const MemberTile({super.key, 
     required this.title,
     required this.subtitle1,
     required this.subtitle2,

@@ -8,6 +8,7 @@ import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/confirm_dialog.dart';
 import 'manage_event_controller.dart';
 import 'manage_event_members_shimmer_view.dart';
+import 'manage_event_contacts_shimmer_view.dart';
 
 class ManageEventView extends GetView<ManageEventController> {
   const ManageEventView({super.key});
@@ -198,39 +199,131 @@ class _ContactsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-          child: CustomTextField(
-            hint: 'Search...',
-            prefixIcon: Icon(Icons.search_rounded, color: AppColors.ink.withValues(alpha: 0.55)),
-            borderRadius: 12,
-            filled: true,
-            fillColor: AppColors.white,
-            borderColor: AppColors.ink.withValues(alpha: 0.10),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            onChanged: controller.setSearch,
+    return Obx(() {
+      final isLoading = controller.isContactsLoading.value;
+      final err = controller.contactsErrorText.value;
+      final items = controller.contacts;
+
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+            child: CustomTextField(
+              hint: 'Search...',
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                color: AppColors.ink.withValues(alpha: 0.55),
+              ),
+              borderRadius: 12,
+              filled: true,
+              fillColor: AppColors.white,
+              borderColor: AppColors.ink.withValues(alpha: 0.10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              onChanged: controller.setSearch,
+            ),
           ),
-        ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-            itemCount: controller.contacts.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final p = controller.contacts[index];
-              return _PersonTile(
-                title: p.name,
-                subtitle1: p.email,
-                subtitle2: p.companyOrRole,
-                status: null,
-              );
-            },
-          ),
-        ),
-      ],
-    );
+          if (isLoading)
+            const Expanded(
+              child: ManageEventContactsShimmerView(),
+            )
+          else if (items.isEmpty)
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: AppColors.ink.withValues(alpha: 0.08),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.ink.withValues(alpha: 0.03),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.person_search_rounded,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No contacts found',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          err ??
+                              (controller.searchQuery.value.trim().isNotEmpty
+                                  ? 'Try a different search keyword.'
+                                  : 'Contacts will appear here once cards are added to this event.'),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.60),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final c = items[index];
+                  final title = c.fullName.trim().isNotEmpty
+                      ? c.fullName.trim()
+                      : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
+                          ? '${c.firstName} ${c.lastName}'.trim()
+                          : 'Unknown';
+                  final subtitle1 =
+                      c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1.trim();
+                  final subtitle2 = c.companyName.trim().isNotEmpty
+                      ? c.companyName.trim()
+                      : c.designation.trim();
+
+                  return _PersonTile(
+                    title: title,
+                    subtitle1: subtitle1.isNotEmpty ? subtitle1 : '--',
+                    subtitle2: subtitle2.isNotEmpty ? subtitle2 : '--',
+                    status: null,
+                    allowActions: false,
+                  );
+                },
+              ),
+            ),
+        ],
+      );
+    });
   }
 }
 
@@ -731,133 +824,135 @@ class _PersonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final initials = _initials(title);
     final theme = Theme.of(context);
+
+    // Keep actions support for Members tab, but style card like Home contact tile.
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
     final canShowActions =
         allowActions && !isProtectedRole && (onUpdate != null || onDelete != null);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.09)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.040),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.ink.withValues(alpha: 0.06),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.person_rounded,
-              size: 21,
-              color: AppColors.ink.withValues(alpha: 0.55),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w800,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentTeal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: AppColors.accentTeal.withValues(alpha: 0.60),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle1,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.62),
-                    fontWeight: FontWeight.w500,
+                alignment: Alignment.center,
+                child: Text(
+                  initials,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppColors.ink.withValues(alpha: 0.70),
                   ),
                 ),
-                const SizedBox(height: 5),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-                      child: Text(
-                        capitalizeWords(subtitle2),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: _roleColor(subtitle2),
-                          fontWeight: FontWeight.w700,
-                        ),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.ink,
                       ),
                     ),
-                    if (status != null && status != 'accepted') ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          capitalizeWords(status!),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.ink.withValues(alpha: 0.60),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      subtitle2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (canShowActions)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onUpdate != null)
+                      _ActionButton(
+                        icon: Icons.edit_rounded,
+                        color: AppColors.ink.withValues(alpha: 0.68),
+                        tooltip: 'Update',
+                        onTap: onUpdate!,
+                      ),
+                    if (onDelete != null) ...[
+                      const SizedBox(width: 6),
+                      _ActionButton(
+                        icon: Icons.delete_outline_rounded,
+                        color: AppColors.danger,
+                        tooltip: 'Delete',
+                        onTap: onDelete!,
                       ),
                     ],
                   ],
+                )
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.ink.withValues(alpha: 0.35),
                 ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(width: 4),
-          if (canShowActions)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onUpdate != null)
-                  _ActionButton(
-                    icon: Icons.edit_rounded,
-                    color: AppColors.ink.withValues(alpha: 0.68),
-                    tooltip: 'Update',
-                    onTap: onUpdate!,
-                  ),
-                if (onDelete != null) ...[
-                  const SizedBox(width: 6),
-                  _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                    tooltip: 'Delete',
-                    onTap: onDelete!,
-                  ),
-                ],
-              ],
-            ),
-        ],
+        ),
       ),
     );
   }
 
-  
-
-  Color _roleColor(String role) {
-    final v = role.toLowerCase();
-    if (v.contains('admin')) return const Color(0xFFB42318);
-    if (v.contains('editor')) return const Color(0xFF12B76A);
-    return const Color(0xFF2E90FA);
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final a = parts.isNotEmpty ? parts.first : '';
+    final b = parts.length > 1 ? parts[1] : '';
+    final i1 = a.isEmpty ? '' : a[0];
+    final i2 = b.isEmpty ? '' : b[0];
+    final result = (i1 + i2).toUpperCase();
+    return result.isEmpty ? '—' : result;
   }
+
+  
 
   bool _isOwnerOrAdmin(String role) {
     final v = role.toLowerCase();

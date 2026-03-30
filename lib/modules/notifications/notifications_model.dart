@@ -115,13 +115,6 @@ class AppNotificationItem {
   });
 
   factory AppNotificationItem.fromJson(Map<String, dynamic> json) {
-    DateTime? parseDate(dynamic v) {
-      try {
-        return v != null ? DateTime.parse(v.toString()) : null;
-      } catch (_) {
-        return null;
-      }
-    }
 
     return AppNotificationItem(
       id: (json['id'] ?? '').toString(),

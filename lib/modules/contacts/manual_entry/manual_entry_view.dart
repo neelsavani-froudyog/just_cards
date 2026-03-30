@@ -150,11 +150,13 @@ class ManualEntryView extends GetView<ManualEntryController> {
     IconData? suffixIcon,
     VoidCallback? onTap,
     TextInputType inputType = TextInputType.text,
+    int? maxLength,
   }) {
     return CustomTextField(
       controller: controller,
       label: label,
       hint: hint,
+      maxLength: maxLength,
       readOnly: readOnly,
       inputType: inputType,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -356,7 +358,7 @@ class ManualEntryView extends GetView<ManualEntryController> {
           Obx(
             () => CupertinoSwitch(
               value: controller.shareWithOrganization.value,
-              activeColor: activeGreen,
+              activeTrackColor: activeGreen,
               onChanged: (value) => controller.shareWithOrganization.value = value,
             ),
           ),
@@ -427,6 +429,7 @@ class ManualEntryView extends GetView<ManualEntryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         backgroundColor: AppColors.white,
@@ -492,8 +495,17 @@ class ManualEntryView extends GetView<ManualEntryController> {
                           const SizedBox(height: 14),
                           _field(
                             context: context,
+                            label: 'Website',
+                            controller: controller.websiteCtrl,
+                            hint: 'Website',
+                            inputType: TextInputType.url,
+                          ),
+                          const SizedBox(height: 14),
+                          _field(
+                            context: context,
                             label: 'Mobile',
                             controller: controller.mobileCtrl,
+                            maxLength: 10,
                             hint: 'Phone Number 1 ...',
                             inputType: TextInputType.phone,
                           ),
@@ -502,6 +514,7 @@ class ManualEntryView extends GetView<ManualEntryController> {
                             context: context,
                             label: 'Phone',
                             controller: controller.phoneCtrl,
+                            maxLength: 10,
                             hint: 'Phone number 2',
                             inputType: TextInputType.phone,
                           ),

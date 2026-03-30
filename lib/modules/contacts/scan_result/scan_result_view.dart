@@ -677,7 +677,7 @@ class _ScanResultViewState extends State<ScanResultView> {
           ),
           CupertinoSwitch(
             value: _shareWithOrganization,
-            activeColor: activeGreen,
+            activeTrackColor: activeGreen,
             onChanged: (value) {
               setState(() => _shareWithOrganization = value);
             },
