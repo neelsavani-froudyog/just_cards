@@ -5,8 +5,8 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
-import '../../events/manage/manage_event_controller.dart'
-    show SentInvite;
+import '../../events/manage/manage_event_controller.dart' show SentInvite;
+import '../../../core/services/toast_service.dart';
 import 'organization_events_model.dart';
 import 'organization_contacts_model.dart';
 import 'organization_members_model.dart';
@@ -118,7 +118,23 @@ class OrganizationDetailController extends GetxController {
       fetchContacts(reset: true);
     });
   }
-  void setSelectedTab(int index) => selectedTabIndex.value = index;
+
+  /// Called when the tab changes in the UI.
+  /// Keeps `selectedTabIndex` in sync and refreshes the corresponding data.
+  void setSelectedTab(int index) {
+    selectedTabIndex.value = index;
+
+    // 0 = Contacts, 1 = Members, 2 = Invites (if present)
+    if (index == 0) {
+      // Always reload contacts when user comes back to this tab
+      fetchContacts(reset: true);
+    } else if (index == 1) {
+      // Refresh members list when switching to Members tab
+      fetchMembers();
+    }
+    // For the Invites tab (index 2) we currently work with local state
+    // (`sentInvites`) and dedicated send/remove methods, so no extra fetch.
+  }
   Future<void> fetchContacts({required bool reset}) async {
     final orgId = args.organizationId.trim();
     if (orgId.isEmpty || isContactsLoading.value) return;
@@ -271,7 +287,7 @@ class OrganizationDetailController extends GetxController {
 
     final orgId = args.organizationId.trim();
     if (orgId.isEmpty) {
-      Get.snackbar('Invite', 'Organization ID is missing');
+      ToastService.error('Organization ID is missing');
       return;
     }
 
@@ -292,9 +308,18 @@ class OrganizationDetailController extends GetxController {
         },
         showSuccessToast: true,
         successToastMessage: 'Invite resent',
-        showErrorToast: true,
+        // We'll handle error toast manually to customize specific messages.
+        showErrorToast: false,
         onSuccess: (_) => fetchMembers(),
-        onError: (_) {},
+        onError: (message) async {
+          const duplicateMsg =
+              'Invite creation did not return an invite_batch_id.';
+          if (message.trim() == duplicateMsg) {
+            await ToastService.error('Member already invited');
+          } else if (message.isNotEmpty) {
+            await ToastService.error(message);
+          }
+        },
       );
     } finally {
       isInviting.value = false;
@@ -306,7 +331,7 @@ class OrganizationDetailController extends GetxController {
 
     final inviteId = member.inviteId?.toString().trim();
     if (inviteId == null || inviteId.isEmpty) {
-      Get.snackbar('Remove', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
 
@@ -331,7 +356,7 @@ class OrganizationDetailController extends GetxController {
     if (isInviting.value) return;
     final email = inviteEmailController.text.trim();
     if (email.isEmpty) {
-      Get.snackbar('Invite', 'Please enter email');
+      ToastService.error('Please enter email');
       return;
     }
 
@@ -339,7 +364,7 @@ class OrganizationDetailController extends GetxController {
       (i) => i.email.toLowerCase() == email.toLowerCase(),
     );
     if (alreadyAdded) {
-      Get.snackbar('Invite', 'This email is already added');
+      ToastService.error('This email is already added');
       return;
     }
     isInviting.value = true;
@@ -358,13 +383,13 @@ class OrganizationDetailController extends GetxController {
   Future<void> sendInvites() async {
     if (isInviting.value) return;
     if (sentInvites.isEmpty) {
-      Get.snackbar('Invite', 'Add at least one member');
+      ToastService.info('Add at least one member');
       return;
     }
 
     final orgId = args.organizationId.trim();
     if (orgId.isEmpty) {
-      Get.snackbar('Invite', 'Organization ID is missing');
+      ToastService.error('Organization ID is missing');
       return;
     }
 
@@ -389,13 +414,22 @@ class OrganizationDetailController extends GetxController {
         },
         showSuccessToast: true,
         successToastMessage: 'Invites sent successfully',
-        showErrorToast: true,
+        // Custom error handling to map known backend messages.
+        showErrorToast: false,
         onSuccess: (_) {
           // Keep the user on the Organization Detail page, but clear the form.
           inviteMessageController.clear();
           sentInvites.clear();
         },
-        onError: (_) {},
+        onError: (message) async {
+          const duplicateMsg =
+              'Invite creation did not return an invite_batch_id.';
+          if (message.trim() == duplicateMsg) {
+            await ToastService.error('Member already invited');
+          } else if (message.isNotEmpty) {
+            await ToastService.error(message);
+          }
+        },
       );
     } finally {
       isInviting.value = false;
@@ -417,7 +451,7 @@ class OrganizationDetailController extends GetxController {
     final member = members[index];
     final inviteId = member.inviteId?.toString().trim();
     if (inviteId == null || inviteId.isEmpty) {
-      Get.snackbar('Update', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
 
@@ -446,7 +480,7 @@ class OrganizationDetailController extends GetxController {
     if (index < 0 || index >= members.length) return;
     final member = members[index];
     if (member.inviteId == null || member.inviteId!.toString().trim().isEmpty) {
-      Get.snackbar('Remove', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
     await removeInviteForMember(member);

@@ -13,6 +13,17 @@ class ToastService {
     );
   }
 
+  static Future<void> info(String message) {
+    return Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.blueGrey.shade700,
+      textColor: Colors.white,
+      fontSize: 14,
+    );
+  }
+
   static Future<void> error(String message) {
     return Fluttertoast.showToast(
       msg: message,

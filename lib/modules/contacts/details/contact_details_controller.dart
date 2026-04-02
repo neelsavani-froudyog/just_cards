@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/toast_service.dart';
+
 enum ContactDetailsTab { details, notes, attachments }
 
 class ContactDetailsController extends GetxController {
@@ -25,7 +27,7 @@ class ContactDetailsController extends GetxController {
     isSaving.value = true;
     try {
       await Future<void>.delayed(const Duration(milliseconds: 650));
-      Get.snackbar('Contact', 'Changes saved');
+      ToastService.success('Changes saved');
     } finally {
       isSaving.value = false;
     }

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/toast_service.dart';
 
 class JoinOrganizationArgs {
   const JoinOrganizationArgs({
@@ -47,7 +48,7 @@ class JoinOrganizationController extends GetxController {
     if (isWorking.value) return;
     final inviteId = args.inviteId.trim();
     if (inviteId.isEmpty) {
-      Get.snackbar('Organisation', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
     isWorking.value = true;
@@ -73,7 +74,7 @@ class JoinOrganizationController extends GetxController {
     if (isWorking.value) return;
     final inviteId = args.inviteId.trim();
     if (inviteId.isEmpty) {
-      Get.snackbar('Organisation', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
     isWorking.value = true;

@@ -45,8 +45,10 @@ class ApiUrl {
   /// Create contact (JSON body with `p_*` fields). Same host as [baseUrl].
   static const String contacts = '/contacts';
   static const String contactsByEvent = '/contacts/by-event';
+  static const String contactsByEventTotalCount = '/contacts/by-event/total-count';
   static const String contactsByOrganization = '/contacts/by-organization';
   static const String myContacts = '/contacts/my';
+  static const String myContactsTotalCount = '/contacts/my/total-count';
 
   /// Call this once before making any API calls.
   static void configure({required String baseUrl}) {

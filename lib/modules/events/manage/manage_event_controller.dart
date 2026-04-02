@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/toast_service.dart';
 import 'event_members_model.dart';
 import 'event_contacts_model.dart';
 
@@ -31,6 +32,10 @@ class ManageEventController extends GetxController {
   final contactsLimit = 10.obs;
   final contactsOffset = 0.obs;
 
+  // Cards count (total contacts in this event)
+  final eventCardsTotalCount = RxnInt();
+  final isEventCardsTotalLoading = false.obs;
+
   Timer? _contactsSearchDebounce;
 
   final members = <EventMember>[
@@ -50,6 +55,7 @@ class ManageEventController extends GetxController {
     args = ManageEventArgs.from(Get.arguments);
     currentUserRole.value = args.role.trim().toLowerCase();
     fetchContacts(reset: true);
+    fetchEventCardsTotalCount();
     fetchMembers();
   }
 
@@ -103,7 +109,6 @@ class ManageEventController extends GetxController {
       ),
     );
     inviteEmailController.clear();
-    Get.snackbar('Invite', 'Added to invite list');
   }
 
   String _apiRoleFromUiRole(String uiRole) {
@@ -162,13 +167,54 @@ class ManageEventController extends GetxController {
       );
     } finally {
       isContactsLoading.value = false;
+      // Keep header Cards count in sync with server totals.
+      fetchEventCardsTotalCount();
+    }
+  }
+
+  Future<void> fetchEventCardsTotalCount() async {
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty || isEventCardsTotalLoading.value) return;
+
+    isEventCardsTotalLoading.value = true;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.contactsByEventTotalCount,
+        data: <String, dynamic>{'p_event_id': eventId},
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            eventCardsTotalCount.value = null;
+            return;
+          }
+          if (raw['ok'] != true) {
+            eventCardsTotalCount.value = null;
+            return;
+          }
+          final data = raw['data'];
+          final total =
+              (data is Map<String, dynamic>) ? data['total'] : raw['total'];
+          if (total is num) {
+            eventCardsTotalCount.value = total.toInt();
+          } else {
+            eventCardsTotalCount.value = int.tryParse(total?.toString() ?? '');
+          }
+        },
+        onError: (_) {
+          eventCardsTotalCount.value = null;
+        },
+      );
+    } finally {
+      isEventCardsTotalLoading.value = false;
     }
   }
 
   Future<void> _sendInvitesRequest(List<SentInvite> invites) async {
     if (isInviting.value) return;
     if (invites.isEmpty) {
-      Get.snackbar('Invite', 'Add members to the invite list first');
+      ToastService.info('Add members to the invite list first');
       return;
     }
 

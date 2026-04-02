@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
     this.label,
     this.subLabel,
     this.hint,
+    this.errorText,
     this.margin,
     this.padding,
     this.fillColor,
@@ -47,6 +48,7 @@ class CustomTextField extends StatelessWidget {
   final String? label;
   final String? subLabel;
   final String? hint;
+  final String? errorText;
 
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
@@ -95,6 +97,7 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasError = (errorText != null && errorText!.trim().isNotEmpty);
 
     final baseTextField = TextField(
       controller: controller,
@@ -189,7 +192,9 @@ class CustomTextField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(borderRadius),
                 border: isShowBorder
                     ? Border.all(
-                        color: (borderColor ?? AppColors.ink.withValues(alpha: 0.10)),
+                        color: hasError
+                            ? theme.colorScheme.error.withValues(alpha: 0.85)
+                            : (borderColor ?? AppColors.ink.withValues(alpha: 0.10)),
                       )
                     : null,
               ),
@@ -241,6 +246,19 @@ class CustomTextField extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: margin ?? EdgeInsets.zero,
+            child: Text(
+              errorText!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -15,7 +15,7 @@ class HomeController extends GetxController {
   final filters = const ['All', 'Today', 'Yesterday', 'Last 7 days', 'Last 30 days'];
 
   final overview = <HomeOverviewStat>[
-    const HomeOverviewStat('Contacts', '125'),
+    const HomeOverviewStat('Contacts', '--'),
     const HomeOverviewStat('Scans', '--'),
     const HomeOverviewStat('Events', '--'),
     const HomeOverviewStat('Scans Left', '--'),
@@ -32,6 +32,8 @@ class HomeController extends GetxController {
   final contacts = <HomeContact>[].obs;
   final isContactsLoading = false.obs;
   final contactsErrorText = RxnString();
+  final myContactsTotalCount = RxnInt();
+  final isMyContactsTotalCountLoading = false.obs;
   final contactsTotal = 0.obs;
   final contactsLimit = 20.obs;
   final contactsOffset = 0.obs;
@@ -40,9 +42,52 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
-    fetchEvents();
-    fetchContacts(reset: true);
-    fetchScanQuotaStatus();
+    refreshAllData();
+  }
+
+  Future<void> refreshAllData() async {
+    await Future.wait(<Future<void>>[
+      fetchEvents(),
+      fetchContacts(reset: true),
+      fetchScanQuotaStatus(),
+      fetchMyContactsTotalCount(),
+    ]);
+  }
+
+  Future<void> fetchMyContactsTotalCount() async {
+    if (isMyContactsTotalCountLoading.value) return;
+    isMyContactsTotalCountLoading.value = true;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.myContactsTotalCount,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            myContactsTotalCount.value = null;
+            return;
+          }
+          final ok = raw['ok'] == true;
+          if (!ok) {
+            myContactsTotalCount.value = null;
+            return;
+          }
+          final total = raw['total'];
+          if (total is num) {
+            myContactsTotalCount.value = total.toInt();
+          } else {
+            myContactsTotalCount.value = int.tryParse(total?.toString() ?? '');
+          }
+        },
+        onError: (_) {
+          myContactsTotalCount.value = null;
+        },
+      );
+    } finally {
+      isMyContactsTotalCountLoading.value = false;
+      _syncOverview();
+    }
   }
 
   String _apiFilterFromIndex(int index) {
@@ -208,8 +253,10 @@ class HomeController extends GetxController {
   }
 
   void _syncOverview() {
+    final contactsCountText =
+        (myContactsTotalCount.value != null) ? myContactsTotalCount.value.toString() : '--';
     overview.assignAll(<HomeOverviewStat>[
-      const HomeOverviewStat('Contacts', '125'),
+      HomeOverviewStat('Contacts', contactsCountText),
       HomeOverviewStat('Scans', scansCount.value.toString()),
       HomeOverviewStat('Events', events.length.toString()),
       HomeOverviewStat('Scans Left', scansLeftCount.value.toString()),

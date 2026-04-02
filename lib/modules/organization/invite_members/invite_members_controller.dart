@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/toast_service.dart';
 
 class SentInvite {
   const SentInvite({
@@ -52,14 +53,14 @@ class InviteMembersController extends GetxController {
     if (isInviting.value) return;
     final email = inviteEmailController.text.trim();
     if (email.isEmpty) {
-      Get.snackbar('Invite', 'Please enter email');
+      ToastService.info('Please enter email');
       return;
     }
     final alreadyAdded = sentInvites.any(
       (i) => i.email.toLowerCase() == email.toLowerCase(),
     );
     if (alreadyAdded) {
-      Get.snackbar('Invite', 'This email is already added');
+      ToastService.info('This email is already added');
       return;
     }
     isInviting.value = true;
@@ -70,7 +71,7 @@ class InviteMembersController extends GetxController {
         SentInvite(email: email, role: inviteRole.value, status: 'Sent'),
       );
       inviteEmailController.clear();
-      Get.snackbar('Invite', 'Invite added');
+      ToastService.success('Invite added');
     } finally {
       isInviting.value = false;
     }
@@ -85,13 +86,13 @@ class InviteMembersController extends GetxController {
 
   Future<void> sendInvites() async {
     if (sentInvites.isEmpty) {
-      Get.snackbar('Invite', 'Add at least one member');
+      ToastService.info('Add at least one member');
       return;
     }
     if (isInviting.value) return;
     final orgId = _orgArgs?['organizationId']?.toString().trim() ?? '';
     if (orgId.isEmpty) {
-      Get.snackbar('Invite', 'Organization ID is missing');
+      ToastService.error('Organization ID is missing');
       return;
     }
     isInviting.value = true;
@@ -115,13 +116,22 @@ class InviteMembersController extends GetxController {
         },
         showSuccessToast: true,
         successToastMessage: 'Invites sent successfully',
-        showErrorToast: true,
+        // Custom error handling so we can show a friendlier message.
+        showErrorToast: false,
         onSuccess: (_) {
           inviteMessageController.clear();
           sentInvites.clear();
           Get.back();
         },
-        onError: (_) {},
+        onError: (message) async {
+          const duplicateMsg =
+              'Invite creation did not return an invite_batch_id.';
+          if (message.trim() == duplicateMsg) {
+            await ToastService.error('Member already invited');
+          } else if (message.isNotEmpty) {
+            await ToastService.error(message);
+          }
+        },
       );
     } finally {
       isInviting.value = false;

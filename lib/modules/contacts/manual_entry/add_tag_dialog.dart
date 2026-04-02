@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/toast_service.dart';
 
 /// Add Tag dialog with proper controller lifecycle and polished design.
 class AddTagDialog extends StatefulWidget {
@@ -38,7 +39,7 @@ class _AddTagDialogState extends State<AddTagDialog> {
     if (value.isEmpty) return;
     if (widget.selectedTags.any((t) => t.toLowerCase() == value.toLowerCase())) {
       Get.back();
-      Get.snackbar('Tags', 'Tag already added');
+      ToastService.info('Tag already added');
       return;
     }
     widget.selectedTags.add(value);

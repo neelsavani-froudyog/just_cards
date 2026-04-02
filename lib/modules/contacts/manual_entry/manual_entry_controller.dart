@@ -34,6 +34,7 @@ class ManualEntryController extends GetxController {
   final primaryEmailCtrl = TextEditingController();
   final secondaryEmailCtrl = TextEditingController();
   final websiteCtrl = TextEditingController();
+  final addressCtrl = TextEditingController();
 
   static const String noneOrganization = 'Select organization';
 
@@ -58,7 +59,7 @@ class ManualEntryController extends GetxController {
   final selectedTags = <String>['Lead', 'Follow-up'].obs;
   final suggestedTags = <String>['Priority', 'VIP', 'Prospect'].obs;
 
-  final shareWithOrganization = true.obs;
+  final shareWithOrganization = false.obs;
 
   /// Replace with real IDs from your events API when available.
   static const Map<String, String> _eventIdByLabel = <String, String>{
@@ -84,6 +85,7 @@ class ManualEntryController extends GetxController {
 
     if (v == noneOrganization) {
       selectedOrganizationId.value = null;
+      shareWithOrganization.value = false;
       // No organization selected => show all events
       unawaited(fetchAllEvents());
       return;
@@ -97,6 +99,7 @@ class ManualEntryController extends GetxController {
       }
     }
     selectedOrganizationId.value = selected?.id;
+    shareWithOrganization.value = true;
 
     unawaited(fetchEventsByOrganization(selectedOrganizationId.value));
   }
@@ -150,6 +153,7 @@ class ManualEntryController extends GetxController {
           organizations.assignAll(names);
           selectedOrganization.value = noneOrganization;
           selectedOrganizationId.value = null;
+          shareWithOrganization.value = false;
         },
         onError: (_) {},
       );
@@ -286,12 +290,6 @@ class ManualEntryController extends GetxController {
       return;
     }
 
-    final eventLabel = selectedEvent.value.trim();
-    if (eventLabel.isEmpty || eventLabel == noneEvent) {
-      ToastService.error('Select an event for this upload');
-      return;
-    }
-
     final file = File(path);
     if (!await file.exists()) {
       ToastService.error('Image file is missing. Scan again.');
@@ -308,6 +306,7 @@ class ManualEntryController extends GetxController {
     final email2 = secondaryEmailCtrl.text.trim();
     final phone1 = mobileCtrl.text.trim();
     final phone2 = phoneCtrl.text.trim();
+    final address = addressCtrl.text.trim();
 
     if (first.isEmpty) {
       ToastService.error('First name is required');
@@ -334,12 +333,6 @@ class ManualEntryController extends GetxController {
       return;
     }
 
-    final eventId = selectedEventId.value ?? _eventIdByLabel[eventLabel];
-    if (eventId == null || eventId.isEmpty) {
-      ToastService.error('Select an event for this upload');
-      return;
-    }
-
     isSaving.value = true;
     try {
       // 1) Upload image first.
@@ -361,7 +354,7 @@ class ManualEntryController extends GetxController {
         },
         textFields: <String, String>{
           // Your curl uses `eventName` + `file`.
-          'eventName': eventLabel,
+          'eventName': selectedEvent.value == noneEvent ? 'Direct Entry' : selectedEvent.value,
         },
         fileFieldName: 'file',
         file: file,
@@ -410,10 +403,11 @@ class ManualEntryController extends GetxController {
 
       final createResult = await contactService.createContact(
         ownerUserId: userId,
+        organizationId: selectedOrganizationId.value == null || selectedOrganizationId.value == noneOrganization ? null : selectedOrganizationId.value as String,
         createdBy: userId,
         fullName: fullName,
         source: 'manual',
-        eventId: eventId,
+        eventId: selectedEventId.value == null || selectedEventId.value == noneEvent ? null : selectedEventId.value as String,
         allowShareOrganization: shareWithOrganization.value,
         firstName: first,
         lastName: last,
@@ -423,7 +417,7 @@ class ManualEntryController extends GetxController {
         email2: email2,
         phone1: phone1,
         phone2: phone2,
-        address: '',
+        address: address,
         website: website,
         cardImgUrl: publicUrl,
         tags: List<String>.from(selectedTags),
@@ -454,6 +448,7 @@ class ManualEntryController extends GetxController {
     primaryEmailCtrl.dispose();
     secondaryEmailCtrl.dispose();
     websiteCtrl.dispose();
+    addressCtrl.dispose();
     super.onClose();
   }
 }

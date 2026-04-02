@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../../core/services/toast_service.dart';
+
 class OrganizationSettingsArgs {
   const OrganizationSettingsArgs({
     required this.organizationId,
@@ -42,7 +44,7 @@ class OrganizationSettingsController extends GetxController {
     try {
       await Future<void>.delayed(const Duration(milliseconds: 400));
       Get.back();
-      Get.snackbar('Saved', 'Organization settings updated');
+      ToastService.success('Organization settings updated');
     } finally {
       isSaving.value = false;
     }

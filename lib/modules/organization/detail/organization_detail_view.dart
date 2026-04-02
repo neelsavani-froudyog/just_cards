@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_cards/modules/organization/detail/organization_events_model.dart';
+import 'package:just_cards/core/services/document_scanner_service.dart';
+import 'package:just_cards/core/services/toast_service.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_routes.dart';
@@ -132,6 +134,30 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                       ),
                     ),
                   ],
+                ),
+                floatingActionButton: AnimatedBuilder(
+                  animation: tabController.animation!,
+                  builder: (context, _) {
+                    if (tabController.index != 0) {
+                      return const SizedBox.shrink();
+                    }
+                    return FloatingActionButton(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                      onPressed: () async {
+                        final images = await DocumentScannerService.scan(
+                          allowMultiple: false,
+                        );
+                        if (images.isNotEmpty) {
+                          await ToastService.success(
+                            '${images.length} page(s) captured',
+                          );
+                        }
+                        Get.back();
+                      },
+                      child: const Icon(Icons.badge_rounded),
+                    );
+                  },
                 ),
               );
             },
@@ -410,71 +436,93 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      width: 210,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-      decoration: BoxDecoration(
-        color: AppColors.lightHubSurface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.lightHubBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            event.eventName.isNotEmpty ? event.eventName : 'Event',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.lightHubInk,
-              fontWeight: FontWeight.w800,
-            ),
+        onTap: () {
+          // Navigate to Manage Event when an event card is tapped.
+          Get.toNamed(
+            Routes.manageEvent,
+            arguments: <String, dynamic>{
+              'eventId': event.eventId,
+              'title': event.eventName.isNotEmpty ? event.eventName : 'Event',
+              'location': event.locationText.isNotEmpty ? event.locationText : '—',
+              // Organization events payload doesn't include members count.
+              'membersCount': 0,
+              'cardsCount': event.contactCount,
+              // Use org role for permissions in Manage Event UI.
+              'role': Get.find<OrganizationDetailController>().args.role,
+            },
+          );
+        },
+        child: Ink(
+          width: 210,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+          decoration: BoxDecoration(
+            color: AppColors.lightHubSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.lightHubBorder),
           ),
-          const SizedBox(height: 6),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.location_on_rounded,
-                size: 16,
-                color: AppColors.lightHubMuted,
+              Text(
+                event.eventName.isNotEmpty ? event.eventName : 'Event',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: AppColors.lightHubInk,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  event.locationText.isNotEmpty ? event.locationText : '—',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.location_on_rounded,
+                    size: 16,
                     color: AppColors.lightHubMuted,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      event.locationText.isNotEmpty ? event.locationText : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.lightHubMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.lightHubAvatarFill,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${event.contactCount} Contacts',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.lightHubInk,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const Spacer(),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.lightHubAvatarFill,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${event.contactCount} Contacts',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.lightHubInk,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1273,12 +1321,13 @@ class _InvitesTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 48,
-              width: double.infinity,
-              child: Obx(() {
-                final busy = controller.isInviting.value;
-                return FilledButton(
+            Obx(() {
+              if (controller.sentInvites.isEmpty) return const SizedBox.shrink();
+              final busy = controller.isInviting.value;
+              return SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: FilledButton(
                   onPressed: busy ? null : controller.sendInvites,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -1287,37 +1336,36 @@ class _InvitesTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child:
-                      busy
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.white,
-                            ),
-                          )
-                          : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Send Invite',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Icon(
-                                Icons.send_rounded,
-                                color: AppColors.white,
-                                size: 18,
-                              ),
-                            ],
+                  child: busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.white,
                           ),
-                );
-              }),
-            ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Send Invite',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Icon(
+                              Icons.send_rounded,
+                              color: AppColors.white,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                ),
+              );
+            }),
           ],
         ),
       ),

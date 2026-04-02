@@ -43,7 +43,7 @@ class HomeView extends GetView<HomeController> {
               backgroundColor: Colors.transparent,
             );
             if (result == true) {
-              await controller.fetchEvents();
+              await controller.refreshAllData();
             }
           },
           backgroundColor: AppColors.primary,

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/services/api.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_session_service.dart';
+import '../../core/services/toast_service.dart';
 import '../../routes/app_routes.dart';
 import 'profile_model.dart';
 
@@ -69,7 +70,7 @@ class ProfileController extends GetxController {
   }
 
   void onPrivacyPolicy() {
-    Get.snackbar('Privacy Policy', 'Coming soon');
+    ToastService.info('Coming soon');
   }
 
   Future<void> onLogout() async {

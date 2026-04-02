@@ -58,8 +58,12 @@ class NotificationsController extends GetxController {
   }
 
   Future<void> fetchNotifications({required bool reset}) async {
-    if (isLoading.value) return;
-    if (!reset && (isLoadingMore.value || !_hasMore)) return;
+    // Allow a "reset" fetch to start even if another fetch is in-flight.
+    // We use `_requestSeq` to ensure only the latest response updates state.
+    if (!reset) {
+      if (isLoadingMore.value || !_hasMore) return;
+      if (isLoading.value) return; // don't paginate during a refresh
+    }
 
     final int seq = ++_requestSeq;
     if (reset) {
@@ -67,6 +71,7 @@ class NotificationsController extends GetxController {
       _hasMore = true;
       errorText.value = null;
       isLoading.value = true;
+      isLoadingMore.value = false;
     } else {
       isLoadingMore.value = true;
     }

@@ -216,6 +216,7 @@ class CreateEventSheet extends StatelessWidget {
                   Obx(() {
                     final loadingOrganizations = c.isOrganizationsLoading.value;
                     return CustomSearchDropdown<String>(
+                      dropdownMaxHeight: 100,
                       items: c.organizations,
                       selectedItem: c.selectedOrganization.value,
                       hintText: 'None',

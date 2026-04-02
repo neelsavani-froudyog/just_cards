@@ -71,7 +71,8 @@ class CreateContactService extends GetxService {
     required String createdBy,
     required String fullName,
     required String source,
-    required String eventId,
+    required String? organizationId,
+    required String? eventId,
     required bool allowShareOrganization,
     required String firstName,
     required String lastName,
@@ -86,6 +87,9 @@ class CreateContactService extends GetxService {
     required String cardImgUrl,
     required List<String> tags,
     String? profilePhotoUrl,
+    double? scanConfidence,
+    String? scanLanguage,
+    String? rawOcrText,
   }) async {
     final session = Get.find<AuthSessionService>();
     final token = session.accessToken.value.trim();
@@ -101,6 +105,7 @@ class CreateContactService extends GetxService {
       'p_created_by': createdBy,
       'p_full_name': fullName,
       'p_source': source,
+      'p_organization_id': organizationId,
       'p_event_id': eventId,
       'p_allow_share_organization': allowShareOrganization,
       'p_first_name': firstName,
@@ -115,6 +120,9 @@ class CreateContactService extends GetxService {
       'p_website': website,
       'p_card_img_url': cardImgUrl,
       'p_profile_photo_url': profilePhotoUrl,
+      'p_scan_confidence': scanConfidence,
+      'p_scan_language': scanLanguage,
+      'p_raw_ocr_text': rawOcrText,
       'p_tags': tags,
     };
 

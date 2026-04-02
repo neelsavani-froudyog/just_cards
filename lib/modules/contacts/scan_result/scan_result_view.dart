@@ -1,18 +1,26 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../../../core/models/parse_card_response.dart';
+import '../../../core/services/api.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/services/auth_session_service.dart';
+import '../../../core/services/create_contact_service.dart';
 import '../../../core/services/document_scanner_service.dart';
-import '../../../core/services/mlkit_text_recognition_service.dart';
+import '../../../core/services/http_sender_io.dart';
 import '../../../core/services/parse_card_service.dart';
+import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/business_card_ocr_parser.dart';
+import '../../../widgets/custom_search_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../home/home_events_model.dart';
+import '../manual_entry/organization_simple_model.dart';
 
 class ScanResultView extends StatefulWidget {
   const ScanResultView({super.key});
@@ -23,18 +31,25 @@ class ScanResultView extends StatefulWidget {
 
 class _ScanResultViewState extends State<ScanResultView> {
   List<String> _images = const <String>[];
+  String _rawOcrText = '';
+  String _ocrScript = 'unknown';
 
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isRescanning = false;
 
+  late final ApiService _apiService;
+
+  final List<String> _salutations = <String>['Mr.', 'Ms.', 'Mrs.', 'Dr.'];
+  String _selectedSalutation = 'Mr.';
+
   final _fullNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _secondaryEmailCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _jobTitleCtrl = TextEditingController();
-  final _eventCtrl = TextEditingController();
   final _segmentCtrl = TextEditingController();
   final _websiteCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
@@ -43,113 +58,201 @@ class _ScanResultViewState extends State<ScanResultView> {
   final List<String> _suggestedTags = <String>['Priority', 'VIP', 'Prospect'];
 
   bool _shareWithOrganization = false;
-  bool _isOcrLoading = false;
+
+  static const String _noneOrganization = 'Select organization';
+  final List<String> _organizations = <String>[_noneOrganization];
+  String _selectedOrganization = _noneOrganization;
+  String? _selectedOrganizationId;
+  final List<OrganizationOption> _organizationOptions = <OrganizationOption>[];
+  bool _isOrganizationsLoading = false;
+
+  static const String _noneEvent = 'Select event';
+  final List<String> _events = <String>[_noneEvent];
+  String _selectedEvent = _noneEvent;
+  final List<HomeEventItem> _eventOptions = <HomeEventItem>[];
+  bool _isEventsLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _apiService = Get.find<ApiService>();
     final args =
         Get.arguments as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final payloadImagePath = _extractScannerImagePath(args);
     final imagesArg = args['images'];
-    _images = (imagesArg is List) ? imagesArg.cast<String>() : const <String>[];
-    _isOcrLoading = _images.isNotEmpty;
+    _images = (imagesArg is List)
+        ? imagesArg.cast<String>()
+        : (payloadImagePath.isNotEmpty ? <String>[payloadImagePath] : const <String>[]);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_images.isNotEmpty) {
-        _runOcrOnFirstImage();
-      }
+      unawaited(_runOcrForCurrentImage());
+    });
+
+    // Load dropdowns (Organization + Event) via API, same as Manual Entry screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_fetchOrganizations());
+      unawaited(_fetchAllEvents());
     });
   }
 
-  void _applyParsed(ParsedBusinessCardFields parsed) {
-    _fullNameCtrl.text = parsed.fullName;
-    _phoneCtrl.text = parsed.primaryPhone;
-    _mobileCtrl.text = parsed.secondaryPhone;
-    _emailCtrl.text = parsed.email;
-    _companyCtrl.text = parsed.company;
-    _jobTitleCtrl.text = parsed.jobTitle;
-    _websiteCtrl.text = '';
-    _addressCtrl.text = '';
-  }
-
-  void _applyApiFields(ParseCardFields f) {
-    _fullNameCtrl.text = f.name;
-    _jobTitleCtrl.text = f.designation;
-    _companyCtrl.text = f.company;
-    _emailCtrl.text = f.emails.isNotEmpty ? f.emails.join(', ') : '';
-    if (f.phones.isNotEmpty) {
-      _phoneCtrl.text = f.phones.first;
-      _mobileCtrl.text = f.phones.length > 1 ? f.phones[1] : '';
-    } else {
-      _phoneCtrl.text = '';
-      _mobileCtrl.text = '';
+  String _extractScannerImagePath(Map<String, dynamic> args) {
+    dynamic raw = args['resultJson'] ?? args['scan_result_json'] ?? args['scanResult'];
+    if (raw == null) return '';
+    try {
+      if (raw is String) {
+        final decoded = json.decode(raw);
+        if (decoded is Map) {
+          return decoded['image_path']?.toString().trim() ?? '';
+        }
+      } else if (raw is Map) {
+        return raw['image_path']?.toString().trim() ?? '';
+      }
+    } catch (_) {
+      return '';
     }
-    _websiteCtrl.text = f.website ?? '';
-    _addressCtrl.text = f.address ?? '';
+    return '';
   }
 
-  void _clearAllExtractedFields() {
-    _applyParsed(ParsedBusinessCardFields.empty);
+  String _normalizeText(String text) {
+    return text
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
   }
 
-  Future<void> _runOcrOnFirstImage() async {
-    if (_images.isEmpty) {
-      if (mounted) setState(() => _isOcrLoading = false);
+  Future<Map<String, dynamic>> _runAutoOcr(String imagePath) async {
+    try {
+      if (imagePath.startsWith('content://')) {
+        return {'text': '', 'script': 'unknown'};
+      }
+
+      final normalizedPath =
+          imagePath.startsWith('file://') ? imagePath.substring(7) : imagePath;
+      final file = File(normalizedPath);
+      if (!await file.exists()) {
+        return {'text': '', 'script': 'unknown'};
+      }
+
+      final inputImage = InputImage.fromFilePath(normalizedPath);
+
+      final scripts = <String, TextRecognitionScript>{
+        'latin': TextRecognitionScript.latin,
+        'devanagari': TextRecognitionScript.devanagiri,
+        'chinese': TextRecognitionScript.chinese,
+        'japanese': TextRecognitionScript.japanese,
+        'korean': TextRecognitionScript.korean,
+      };
+
+      String bestText = '';
+      String bestScript = 'unknown';
+      String latinText = '';
+
+      for (final entry in scripts.entries) {
+        final recognizer = TextRecognizer(script: entry.value);
+        try {
+          final result = await recognizer.processImage(inputImage);
+          final text = _normalizeText(result.text);
+          if (entry.key == 'latin') {
+            latinText = text;
+          }
+          if (text.length > bestText.length) {
+            bestText = text;
+            bestScript = entry.key;
+          }
+        } catch (_) {
+        } finally {
+          await recognizer.close();
+        }
+      }
+
+      // Always prefer Latin output when available.
+      // Fallback to other scripts only when Latin OCR is empty.
+      if (latinText.trim().isNotEmpty) {
+        bestText = latinText;
+        bestScript = 'latin';
+      } else if (_looksLikeBusinessCardText(latinText)) {
+        bestText = latinText;
+        bestScript = 'latin';
+      }
+
+      return {
+        'text': bestText,
+        'script': bestScript,
+      };
+    } catch (_) {
+      return {'text': '', 'script': 'error'};
+    }
+  }
+
+  bool _looksLikeBusinessCardText(String text) {
+    final t = text.trim();
+    if (t.isEmpty) return false;
+    final hasEmail = RegExp(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+        .hasMatch(t);
+    final hasWebsite = RegExp(r'(https?://|www\.)', caseSensitive: false)
+        .hasMatch(t);
+    final hasPhone = RegExp(r'\+?\d[\d\s\-()]{7,}\d').hasMatch(t);
+    return hasEmail || hasWebsite || hasPhone || t.length >= 40;
+  }
+
+  Future<void> _runOcrForCurrentImage() async {
+    if (_images.isEmpty) return;
+    final result = await _runAutoOcr(_images.first.trim());
+    if (!mounted) return;
+    setState(() {
+      _rawOcrText = (result['text']?.toString() ?? '').trim();
+      _ocrScript = (result['script']?.toString() ?? 'unknown').trim();
+    });
+    await _parseOcrTextAndFillFields();
+  }
+
+  Future<void> _parseOcrTextAndFillFields() async {
+    if (_rawOcrText.isEmpty) return;
+
+    ParseCardService parseService;
+    try {
+      parseService = Get.find<ParseCardService>();
+    } catch (_) {
+      parseService = Get.put<ParseCardService>(ParseCardService(), permanent: true);
+    }
+
+    final outcome = await parseService.parseCard(_rawOcrText);
+    if (!mounted) return;
+    final fields = outcome.fields;
+    if (outcome.success && fields != null) {
+      _applyParsedFields(fields);
       return;
     }
-    if (mounted) setState(() => _isOcrLoading = true);
-    try {
-      // 1) On-device OCR → plain text
-      final raw = await MlKitTextRecognitionService.recognizeLatinFromFilePath(
-        _images.first,
-      );
-      if (kDebugMode) {
-        debugPrint('OCR raw text:\n$raw');
-      }
 
-      if (raw.trim().isEmpty) {
-        if (mounted) {
-          Get.snackbar('Scan', 'No text found on card');
-          _clearAllExtractedFields();
-        }
-        return;
-      }
-
-      // 2) Backend: POST /scan-quota/parse-card { "ocr_text": "..." }
-      ParseCardService parseService;
-      try {
-        parseService = Get.find<ParseCardService>();
-      } catch (_) {
-        Get.put<ParseCardService>(ParseCardService(), permanent: true);
-        parseService = Get.find<ParseCardService>();
-      }
-
-      final outcome = await parseService.parseCard(raw);
-
-      if (!mounted) return;
-
-      final apiFields = outcome.response?.data?.fields;
-      if (outcome.success && apiFields != null) {
-        _applyApiFields(apiFields);
-      } else {
-        final err = outcome.errorMessage;
-        if (err != null &&
-            err.isNotEmpty &&
-            err != 'Session expired') {
-          Get.snackbar('Card parse', err);
-        }
-        final parsed = BusinessCardOcrParser.parse(raw);
-        _applyParsed(parsed);
-      }
-    } catch (e, st) {
-      debugPrint('OCR / parse flow failed: $e\n$st');
-      if (mounted) {
-        Get.snackbar('Scan', 'Could not read text from image');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isOcrLoading = false);
-      }
+    final message = outcome.errorMessage;
+    if (message != null && message.isNotEmpty && message != 'Session expired') {
+      ToastService.error(message);
     }
+  }
+
+  void _applyParsedFields(ParseCardFields fields) {
+    final name = fields.name.trim();
+    final designation = fields.designation.trim();
+    final company = fields.company.trim();
+    final email1 = fields.emails.isNotEmpty ? fields.emails.first.trim() : '';
+    final email2 = fields.emails.length > 1 ? fields.emails[1].trim() : '';
+    final phone1 = fields.phones.isNotEmpty ? fields.phones.first.trim() : '';
+    final phone2 = fields.phones.length > 1 ? fields.phones[1].trim() : '';
+    final website = (fields.website ?? '').trim();
+    final address = (fields.address ?? '').trim();
+
+    setState(() {
+      _fullNameCtrl.text = name;
+      _jobTitleCtrl.text = designation;
+      _companyCtrl.text = company;
+      _emailCtrl.text = email1;
+      _secondaryEmailCtrl.text = email2;
+      _phoneCtrl.text = phone1;
+      _mobileCtrl.text = phone2;
+      _websiteCtrl.text = website;
+      _addressCtrl.text = address;
+    });
   }
 
   @override
@@ -158,22 +261,395 @@ class _ScanResultViewState extends State<ScanResultView> {
     _phoneCtrl.dispose();
     _mobileCtrl.dispose();
     _emailCtrl.dispose();
+    _secondaryEmailCtrl.dispose();
     _companyCtrl.dispose();
     _jobTitleCtrl.dispose();
-    _eventCtrl.dispose();
     _segmentCtrl.dispose();
     _websiteCtrl.dispose();
     _addressCtrl.dispose();
     super.dispose();
   }
 
+  Widget _salutationDropdown() {
+    return CustomSearchDropdown<String>(
+      items: _salutations,
+      selectedItem: _selectedSalutation,
+      hintText: 'Select salutation',
+      label: 'Salutation',
+      showSearchBox: false,
+      itemAsString: (s) => s,
+      onChanged: (v) {
+        if (v == null) return;
+        FocusScope.of(context).unfocus();
+        if (mounted) setState(() => _selectedSalutation = v);
+      },
+      bgColor: const Color(0xFFF5F7FB),
+      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderRadius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      showShadow: false,
+    );
+  }
+
+  void _setOrganization(String? v) {
+    FocusScope.of(context).unfocus();
+    if (v == null) return;
+    if (mounted) setState(() => _selectedOrganization = v);
+
+    if (v == _noneOrganization) {
+      _selectedOrganizationId = null;
+      unawaited(_fetchAllEvents());
+      return;
+    }
+
+    OrganizationOption? selected;
+    for (final item in _organizationOptions) {
+      if (item.name == v) {
+        selected = item;
+        break;
+      }
+    }
+    _selectedOrganizationId = selected?.id;
+    unawaited(_fetchEventsByOrganization(_selectedOrganizationId));
+  }
+
+  void _setEvent(String? v) {
+    FocusScope.of(context).unfocus();
+    if (v == null) return;
+    if (mounted) setState(() => _selectedEvent = v);
+  }
+
+  Future<void> _fetchOrganizations() async {
+    if (_isOrganizationsLoading) return;
+    if (mounted) setState(() => _isOrganizationsLoading = true);
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.profileOrganizationsSimple,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) return;
+
+          final parsed = OrganizationsSimpleResponse.fromJson(raw);
+          if (!parsed.ok) return;
+
+          _organizationOptions
+            ..clear()
+            ..addAll(parsed.data);
+
+          final names = <String>[
+            _noneOrganization,
+            ..._organizationOptions
+                .map((e) => e.name.trim())
+                .where((e) => e.isNotEmpty),
+          ];
+
+          if (!mounted) return;
+          setState(() {
+            _organizations
+              ..clear()
+              ..addAll(names);
+            _selectedOrganization = _noneOrganization;
+            _selectedOrganizationId = null;
+          });
+        },
+        onError: (_) {},
+      );
+    } finally {
+      if (mounted) setState(() => _isOrganizationsLoading = false);
+    }
+  }
+
+  Future<void> _fetchAllEvents() async {
+    if (_isEventsLoading) return;
+    if (mounted) setState(() => _isEventsLoading = true);
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.events,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) return;
+
+          final parsed = HomeEventsResponse.fromJson(raw);
+          if (!parsed.ok) return;
+
+          _eventOptions
+            ..clear()
+            ..addAll(parsed.data);
+
+          final names = <String>[
+            _noneEvent,
+            ..._eventOptions
+                .map((e) => e.title.trim())
+                .where((t) => t.isNotEmpty),
+          ];
+
+          if (!mounted) return;
+          setState(() {
+            _events
+              ..clear()
+              ..addAll(names);
+            _selectedEvent = _noneEvent;
+          });
+        },
+        onError: (_) {},
+      );
+    } finally {
+      if (mounted) setState(() => _isEventsLoading = false);
+    }
+  }
+
+  Future<void> _fetchEventsByOrganization(String? organizationId) async {
+    final orgId = organizationId?.trim();
+    if (orgId == null || orgId.isEmpty) {
+      await _fetchAllEvents();
+      return;
+    }
+
+    if (_isEventsLoading) return;
+    if (mounted) setState(() => _isEventsLoading = true);
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.eventsByOrganization,
+        data: <String, dynamic>{
+          'p_organization_id': orgId,
+        },
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) return;
+
+          final parsed = HomeEventsResponse.fromJson(raw);
+          if (!parsed.ok) return;
+
+          _eventOptions
+            ..clear()
+            ..addAll(parsed.data);
+
+          final names = <String>[
+            _noneEvent,
+            ..._eventOptions
+                .map((e) => e.title.trim())
+                .where((t) => t.isNotEmpty),
+          ];
+
+          if (!mounted) return;
+          setState(() {
+            _events
+              ..clear()
+              ..addAll(names);
+            _selectedEvent = _noneEvent;
+          });
+        },
+        onError: (_) {},
+      );
+    } finally {
+      if (mounted) setState(() => _isEventsLoading = false);
+    }
+  }
+
+  Widget _organizationDropdown() {
+    return CustomSearchDropdown<String>(
+      items: _organizations,
+      selectedItem: _selectedOrganization,
+      hintText: 'Select organization',
+      label: 'Add to Organisation',
+      showSearchBox: false,
+      enabled: !_isOrganizationsLoading,
+      itemAsString: (s) => s,
+      onChanged: _setOrganization,
+      bgColor: const Color(0xFFF5F7FB),
+      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderRadius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      showShadow: false,
+    );
+  }
+
+  Widget _eventDropdown() {
+    return CustomSearchDropdown<String>(
+      items: _events,
+      selectedItem: _selectedEvent,
+      hintText: 'Select event',
+      label: 'Associate with Event',
+      showSearchBox: false,
+      enabled: !_isEventsLoading,
+      itemAsString: (s) => s,
+      onChanged: _setEvent,
+      bgColor: const Color(0xFFF5F7FB),
+      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderRadius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      showShadow: false,
+    );
+  }
+
   Future<void> _saveContact() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      Get.snackbar('Contact', 'Saved');
-      Get.back();
+      final path = _images.isNotEmpty ? _images.first.trim() : '';
+      if (path.isEmpty) {
+        ToastService.error('Scan a business card first');
+        return;
+      }
+
+      final eventLabel = _selectedEvent.trim();
+      if (eventLabel.isEmpty || eventLabel == _noneEvent) {
+        ToastService.error('Select an event for this upload');
+        return;
+      }
+
+      HomeEventItem? selectedEvent;
+      for (final e in _eventOptions) {
+        if (e.title == eventLabel) {
+          selectedEvent = e;
+          break;
+        }
+      }
+      final eventId = selectedEvent?.id.trim() ?? '';
+      if (eventId.isEmpty) {
+        ToastService.error('Select an event for this upload');
+        return;
+      }
+
+      final file = File(path.startsWith('file://') ? path.substring(7) : path);
+      if (!await file.exists()) {
+        ToastService.error('Image file is missing. Scan again.');
+        return;
+      }
+
+      final fullName = _fullNameCtrl.text.trim();
+      final companyName = _companyCtrl.text.trim();
+      final email1 = _emailCtrl.text.trim();
+      final phone1 = _phoneCtrl.text.trim();
+
+      if (fullName.isEmpty) {
+        ToastService.error('Full name is required');
+        return;
+      }
+      if (companyName.isEmpty) {
+        ToastService.error('Company name is required');
+        return;
+      }
+      if (email1.isEmpty) {
+        ToastService.error('Primary email is required');
+        return;
+      }
+      if (!email1.contains('@')) {
+        ToastService.error('Please enter a valid email address');
+        return;
+      }
+      if (phone1.isEmpty) {
+        ToastService.error('Mobile number is required');
+        return;
+      }
+
+      // Upload scanned card image
+      final session = Get.find<AuthSessionService>();
+      final token = session.accessToken.value.trim();
+      if (token.isEmpty) {
+        ToastService.error('Please sign in again');
+        return;
+      }
+
+      final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+      final uri = Uri.parse('$base${ApiUrl.profileImagesUpload}');
+      final uploadResp = await sendMultipartFormData(
+        uri: uri,
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        textFields: <String, String>{
+          'eventName': eventLabel,
+        },
+        fileFieldName: 'file',
+        file: file,
+      );
+
+      if (uploadResp.statusCode < 200 || uploadResp.statusCode >= 300) {
+        ToastService.error(
+          'Image upload failed (HTTP ${uploadResp.statusCode})',
+        );
+        return;
+      }
+
+      final responseBody = uploadResp.bodyText.trim();
+      if (responseBody.isEmpty) {
+        ToastService.error('Empty upload response');
+        return;
+      }
+
+      dynamic decoded;
+      try {
+        decoded = json.decode(responseBody);
+      } catch (_) {
+        ToastService.error('Invalid JSON from upload API');
+        return;
+      }
+
+      final publicUrl = decoded is Map
+          ? (decoded['data'] is Map
+              ? (decoded['data']['cdnUrl']?.toString() ?? '')
+              : decoded['cdnUrl']?.toString() ?? '')
+          : '';
+
+      if (publicUrl.trim().isEmpty) {
+        ToastService.error('No `public_url` returned from server');
+        return;
+      }
+
+      final contactService = Get.find<CreateContactService>();
+      final userId = await contactService.fetchProfileUserId();
+      if (userId == null || userId.isEmpty) {
+        ToastService.error('Could not load your user id');
+        return;
+      }
+
+      // Split name into first/last similar to manual entry API needs.
+      final parts =
+          fullName.split(RegExp(r'\s+')).where((p) => p.trim().isNotEmpty).toList();
+      final firstName = parts.isNotEmpty ? parts.first : fullName;
+      final lastName =
+          parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+      final createResult = await contactService.createContact(
+        ownerUserId: userId,
+        organizationId: _selectedOrganizationId,
+        createdBy: userId,
+        fullName: fullName,
+        source: 'scan',
+        eventId: eventId,
+        allowShareOrganization: _shareWithOrganization,
+        firstName: firstName,
+        lastName: lastName,
+        designation: _jobTitleCtrl.text.trim(),
+        companyName: companyName,
+        email1: email1,
+        email2: _secondaryEmailCtrl.text.trim(),
+        phone1: phone1,
+        phone2: _mobileCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        website: _websiteCtrl.text.trim(),
+        cardImgUrl: publicUrl.trim(),
+        tags: List<String>.from(_selectedTags),
+        profilePhotoUrl: null,
+        scanLanguage: _ocrScript,
+        rawOcrText: _rawOcrText.isEmpty ? null : _rawOcrText,
+      );
+
+      if (!createResult.success) {
+        ToastService.error(createResult.message ?? 'Failed to save contact');
+        return;
+      }
+
+      ToastService.success(createResult.message ?? 'Saved');
+      Get.back(result: true, closeOverlays: false);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -188,14 +664,11 @@ class _ScanResultViewState extends State<ScanResultView> {
       final images = await DocumentScannerService.scan(allowMultiple: false);
       setState(() {
         _images = images;
+        _rawOcrText = '';
+        _ocrScript = 'unknown';
       });
-      if (images.isNotEmpty) {
-        await _runOcrOnFirstImage();
-      } else {
-        _clearAllExtractedFields();
-      }
-      Get.snackbar(
-        'Rescan',
+      await _runOcrForCurrentImage();
+      ToastService.info(
         images.isNotEmpty ? 'New image captured' : 'No image captured',
       );
     } finally {
@@ -220,7 +693,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       (tag) => !_selectedTags.contains(tag),
     );
     if (remaining.isEmpty) {
-      Get.snackbar('Tags', 'No more suggested tags');
+      ToastService.info('No more suggested tags');
       return;
     }
     setState(() => _selectedTags.add(remaining.first));
@@ -410,7 +883,6 @@ class _ScanResultViewState extends State<ScanResultView> {
 
   Widget _topSummaryCard() {
     final theme = Theme.of(context);
-    final muted = AppColors.darkGrey.withValues(alpha: 0.55);
 
     Widget heroCopy() {
       return Column(
@@ -440,23 +912,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'OCR processed successfully',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: AppColors.darkGrey,
-              fontWeight: FontWeight.w800,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Check the extracted details and save when everything looks right.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: muted,
-              height: 1.45,
             ),
           ),
           const SizedBox(height: 16),
@@ -773,6 +1228,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                           title: 'Contact Details',
                           child: Column(
                             children: [
+                              _salutationDropdown(),
+                              const SizedBox(height: 14),
                               _field(
                                 label: 'Full Name',
                                 controller: _fullNameCtrl,
@@ -780,16 +1237,30 @@ class _ScanResultViewState extends State<ScanResultView> {
                               ),
                               const SizedBox(height: 14),
                               _field(
-                                label: 'Phone Number',
+                                label: 'Mobile',
                                 controller: _phoneCtrl,
-                                hint: 'Phone number',
+                                hint: 'Phone Number 1 ...',
                                 inputType: TextInputType.phone,
                               ),
                               const SizedBox(height: 14),
                               _field(
-                                label: 'Email Address',
+                                label: 'Phone',
+                                controller: _mobileCtrl,
+                                hint: 'Phone number 2',
+                                inputType: TextInputType.phone,
+                              ),
+                              const SizedBox(height: 14),
+                              _field(
+                                label: 'Primary Email',
                                 controller: _emailCtrl,
-                                hint: 'Email address',
+                                hint: 'Email',
+                                inputType: TextInputType.emailAddress,
+                              ),
+                              const SizedBox(height: 14),
+                              _field(
+                                label: 'Secondary Email',
+                                controller: _secondaryEmailCtrl,
+                                hint: 'Email',
                                 inputType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 14),
@@ -816,6 +1287,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final stack = constraints.maxWidth < 420;
+                              final org = _organizationDropdown();
                               final company = _field(
                                 label: 'Company',
                                 controller: _companyCtrl,
@@ -830,6 +1302,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
+                                    org,
+                                    const SizedBox(height: 14),
                                     company,
                                     const SizedBox(height: 14),
                                     job,
@@ -839,7 +1313,17 @@ class _ScanResultViewState extends State<ScanResultView> {
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(child: company),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        org,
+                                        const SizedBox(height: 14),
+                                        company,
+                                      ],
+                                    ),
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(child: job),
                                 ],
@@ -854,13 +1338,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _field(
-                                label: 'Event',
-                                controller: _eventCtrl,
-                                hint: 'Select event',
-                                readOnly: true,
-                                suffixIcon: Icons.keyboard_arrow_down_rounded,
-                              ),
+                              _eventDropdown(),
                               const SizedBox(height: 14),
                               Text(
                                 'Tags',
@@ -895,7 +1373,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                           title: 'Additional Contact',
                           child: _field(
                             label: 'Secondary Number',
-                            controller: _mobileCtrl,
+                            controller: _phoneCtrl,
                             hint: 'Secondary phone',
                             inputType: TextInputType.phone,
                           ),
@@ -903,33 +1381,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                       ],
                     ),
                   ),
-                  if (_isOcrLoading)
-                    Positioned.fill(
-                      child: ColoredBox(
-                        color: AppColors.white.withValues(alpha: 0.72),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(
-                                color: AppColors.darkGrey,
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                'Reading business card…',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(
-                                      color: AppColors.darkGrey,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/toast_service.dart';
 import '../../../widgets/custom_text_field.dart';
 import 'contact_details_controller.dart';
 
@@ -50,10 +51,10 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
                   ),
                   const SizedBox(height: 12),
                   _QuickActions(
-                    onCall: () => Get.snackbar('Action', 'Call coming soon'),
-                    onEmail: () => Get.snackbar('Action', 'Email coming soon'),
-                    onWhatsApp: () => Get.snackbar('Action', 'WhatsApp coming soon'),
-                    onShare: () => Get.snackbar('Action', 'Share coming soon'),
+                    onCall: () => ToastService.info('Call coming soon'),
+                    onEmail: () => ToastService.info('Email coming soon'),
+                    onWhatsApp: () => ToastService.info('WhatsApp coming soon'),
+                    onShare: () => ToastService.info('Share coming soon'),
                   ),
                   const SizedBox(height: 12),
                   Obx(() {

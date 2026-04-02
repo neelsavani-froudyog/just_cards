@@ -241,7 +241,7 @@ class _DropdownField extends StatelessWidget {
         bgColor: AppColors.white,
         borderColor: AppColors.ink.withValues(alpha: 0.08),
         borderRadius: 10,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        // padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       );
     });
   }

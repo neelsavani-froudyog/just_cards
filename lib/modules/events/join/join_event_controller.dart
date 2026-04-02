@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/toast_service.dart';
 
 class JoinEventArgs {
   const JoinEventArgs({
@@ -47,7 +48,7 @@ class JoinEventController extends GetxController {
     if (isWorking.value) return;
     final inviteId = args.inviteId.trim();
     if (inviteId.isEmpty) {
-      Get.snackbar('Event', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
 
@@ -74,7 +75,7 @@ class JoinEventController extends GetxController {
     if (isWorking.value) return;
     final inviteId = args.inviteId.trim();
     if (inviteId.isEmpty) {
-      Get.snackbar('Event', 'Invite ID is missing');
+      ToastService.error('Invite ID is missing');
       return;
     }
 

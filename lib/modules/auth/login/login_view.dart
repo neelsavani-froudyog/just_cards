@@ -190,19 +190,22 @@ class _EmailField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<LoginController>();
 
-    return CustomTextField(
-      controller: c.emailController,
-      label: 'Email',
-      hint: 'name@company.com',
-      inputType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.done,
-      prefixIcon: const Icon(Icons.email_outlined, color: AppColors.ink, size: 20),
-      onSubmitted: (_) => c.sendOtp(),
-      padding: EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: isCompact ? 12 : 14,
-      ),
-    );
+    return Obx(() {
+      return CustomTextField(
+        controller: c.emailController,
+        label: 'Email',
+        hint: 'name@company.com',
+        inputType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.done,
+        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.ink, size: 20),
+        errorText: c.emailErrorText.value,
+        onSubmitted: (_) => c.sendOtp(),
+        padding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: isCompact ? 12 : 14,
+        ),
+      );
+    });
   }
 }
 

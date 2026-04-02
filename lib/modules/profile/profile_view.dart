@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_cards/routes/app_routes.dart';
 
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 
 import 'profile_controller.dart';
@@ -52,20 +53,20 @@ class ProfileView extends GetView<ProfileController> {
                     title: 'Organizations',
                     onTap: () => Get.toNamed(Routes.manageOrganization),
                   ),
-                  _SettingTile(
-                    icon: Icons.public_rounded,
-                    title: 'Country',
-                    onTap: () => Get.snackbar('Country', 'Coming soon'),
-                  ),
-                  _SettingTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Notification Settings',
-                    onTap: () => Get.snackbar('Notifications', 'Coming soon'),
-                  ),
+                  // _SettingTile(
+                  //   icon: Icons.public_rounded,
+                  //   title: 'Country',
+                  //   onTap: () => ToastService.info('Coming soon'),
+                  // ),
+                  // _SettingTile(
+                  //   icon: Icons.notifications_none_rounded,
+                  //   title: 'Notification Settings',
+                  //   onTap: () => ToastService.info('Coming soon'),
+                  // ),
                   _SettingTile(
                     icon: Icons.edit_outlined,
                     title: 'Edit Profile',
-                    onTap: () => Get.snackbar('Edit Profile', 'Coming soon'),
+                    onTap: () => ToastService.info('Coming soon'),
                   ),
                 ]),
               ),
@@ -89,12 +90,12 @@ class ProfileView extends GetView<ProfileController> {
                   _SettingTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Support',
-                    onTap: () => Get.snackbar('Support', 'Coming soon'),
+                    onTap: () => ToastService.info('Coming soon'),
                   ),
                   _SettingTile(
                     icon: Icons.policy_outlined,
                     title: 'Terms of Service',
-                    onTap: () => Get.snackbar('Terms', 'Coming soon'),
+                    onTap: () => ToastService.info('Coming soon'),
                   ),
                   _SettingTile(
                     icon: Icons.privacy_tip_outlined,
@@ -113,7 +114,7 @@ class ProfileView extends GetView<ProfileController> {
                     icon: Icons.delete_forever_rounded,
                     title: 'Delete Account',
                     danger: true,
-                    onTap: () => Get.snackbar('Delete Account', 'Coming soon'),
+                    onTap: () => ToastService.info('Coming soon'),
                   ),
                 ]),
               ),

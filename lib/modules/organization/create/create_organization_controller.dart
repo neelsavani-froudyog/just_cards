@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/toast_service.dart';
 import '../../../routes/app_routes.dart';
 import '../manage/manage_organization_controller.dart';
 
@@ -144,8 +145,7 @@ class CreateOrganizationController extends GetxController {
               },
             );
           } else {
-            Get.snackbar(
-              'Organization created',
+            ToastService.info(
               'Open your organization from the list to invite members.',
             );
             Get.back(result: true);

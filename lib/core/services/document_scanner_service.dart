@@ -1,5 +1,6 @@
-import 'package:get/get.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+
+import 'toast_service.dart';
 
 class DocumentScannerService {
   const DocumentScannerService._();
@@ -17,7 +18,7 @@ class DocumentScannerService {
       final result = await scanner.scanDocument();
       return result.images ?? <String>[];
     } catch (_) {
-      Get.snackbar('Scanner', 'Unable to open scanner');
+      // ToastService.error('Unable to open scanner');
       return <String>[];
     } finally {
       await scanner.close();
