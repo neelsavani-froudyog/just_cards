@@ -12,10 +12,6 @@ class BottomNavigationController extends GetxController {
       return;
     }
 
-    final homeController = Get.find<HomeController>();
-    await Future.wait<void>([
-      homeController.fetchEvents(),
-      homeController.fetchScanQuotaStatus(),
-    ]);
+    await Get.find<HomeController>().refreshAllData();
   }
 }

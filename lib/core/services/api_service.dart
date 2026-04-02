@@ -128,7 +128,7 @@ class ApiService extends GetxService {
       final uri = _resolveUri(url, queryParameters);
 
       final Map<String, String> headers = <String, String>{
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       };
       final token = _session.accessToken.value;
       if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
@@ -234,7 +234,7 @@ class ApiService extends GetxService {
       final uri = _resolveUri(url, queryParameters);
 
       final Map<String, String> headers = <String, String>{
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'X-Requested-With': 'XMLHttpRequest',
       };
       final token = _session.accessToken.value;
@@ -307,7 +307,7 @@ class ApiService extends GetxService {
       final uri = _resolveUri(url, queryParameters);
 
       final Map<String, String> headers = <String, String>{
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'X-Requested-With': 'XMLHttpRequest',
       };
       final token = _session.accessToken.value;
@@ -382,7 +382,7 @@ class ApiService extends GetxService {
       final uri = _resolveUri(url, queryParameters);
 
       final Map<String, String> headers = <String, String>{
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'X-Requested-With': 'XMLHttpRequest',
       };
       final token = _session.accessToken.value;
@@ -486,7 +486,7 @@ class ApiService extends GetxService {
       final uri = _resolveUri(url, queryParameters);
 
       final Map<String, String> headers = <String, String>{
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'X-Requested-With': 'XMLHttpRequest',
       };
       final token = _session.accessToken.value;
@@ -525,7 +525,7 @@ class ApiService extends GetxService {
         decodedBody: decodedBody,
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 204) {
         final message = _extractErrorMessage(decodedBody);
         _logError(method: 'DELETE', endpoint: uri.toString(), message: message);
         if (showErrorToast) {

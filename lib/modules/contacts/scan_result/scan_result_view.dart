@@ -19,7 +19,9 @@ import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../widgets/custom_search_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
+import '../../home/home_controller.dart';
 import '../../home/home_events_model.dart';
+import '../manual_entry/add_tag_dialog.dart';
 import '../manual_entry/organization_simple_model.dart';
 
 class ScanResultView extends StatefulWidget {
@@ -50,12 +52,10 @@ class _ScanResultViewState extends State<ScanResultView> {
   final _secondaryEmailCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _jobTitleCtrl = TextEditingController();
-  final _segmentCtrl = TextEditingController();
   final _websiteCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
 
   final List<String> _selectedTags = <String>['Lead', 'Follow-up'];
-  final List<String> _suggestedTags = <String>['Priority', 'VIP', 'Prospect'];
 
   bool _shareWithOrganization = false;
 
@@ -69,6 +69,7 @@ class _ScanResultViewState extends State<ScanResultView> {
   static const String _noneEvent = 'Select event';
   final List<String> _events = <String>[_noneEvent];
   String _selectedEvent = _noneEvent;
+  String? _selectedEventId;
   final List<HomeEventItem> _eventOptions = <HomeEventItem>[];
   bool _isEventsLoading = false;
 
@@ -146,16 +147,12 @@ class _ScanResultViewState extends State<ScanResultView> {
 
       String bestText = '';
       String bestScript = 'unknown';
-      String latinText = '';
 
       for (final entry in scripts.entries) {
         final recognizer = TextRecognizer(script: entry.value);
         try {
           final result = await recognizer.processImage(inputImage);
           final text = _normalizeText(result.text);
-          if (entry.key == 'latin') {
-            latinText = text;
-          }
           if (text.length > bestText.length) {
             bestText = text;
             bestScript = entry.key;
@@ -168,13 +165,6 @@ class _ScanResultViewState extends State<ScanResultView> {
 
       // Always prefer Latin output when available.
       // Fallback to other scripts only when Latin OCR is empty.
-      if (latinText.trim().isNotEmpty) {
-        bestText = latinText;
-        bestScript = 'latin';
-      } else if (_looksLikeBusinessCardText(latinText)) {
-        bestText = latinText;
-        bestScript = 'latin';
-      }
 
       return {
         'text': bestText,
@@ -264,7 +254,6 @@ class _ScanResultViewState extends State<ScanResultView> {
     _secondaryEmailCtrl.dispose();
     _companyCtrl.dispose();
     _jobTitleCtrl.dispose();
-    _segmentCtrl.dispose();
     _websiteCtrl.dispose();
     _addressCtrl.dispose();
     super.dispose();
@@ -294,10 +283,17 @@ class _ScanResultViewState extends State<ScanResultView> {
   void _setOrganization(String? v) {
     FocusScope.of(context).unfocus();
     if (v == null) return;
-    if (mounted) setState(() => _selectedOrganization = v);
 
     if (v == _noneOrganization) {
-      _selectedOrganizationId = null;
+      if (mounted) {
+        setState(() {
+          _selectedOrganization = v;
+          _selectedOrganizationId = null;
+          _shareWithOrganization = false;
+        });
+      } else {
+        _selectedOrganizationId = null;
+      }
       unawaited(_fetchAllEvents());
       return;
     }
@@ -309,14 +305,41 @@ class _ScanResultViewState extends State<ScanResultView> {
         break;
       }
     }
-    _selectedOrganizationId = selected?.id;
-    unawaited(_fetchEventsByOrganization(_selectedOrganizationId));
+    final id = selected?.id;
+    if (mounted) {
+      setState(() {
+        _selectedOrganization = v;
+        _selectedOrganizationId = id;
+        _shareWithOrganization = true;
+      });
+    } else {
+      _selectedOrganizationId = id;
+    }
+    unawaited(_fetchEventsByOrganization(id));
   }
 
   void _setEvent(String? v) {
     FocusScope.of(context).unfocus();
     if (v == null) return;
-    if (mounted) setState(() => _selectedEvent = v);
+    if (!mounted) return;
+    if (v == _noneEvent) {
+      setState(() {
+        _selectedEvent = v;
+        _selectedEventId = null;
+      });
+      return;
+    }
+    HomeEventItem? selected;
+    for (final item in _eventOptions) {
+      if (item.title == v) {
+        selected = item;
+        break;
+      }
+    }
+    setState(() {
+      _selectedEvent = v;
+      _selectedEventId = selected?.id.trim();
+    });
   }
 
   Future<void> _fetchOrganizations() async {
@@ -352,6 +375,7 @@ class _ScanResultViewState extends State<ScanResultView> {
               ..addAll(names);
             _selectedOrganization = _noneOrganization;
             _selectedOrganizationId = null;
+            _shareWithOrganization = false;
           });
         },
         onError: (_) {},
@@ -393,6 +417,7 @@ class _ScanResultViewState extends State<ScanResultView> {
               ..clear()
               ..addAll(names);
             _selectedEvent = _noneEvent;
+            _selectedEventId = null;
           });
         },
         onError: (_) {},
@@ -443,6 +468,7 @@ class _ScanResultViewState extends State<ScanResultView> {
               ..clear()
               ..addAll(names);
             _selectedEvent = _noneEvent;
+            _selectedEventId = null;
           });
         },
         onError: (_) {},
@@ -490,66 +516,66 @@ class _ScanResultViewState extends State<ScanResultView> {
 
   Future<void> _saveContact() async {
     if (_isSaving) return;
+
+    final path = _images.isNotEmpty ? _images.first.trim() : '';
+    if (path.isEmpty) {
+      ToastService.error('Add a business card image at the top first');
+      return;
+    }
+
+    final filePath = path.startsWith('file://') ? path.substring(7) : path;
+    final file = File(filePath);
+    if (!await file.exists()) {
+      ToastService.error('Image file is missing. Scan again.');
+      return;
+    }
+
+    // Trim & validate required fields before doing any network calls (same as manual entry).
+    final fullNameRaw = _fullNameCtrl.text.trim();
+    final nameParts = fullNameRaw
+        .split(RegExp(r'\s+'))
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+    final first = nameParts.isNotEmpty ? nameParts.first : '';
+    final last =
+        nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+    final designation = _jobTitleCtrl.text.trim();
+    final companyName = _companyCtrl.text.trim();
+    final website = _websiteCtrl.text.trim();
+    final email1 = _emailCtrl.text.trim();
+    final email2 = _secondaryEmailCtrl.text.trim();
+    final phone1 = _phoneCtrl.text.trim();
+    final phone2 = _mobileCtrl.text.trim();
+    final address = _addressCtrl.text.trim();
+
+    if (first.isEmpty) {
+      ToastService.error('First name is required');
+      return;
+    }
+    if (last.isEmpty) {
+      ToastService.error('Last name is required');
+      return;
+    }
+    if (companyName.isEmpty) {
+      ToastService.error('Company name is required');
+      return;
+    }
+    if (email1.isEmpty) {
+      ToastService.error('Primary email is required');
+      return;
+    }
+    if (!email1.contains('@')) {
+      ToastService.error('Please enter a valid email address');
+      return;
+    }
+    if (phone1.isEmpty) {
+      ToastService.error('Mobile number is required');
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      final path = _images.isNotEmpty ? _images.first.trim() : '';
-      if (path.isEmpty) {
-        ToastService.error('Scan a business card first');
-        return;
-      }
-
-      final eventLabel = _selectedEvent.trim();
-      if (eventLabel.isEmpty || eventLabel == _noneEvent) {
-        ToastService.error('Select an event for this upload');
-        return;
-      }
-
-      HomeEventItem? selectedEvent;
-      for (final e in _eventOptions) {
-        if (e.title == eventLabel) {
-          selectedEvent = e;
-          break;
-        }
-      }
-      final eventId = selectedEvent?.id.trim() ?? '';
-      if (eventId.isEmpty) {
-        ToastService.error('Select an event for this upload');
-        return;
-      }
-
-      final file = File(path.startsWith('file://') ? path.substring(7) : path);
-      if (!await file.exists()) {
-        ToastService.error('Image file is missing. Scan again.');
-        return;
-      }
-
-      final fullName = _fullNameCtrl.text.trim();
-      final companyName = _companyCtrl.text.trim();
-      final email1 = _emailCtrl.text.trim();
-      final phone1 = _phoneCtrl.text.trim();
-
-      if (fullName.isEmpty) {
-        ToastService.error('Full name is required');
-        return;
-      }
-      if (companyName.isEmpty) {
-        ToastService.error('Company name is required');
-        return;
-      }
-      if (email1.isEmpty) {
-        ToastService.error('Primary email is required');
-        return;
-      }
-      if (!email1.contains('@')) {
-        ToastService.error('Please enter a valid email address');
-        return;
-      }
-      if (phone1.isEmpty) {
-        ToastService.error('Mobile number is required');
-        return;
-      }
-
-      // Upload scanned card image
       final session = Get.find<AuthSessionService>();
       final token = session.accessToken.value.trim();
       if (token.isEmpty) {
@@ -559,6 +585,7 @@ class _ScanResultViewState extends State<ScanResultView> {
 
       final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
       final uri = Uri.parse('$base${ApiUrl.profileImagesUpload}');
+
       final uploadResp = await sendMultipartFormData(
         uri: uri,
         headers: <String, String>{
@@ -566,7 +593,8 @@ class _ScanResultViewState extends State<ScanResultView> {
           'Authorization': 'Bearer $token',
         },
         textFields: <String, String>{
-          'eventName': eventLabel,
+          'eventName':
+              _selectedEvent == _noneEvent ? 'Direct Entry' : _selectedEvent,
         },
         fileFieldName: 'file',
         file: file,
@@ -595,11 +623,12 @@ class _ScanResultViewState extends State<ScanResultView> {
 
       final publicUrl = decoded is Map
           ? (decoded['data'] is Map
-              ? (decoded['data']['cdnUrl']?.toString() ?? '')
-              : decoded['cdnUrl']?.toString() ?? '')
+                  ? (decoded['data']['cdnUrl']?.toString() ?? '')
+                  : decoded['cdnUrl']?.toString() ?? '')
+              .trim()
           : '';
 
-      if (publicUrl.trim().isEmpty) {
+      if (publicUrl.isEmpty) {
         ToastService.error('No `public_url` returned from server');
         return;
       }
@@ -611,32 +640,42 @@ class _ScanResultViewState extends State<ScanResultView> {
         return;
       }
 
-      // Split name into first/last similar to manual entry API needs.
-      final parts =
-          fullName.split(RegExp(r'\s+')).where((p) => p.trim().isNotEmpty).toList();
-      final firstName = parts.isNotEmpty ? parts.first : fullName;
-      final lastName =
-          parts.length > 1 ? parts.sublist(1).join(' ') : '';
+      final fullName = '$first $last'.trim().isEmpty
+          ? 'Unnamed contact'
+          : '$first $last'.trim();
+
+      final orgId = _selectedOrganizationId?.trim();
+      final resolvedOrgId = (_selectedOrganization == _noneOrganization ||
+              orgId == null ||
+              orgId.isEmpty)
+          ? null
+          : orgId;
+
+      final eid = _selectedEventId?.trim();
+      final resolvedEventId =
+          (_selectedEvent == _noneEvent || eid == null || eid.isEmpty)
+              ? null
+              : eid;
 
       final createResult = await contactService.createContact(
         ownerUserId: userId,
-        organizationId: _selectedOrganizationId,
+        organizationId: resolvedOrgId,
         createdBy: userId,
         fullName: fullName,
         source: 'scan',
-        eventId: eventId,
+        eventId: resolvedEventId,
         allowShareOrganization: _shareWithOrganization,
-        firstName: firstName,
-        lastName: lastName,
-        designation: _jobTitleCtrl.text.trim(),
+        firstName: first,
+        lastName: last,
+        designation: designation,
         companyName: companyName,
         email1: email1,
-        email2: _secondaryEmailCtrl.text.trim(),
+        email2: email2.isEmpty ? null : email2,
         phone1: phone1,
-        phone2: _mobileCtrl.text.trim(),
-        address: _addressCtrl.text.trim(),
-        website: _websiteCtrl.text.trim(),
-        cardImgUrl: publicUrl.trim(),
+        phone2: phone2.isEmpty ? null : phone2,
+        address: address,
+        website: website,
+        cardImgUrl: publicUrl,
         tags: List<String>.from(_selectedTags),
         profilePhotoUrl: null,
         scanLanguage: _ocrScript,
@@ -649,6 +688,9 @@ class _ScanResultViewState extends State<ScanResultView> {
       }
 
       ToastService.success(createResult.message ?? 'Saved');
+      if (Get.isRegistered<HomeController>()) {
+        await Get.find<HomeController>().refreshAllData();
+      }
       Get.back(result: true, closeOverlays: false);
     } finally {
       if (mounted) {
@@ -688,15 +730,12 @@ class _ScanResultViewState extends State<ScanResultView> {
     });
   }
 
-  void _addSuggestedTag() {
-    final remaining = _suggestedTags.where(
-      (tag) => !_selectedTags.contains(tag),
+  Future<void> _openAddTagDialog() async {
+    await Get.dialog<void>(
+      AddTagDialog(selectedTags: _selectedTags),
+      barrierDismissible: true,
     );
-    if (remaining.isEmpty) {
-      ToastService.info('No more suggested tags');
-      return;
-    }
-    setState(() => _selectedTags.add(remaining.first));
+    if (mounted) setState(() {});
   }
 
   Widget _buildCardPreview() {
@@ -1069,7 +1108,7 @@ class _ScanResultViewState extends State<ScanResultView> {
         Padding(
           padding: const EdgeInsets.only(right: 8, bottom: 8),
           child: InkWell(
-            onTap: _addSuggestedTag,
+            onTap: _openAddTagDialog,
             borderRadius: BorderRadius.circular(999),
             child: Ink(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1275,7 +1314,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 label: 'Address',
                                 controller: _addressCtrl,
                                 hint: 'Address',
-                                maxLines: 2,
+                                maxLines: 4,
                               ),
                             ],
                           ),
@@ -1355,27 +1394,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                               const SizedBox(height: 8),
                               _tagChips(),
                               const SizedBox(height: 14),
-                              _field(
-                                label: 'Segment',
-                                controller: _segmentCtrl,
-                                hint: 'Select segment',
-                                readOnly: true,
-                                suffixIcon: Icons.keyboard_arrow_down_rounded,
-                              ),
-                              const SizedBox(height: 14),
                               _shareWithOrganisationRow(),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        _section(
-                          icon: Icons.call_outlined,
-                          title: 'Additional Contact',
-                          child: _field(
-                            label: 'Secondary Number',
-                            controller: _phoneCtrl,
-                            hint: 'Secondary phone',
-                            inputType: TextInputType.phone,
                           ),
                         ),
                       ],

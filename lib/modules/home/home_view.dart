@@ -710,7 +710,11 @@ class _ContactTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Get.toNamed(Routes.contactDetails),
+        onTap: () {
+          final id = contact.id.trim();
+          if (id.isEmpty) return;
+          Get.toNamed(Routes.contactDetails, arguments: id);
+        },
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(

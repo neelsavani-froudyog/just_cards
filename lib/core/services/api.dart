@@ -49,6 +49,8 @@ class ApiUrl {
   static const String contactsByOrganization = '/contacts/by-organization';
   static const String myContacts = '/contacts/my';
   static const String myContactsTotalCount = '/contacts/my/total-count';
+  static const String contactDetail = '/contacts/detail';
+  static const String contactNotes = '/contacts/notes';
 
   /// Call this once before making any API calls.
   static void configure({required String baseUrl}) {

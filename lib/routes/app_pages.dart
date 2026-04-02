@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:just_cards/modules/bottomNavigation/bottm_navigation_bindings.dart';
+import 'package:just_cards/modules/contacts/qr_import/qr_data_entry/qr_contact_binding.dart';
+import 'package:just_cards/modules/contacts/qr_import/qr_data_entry/qr_contact_form_view.dart';
 
 import '../modules/auth/login/login_binding.dart';
 import '../modules/auth/login/login_view.dart';
@@ -31,6 +33,7 @@ import '../modules/organization/settings/organization_settings_view.dart';
 import '../modules/legal/terms_conditions_view.dart';
 import '../modules/legal/privacy_policy_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
+import '../modules/contacts/qr_import/qr_scanner_view.dart';
 import '../modules/contacts/manual_entry/manual_entry_binding.dart';
 import '../modules/contacts/manual_entry/manual_entry_view.dart';
 import '../modules/splash/splash_binding.dart';
@@ -109,10 +112,16 @@ class AppPages {
     GetPage(name: Routes.termsConditions, page: TermsConditionsView.new),
     GetPage(name: Routes.privacyPolicy, page: PrivacyPolicyView.new),
     GetPage(name: Routes.scanResult, page: ScanResultView.new),
+    GetPage(name: Routes.qrScanner, page: QrScannerView.new),
     GetPage(
       name: Routes.manualEntry,
       page: ManualEntryView.new,
       binding: ManualEntryBinding(),
+    ),
+    GetPage(
+      name: Routes.qrContact,
+      page: QrContactFormView.new,
+      binding: QrContactBinding(),
     ),
   ];
 }

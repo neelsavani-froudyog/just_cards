@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:barcode_scanner/scanbot_barcode_sdk.dart';
 
 import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,18 +10,6 @@ import '../home_controller.dart';
 
 class AddContactSheet extends StatelessWidget {
   const AddContactSheet({super.key});
-
-  static bool _qrSdkInitialized = false;
-
-  static Future<void> _ensureQrSdkInitialized() async {
-    if (_qrSdkInitialized) return;
-    final config = SdkConfiguration(
-      licenseKey: '',
-      loggingEnabled: true,
-    );
-    await ScanbotBarcodeSdk.initialize(config);
-    _qrSdkInitialized = true;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +75,7 @@ class AddContactSheet extends StatelessWidget {
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: false);
                       if (images.isNotEmpty) {
-                        Get.toNamed(
+                        await Get.toNamed(
                           Routes.scanResult,
                           arguments: <String, dynamic>{'images': images},
                         );
@@ -104,7 +91,7 @@ class AddContactSheet extends StatelessWidget {
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: true);
                       if (images.isNotEmpty) {
-                        Get.toNamed(
+                        await Get.toNamed(
                           Routes.scanResult,
                           arguments: <String, dynamic>{'images': images},
                         );
@@ -117,30 +104,24 @@ class AddContactSheet extends StatelessWidget {
                     title: 'Import from QR',
                     subtitle: 'Open QR scanner camera',
                     onTap: () async {
+                      if (!Get.isRegistered<HomeController>()) {
+                        Get.back();
+                        await Get.toNamed(Routes.qrScanner);
+                        return;
+                      }
+
+                      final homeController = Get.find<HomeController>();
+                      await homeController.fetchScanQuotaStatus();
+
+                      if (!homeController.canProceedManualEntry) {
+                        await ToastService.error('Your scan quota is full.');
+                        return;
+                      }
+
                       Get.back();
-                      try {
-                        await _ensureQrSdkInitialized();
-                        final configuration = BarcodeScannerScreenConfiguration()
-                          ..useCase = SingleScanningMode();
-
-                        final result = await ScanbotBarcodeSdk.barcode
-                            .startScanner(configuration);
-                        final uiResult = result.getOrNull();
-                        final text = uiResult?.items.isNotEmpty == true
-                            ? uiResult!.items.first.barcode.text.trim()
-                            : '';
-                        uiResult?.release();
-
-                        if (text.isEmpty) {
-                          ToastService.info('No QR code detected');
-                          return;
-                        }
-
-                        ToastService.success('QR scanned');
-                        // If you want to use `text` further (vCard parsing / import),
-                        // this is the place to navigate to a form and prefill it.
-                      } catch (e) {
-                        ToastService.error('Unable to open QR scanner: $e');
+                      final created = await Get.toNamed(Routes.qrScanner);
+                      if (created == true) {
+                        await homeController.refreshAllData();
                       }
                     },
                   ),

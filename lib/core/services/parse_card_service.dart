@@ -35,7 +35,6 @@ class ParseCardService extends GetxService {
       await api.postRequest(
         url: ApiUrl.parseCard,
         data: {'ocr_text': trimmed},
-        header: {'Content-Type': 'application/json'},
         showSuccessToast: false,
         showErrorToast: false,
         onSuccess: (payload) {

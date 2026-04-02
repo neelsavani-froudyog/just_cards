@@ -5,20 +5,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/services/auth_session_service.dart';
-import '../../../core/services/create_contact_service.dart';
-import '../../../core/services/api.dart';
-import '../../../core/services/api_service.dart';
-import '../../../core/services/document_scanner_service.dart';
-import '../../../core/services/http_sender_io.dart';
-import '../../../core/services/toast_service.dart';
-import 'add_tag_dialog.dart';
-import 'organization_simple_model.dart';
-import '../../home/home_events_model.dart';
+import '../../../../core/services/auth_session_service.dart';
+import '../../../../core/services/create_contact_service.dart';
+import '../../../../core/services/api.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/services/document_scanner_service.dart';
+import '../../../../core/services/http_sender_io.dart';
+import '../../../../core/services/toast_service.dart';
+import 'qr_add_tag_dialog.dart';
+import 'qr_organization_simple_model.dart';
+import '../../../home/home_events_model.dart';
 
-class ManualEntryController extends GetxController {
+class QrContactController extends GetxController {
   final isSaving = false.obs;
   late final ApiService _apiService;
+
+  /// Set when opened from QR import (`__appBarTitle` in route arguments).
+  String qrImportTitle = 'Contact from QR';
+
+  Map<String, dynamic>? _qrPrefill;
+  String? _pendingQrOrganizationName;
+  bool _qrBasicApplied = false;
 
   final cardImagePath = RxnString();
 
@@ -74,8 +81,75 @@ class ManualEntryController extends GetxController {
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
+    _readQrPrefillArgs();
+    _applyQrBasicFields();
     fetchOrganizations();
     fetchAllEvents();
+  }
+
+  void _readQrPrefillArgs() {
+    final args = Get.arguments;
+    if (args is! Map) return;
+    final m = Map<String, dynamic>.from(args);
+    final title = m.remove('__appBarTitle')?.toString().trim();
+    if (title != null && title.isNotEmpty) {
+      qrImportTitle = title;
+    }
+    if (m.isEmpty) return;
+    _qrPrefill = m;
+    final org = _qrPrefill!['organization']?.toString().trim();
+    if (org != null && org.isNotEmpty) {
+      _pendingQrOrganizationName = org;
+    }
+  }
+
+  void _applyQrBasicFields() {
+    if (_qrPrefill == null || _qrBasicApplied) return;
+    _qrBasicApplied = true;
+
+    final qrFirst = _qrPrefill!['firstName']?.toString().trim() ?? '';
+    final qrLast = _qrPrefill!['lastName']?.toString().trim() ?? '';
+    final qrFullName = _qrPrefill!['fullName']?.toString().trim() ?? '';
+
+    if (qrFirst.isNotEmpty) firstNameCtrl.text = qrFirst;
+    if (qrLast.isNotEmpty) lastNameCtrl.text = qrLast;
+
+    if (firstNameCtrl.text.trim().isEmpty &&
+        lastNameCtrl.text.trim().isEmpty &&
+        qrFullName.isNotEmpty) {
+      final parts = qrFullName
+          .split(RegExp(r'\s+'))
+          .where((p) => p.trim().isNotEmpty)
+          .toList();
+      if (parts.isNotEmpty) firstNameCtrl.text = parts.first.trim();
+      if (parts.length > 1) lastNameCtrl.text = parts.sublist(1).join(' ').trim();
+    }
+
+    final qrOrganization = _qrPrefill!['organization']?.toString().trim() ?? '';
+    final qrJobTitle = _qrPrefill!['jobTitle']?.toString().trim() ?? '';
+    final qrWebsite = _qrPrefill!['website']?.toString().trim() ?? '';
+    final qrAddress = _qrPrefill!['address']?.toString().trim() ?? '';
+
+    if (qrOrganization.isNotEmpty) companyCtrl.text = qrOrganization;
+    if (qrJobTitle.isNotEmpty) jobTitleCtrl.text = qrJobTitle;
+    if (qrWebsite.isNotEmpty) websiteCtrl.text = qrWebsite;
+    if (qrAddress.isNotEmpty) addressCtrl.text = qrAddress;
+
+    final qrPhonesRaw = _qrPrefill!['phones'];
+    final qrEmailsRaw = _qrPrefill!['emails'];
+
+    final qrPhones = qrPhonesRaw is List
+        ? qrPhonesRaw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+    final qrEmails = qrEmailsRaw is List
+        ? qrEmailsRaw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
+    if (qrPhones.isNotEmpty) mobileCtrl.text = qrPhones.first;
+    if (qrPhones.length > 1) phoneCtrl.text = qrPhones[1];
+
+    if (qrEmails.isNotEmpty) primaryEmailCtrl.text = qrEmails.first;
+    if (qrEmails.length > 1) secondaryEmailCtrl.text = qrEmails[1];
   }
 
   void setOrganization(String? v) {
@@ -154,6 +228,14 @@ class ManualEntryController extends GetxController {
           selectedOrganization.value = noneOrganization;
           selectedOrganizationId.value = null;
           shareWithOrganization.value = false;
+
+          final pendingOrg = _pendingQrOrganizationName;
+          _pendingQrOrganizationName = null;
+          if (pendingOrg != null &&
+              pendingOrg.trim().isNotEmpty &&
+              _organizationOptions.any((o) => o.name == pendingOrg.trim())) {
+            setOrganization(pendingOrg.trim());
+          }
         },
         onError: (_) {},
       );
@@ -276,7 +358,7 @@ class ManualEntryController extends GetxController {
 
   Future<void> openAddTagDialog() async {
     await Get.dialog<void>(
-      AddTagDialog(selectedTags: selectedTags),
+      QrAddTagDialog(selectedTags: selectedTags),
       barrierDismissible: true,
     );
   }
@@ -284,17 +366,7 @@ class ManualEntryController extends GetxController {
   Future<void> saveContact() async {
     if (isSaving.value) return;
 
-    final path = cardImagePath.value?.trim() ?? '';
-    if (path.isEmpty) {
-      ToastService.error('Add a business card image at the top first');
-      return;
-    }
 
-    final file = File(path);
-    if (!await file.exists()) {
-      ToastService.error('Image file is missing. Scan again.');
-      return;
-    }
 
     // Trim & validate required fields before doing any network calls.
     final first = firstNameCtrl.text.trim();
@@ -343,53 +415,6 @@ class ManualEntryController extends GetxController {
         return;
       }
 
-      final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-      final uri = Uri.parse('$base${ApiUrl.profileImagesUpload}');
-
-      final uploadResp = await sendMultipartFormData(
-        uri: uri,
-        headers: <String, String>{
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        textFields: <String, String>{
-          // Your curl uses `eventName` + `file`.
-          'eventName': selectedEvent.value == noneEvent ? 'Direct Entry' : selectedEvent.value,
-        },
-        fileFieldName: 'file',
-        file: file,
-      );
-
-      if (uploadResp.statusCode < 200 || uploadResp.statusCode >= 300) {
-        ToastService.error('Image upload failed (HTTP ${uploadResp.statusCode})');
-        return;
-      }
-
-      final responseBody = uploadResp.bodyText.trim();
-      if (responseBody.isEmpty) {
-        ToastService.error('Empty upload response');
-        return;
-      }
-
-      dynamic decoded;
-      try {
-        decoded = json.decode(responseBody);
-      } catch (_) {
-        ToastService.error('Invalid JSON from upload API');
-        return;
-      }
-
-      final publicUrl = decoded is Map
-          ? (decoded['data'] is Map
-              ? (decoded['data']['cdnUrl']?.toString() ?? '')
-              : decoded['cdnUrl']?.toString() ?? '')
-          : '';
-
-      if (publicUrl.isEmpty) {
-        ToastService.error('No `public_url` returned from server');
-        return;
-      }
-
       final contactService = Get.find<CreateContactService>();
       final userId = await contactService.fetchProfileUserId();
       if (userId == null || userId.isEmpty) {
@@ -419,7 +444,7 @@ class ManualEntryController extends GetxController {
         phone2: phone2.isEmpty ? null : phone2,
         address: address,
         website: website,
-        cardImgUrl: publicUrl,
+        cardImgUrl: null,
         tags: List<String>.from(selectedTags),
         profilePhotoUrl: null,
       );

@@ -5,7 +5,10 @@ import 'contact_details_controller.dart';
 class ContactDetailsBinding extends Bindings {
   @override
   void dependencies() {
-    Get.put<ContactDetailsController>(ContactDetailsController());
+    Get.lazyPut<ContactDetailsController>(
+      () => ContactDetailsController(),
+      fenix: true,
+    );
   }
 }
 

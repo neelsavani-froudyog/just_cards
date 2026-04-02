@@ -146,6 +146,7 @@ class HomeController extends GetxController {
             parsed.data
                 .map(
                   (c) => HomeContact(
+                    id: c.id,
                     name: c.fullName.trim().isNotEmpty
                         ? c.fullName.trim()
                         : '${c.firstName} ${c.lastName}'.trim(),
@@ -310,8 +311,14 @@ class HomeOverviewStat {
 }
 
 class HomeContact {
-  const HomeContact({required this.name, required this.email, required this.company});
+  const HomeContact({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.company,
+  });
 
+  final String id;
   final String name;
   final String email;
   final String company;
