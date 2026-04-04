@@ -4,6 +4,7 @@ import 'package:just_cards/core/services/document_scanner_service.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/toast_service.dart';
+import '../../../routes/app_routes.dart';
 import '../../../widgets/custom_search_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -21,6 +22,7 @@ class ManageEventView extends GetView<ManageEventController> {
 
     return Obx(() {
       final canShowInvitesTab = controller.canShowInvitesTab;
+      final canShowEventOwnerActions = controller.canShowEventOwnerActions;
       final tabCount = canShowInvitesTab ? 3 : 2;
       final maxIndex = tabCount - 1;
       final safeIndex = controller.selectedTabIndex.value.clamp(0, maxIndex);
@@ -42,12 +44,72 @@ class ManageEventView extends GetView<ManageEventController> {
                   onPressed: () => Get.back(),
                 ),
                 title: const Text('Manage Event'),
-                actions: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.more_vert_rounded),
-                  ),
-                ],
+                actions: canShowEventOwnerActions
+                          ? [
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: AppColors.lightHubInk.withValues(
+                                  alpha: 0.92,
+                                ),
+                              ),
+                              color: AppColors.lightHubSurface,
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  Get.toNamed(
+                                    Routes.editEvent,
+                                    arguments: <String, dynamic>{
+                                      'eventId': controller.args.eventId,
+                                      'title': controller.eventTitle.value,
+                                      'location': controller.eventLocation.value,
+                                      'eventDate': controller.eventDateIso.value,
+                                      'notes': controller.eventNotes.value,
+                                      'organizationId':
+                                          controller.eventOrganizationId.value,
+                                    },
+                                  )?.then((result) {
+                                    if (result is Map) {
+                                      controller.applyEventEditResult(result);
+                                    }
+                                  });
+                                } else if (value == 'delete') {
+                                  ConfirmDialog.show(
+                                    title: 'Delete event?',
+                                    message:
+                                        'This will permanently delete the event and related data. This cannot be undone.',
+                                    confirmText: 'Delete',
+                                    destructive: true,
+                                  ).then((ok) {
+                                    if (ok) controller.deleteEvent();
+                                  });
+                                }
+                              },
+                              itemBuilder:
+                                  (context) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text(
+                                        'Edit Event',
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: AppColors.lightHubInk,
+                                            ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(
+                                        'Delete Event',
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: AppColors.lightHubInk,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                            ),
+                          ]
+                          : const [],
               ),
               body: Column(
                 children: [
@@ -79,25 +141,32 @@ class ManageEventView extends GetView<ManageEventController> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    a.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      color: AppColors.ink,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  Obx(() {
+                                    return Text(
+                                      controller.eventTitle.value,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                        color: AppColors.ink,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    );
+                                  }),
                                   const SizedBox(height: 8),
                                   Wrap(
                                     spacing: 16,
                                     runSpacing: 8,
                                     children: [
-                                      _InfoChip(
-                                        icon: Icons.location_on_rounded,
-                                        label: capitalizeWords(a.location),
-                                        tint: AppColors.primary,
-                                      ),
+                                      Obx(() {
+                                        return _InfoChip(
+                                          icon: Icons.location_on_rounded,
+                                          label: capitalizeWords(
+                                            controller.eventLocation.value,
+                                          ),
+                                          tint: AppColors.primary,
+                                        );
+                                      }),
                                       _InfoChip(
                                         icon: Icons.group_rounded,
                                         label: '${a.membersCount} Members',
@@ -351,6 +420,17 @@ class _ContactsTab extends StatelessWidget {
                     status: null,
                     allowActions: false,
                     isMember: false,
+                    onTap: () async {
+                      final id = c.id.trim();
+                      if (id.isEmpty) return;
+                      final result = await Get.toNamed(
+                        Routes.contactDetails,
+                        arguments: id,
+                      );
+                      if (result == Routes.contactDeletedPopResult) {
+                        await controller.fetchContacts(reset: true);
+                      }
+                    },
                   );
                 },
               ),
@@ -477,6 +557,7 @@ class _MembersTabState extends State<_MembersTab> {
             title: m.name,
             subtitle1: m.email,
             subtitle2: m.role,
+            avatarUrl: m.avatarUrl,
             status: m.status,
             isMember: true,
             allowActions: controller.canShowInvitesTab,
@@ -886,23 +967,27 @@ class _PersonTile extends StatelessWidget {
     required this.title,
     required this.subtitle1,
     required this.subtitle2,
+    this.avatarUrl,
     required this.status,
     required this.isMember,
     this.allowActions = true,
     this.onAdd,
     this.onUpdate,
     this.onDelete,
+    this.onTap,
   });
 
   final String title;
   final String subtitle1;
   final String subtitle2;
+  final String? avatarUrl;
   final String? status;
   final bool allowActions;
   final bool isMember;
   final VoidCallback? onAdd;
   final VoidCallback? onUpdate;
   final VoidCallback? onDelete;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -920,7 +1005,7 @@ class _PersonTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: onTap ?? () {},
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
@@ -948,13 +1033,31 @@ class _PersonTile extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  initials,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.70),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: (avatarUrl?.trim().isNotEmpty ?? false)
+                    ? ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child:  Image.network(
+                        avatarUrl!.trim(),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            initials,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.70),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )   
+                    : Center(
+                      child: Text(
+                        initials,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.ink.withValues(alpha: 0.70),
+                        ),
+                      ),
+                    ),
               ),
               const SizedBox(width: 12),
               Expanded(

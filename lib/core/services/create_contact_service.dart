@@ -174,4 +174,200 @@ class CreateContactService extends GetxService {
     }
   }
 
+  /// Trims [value]; returns `null` when null or blank so PATCH JSON sends `"key": null`.
+  static String? _nullIfBlank(String? value) {
+    if (value == null) return null;
+    final t = value.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  /// PATCH existing contact — same payload shape as [createContact] plus `p_contact_id`.
+  Future<CreateContactResult> updateContact({
+    required String contactId,
+    required String ownerUserId,
+    required String createdBy,
+    required String fullName,
+    required String source,
+    required String? organizationId,
+    required String? eventId,
+    required bool allowShareOrganization,
+    required String firstName,
+    required String lastName,
+    required String designation,
+    required String companyName,
+    required String email1,
+    required String? email2,
+    required String phone1,
+    required String? phone2,
+    required String address,
+    required String website,
+    required String? cardImgUrl,
+    required List<String> tags,
+    String? profilePhotoUrl,
+    double? scanConfidence,
+    String? scanLanguage,
+    String? rawOcrText,
+  }) async {
+    final session = Get.find<AuthSessionService>();
+    final token = session.accessToken.value.trim();
+    if (token.isEmpty) {
+      return const CreateContactResult(
+        success: false,
+        message: 'Please sign in',
+      );
+    }
+
+    final bodyMap = <String, dynamic>{
+      'p_contact_id': contactId.trim(),
+      'p_owner_user_id': _nullIfBlank(ownerUserId),
+      'p_created_by': _nullIfBlank(createdBy),
+      'p_full_name': _nullIfBlank(fullName),
+      'p_source': _nullIfBlank(source),
+      'p_organization_id': _nullIfBlank(organizationId),
+      'p_event_id': _nullIfBlank(eventId),
+      'p_allow_share_organization': allowShareOrganization,
+      'p_first_name': _nullIfBlank(firstName),
+      'p_last_name': _nullIfBlank(lastName),
+      'p_designation': _nullIfBlank(designation),
+      'p_company_name': _nullIfBlank(companyName),
+      'p_email_1': _nullIfBlank(email1),
+      'p_email_2': _nullIfBlank(email2),
+      'p_phone_1': _nullIfBlank(phone1),
+      'p_phone_2': _nullIfBlank(phone2),
+      'p_address': _nullIfBlank(address),
+      'p_website': _nullIfBlank(website),
+      'p_card_img_url': _nullIfBlank(cardImgUrl),
+      'p_profile_photo_url': _nullIfBlank(profilePhotoUrl),
+      'p_scan_confidence': scanConfidence,
+      'p_scan_language': _nullIfBlank(scanLanguage),
+      'p_raw_ocr_text': _nullIfBlank(rawOcrText),
+      'p_tags': tags.isEmpty ? null : List<String>.from(tags),
+    };
+
+    final api = Get.find<ApiService>();
+    CreateContactResult result = const CreateContactResult(
+      success: false,
+      message: 'Request failed',
+    );
+
+    try {
+      if (kDebugMode) {
+        debugPrint('[create_contact] PATCH ${ApiUrl.contacts}');
+      }
+
+      await api.patchRequest(
+        url: ApiUrl.contacts,
+        data: bodyMap,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is Map) {
+            final message = raw['message']?.toString().trim();
+            result = CreateContactResult(
+              success: true,
+              message: (message != null && message.isNotEmpty)
+                  ? message
+                  : 'Contact updated',
+            );
+            return;
+          }
+          result = const CreateContactResult(
+            success: true,
+            message: 'Contact updated',
+          );
+        },
+        onError: (message) {
+          result = CreateContactResult(
+            success: false,
+            message: message ?? 'Request failed',
+          );
+        },
+      );
+
+      return result;
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[create_contact] update error: $e\n$st');
+      }
+      return CreateContactResult(success: false, message: e.toString());
+    }
+  }
+
+  /// DELETE [ApiUrl.contacts] with JSON body `{ "p_contact_id": "<uuid>" }` and `Authorization: Bearer <token>`.
+  Future<CreateContactResult> deleteContact({required String contactId}) async {
+    final session = Get.find<AuthSessionService>();
+    final token = session.accessToken.value.trim();
+    if (token.isEmpty) {
+      return const CreateContactResult(
+        success: false,
+        message: 'Please sign in',
+      );
+    }
+
+    final id = contactId.trim();
+    if (id.isEmpty) {
+      return const CreateContactResult(
+        success: false,
+        message: 'Contact not available',
+      );
+    }
+
+    final api = Get.find<ApiService>();
+    var result = const CreateContactResult(
+      success: false,
+      message: 'Request failed',
+    );
+
+    try {
+      if (kDebugMode) {
+        debugPrint('[create_contact] DELETE ${ApiUrl.contacts} p_contact_id=$id');
+      }
+
+      await api.deleteRequest(
+        url: ApiUrl.contacts,
+        data: <String, dynamic>{'p_contact_id': id},
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is Map) {
+            if (raw.containsKey('ok') && raw['ok'] == false) {
+              final msg = raw['message']?.toString().trim();
+              result = CreateContactResult(
+                success: false,
+                message: (msg != null && msg.isNotEmpty) ? msg : 'Delete failed',
+              );
+              return;
+            }
+            final message = raw['message']?.toString().trim();
+            result = CreateContactResult(
+              success: true,
+              message: (message != null && message.isNotEmpty)
+                  ? message
+                  : 'Contact deleted',
+            );
+            return;
+          }
+          result = const CreateContactResult(
+            success: true,
+            message: 'Contact deleted',
+          );
+        },
+        onError: (message) {
+          result = CreateContactResult(
+            success: false,
+            message: message ?? 'Request failed',
+          );
+        },
+      );
+
+      return result;
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[create_contact] delete error: $e\n$st');
+      }
+      return CreateContactResult(success: false, message: e.toString());
+    }
+  }
 }

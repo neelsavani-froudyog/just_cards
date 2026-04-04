@@ -11,6 +11,7 @@ class ProfileController extends GetxController {
   late final AuthSessionService _session;
   late final ApiService _apiService;
   final isLoading = false.obs;
+  final isDeletingAccount = false.obs;
   final profileError = RxnString();
   final profileMe = Rxn<ProfileMeResponse>();
 
@@ -69,12 +70,34 @@ class ProfileController extends GetxController {
     }
   }
 
-  void onPrivacyPolicy() {
-    ToastService.info('Coming soon');
-  }
-
   Future<void> onLogout() async {
     await _session.logout();
     Get.offAllNamed(Routes.login);
+  }
+
+  Future<void> deleteAccount() async {
+    if (isDeletingAccount.value) return;
+    isDeletingAccount.value = true;
+    try {
+      await _apiService.deleteRequest(
+        url: ApiUrl.createProfile,
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (_) async {
+          await ToastService.success('Account deleted');
+          await _session.logout();
+          Get.offAllNamed(Routes.login);
+        },
+        onError: (message) async {
+          await ToastService.error(
+            message?.trim().isNotEmpty == true
+                ? message!.trim()
+                : 'Failed to delete account',
+          );
+        },
+      );
+    } finally {
+      isDeletingAccount.value = false;
+    }
   }
 }

@@ -207,6 +207,7 @@ class HomeController extends GetxController {
                     scope: e.scope,
                     organizationId: e.organizationId,
                     role: e.role,
+                    createdBy: e.createdBy,
                   ),
                 )
                 .toList(),
@@ -291,6 +292,7 @@ class HomeMiniEvent {
     this.scope = '',
     this.organizationId,
     this.role = '',
+    this.createdBy = '',
   });
 
   final String id;
@@ -301,6 +303,7 @@ class HomeMiniEvent {
   final String scope;
   final String? organizationId;
   final String role;
+  final String createdBy;
 }
 
 class HomeOverviewStat {

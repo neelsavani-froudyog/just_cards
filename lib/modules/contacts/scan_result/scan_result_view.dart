@@ -553,10 +553,6 @@ class _ScanResultViewState extends State<ScanResultView> {
       ToastService.error('First name is required');
       return;
     }
-    if (last.isEmpty) {
-      ToastService.error('Last name is required');
-      return;
-    }
     if (companyName.isEmpty) {
       ToastService.error('Company name is required');
       return;

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -61,14 +62,31 @@ class ManualEntryController extends GetxController {
 
   final shareWithOrganization = false.obs;
 
-  /// Replace with real IDs from your events API when available.
-  static const Map<String, String> _eventIdByLabel = <String, String>{
-    'Electronica 2026': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
-    'PlastIndia 2026': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
-    'Aahar Expo': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
-    'Smart Tech': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
-    'Other': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
-  };
+  /// ISO 3166-1 alpha-2; used with [mobileCtrl] / [phoneCtrl] national digits for E.164.
+  final phone1CountryIso = 'IN'.obs;
+  final phone2CountryIso = 'IN'.obs;
+
+  void setPhone1Country(Country country) {
+    phone1CountryIso.value = country.countryCode;
+  }
+
+  void setPhone2Country(Country country) {
+    phone2CountryIso.value = country.countryCode;
+  }
+
+  /// [nationalRaw] = subscriber number only (no country code). Returns e.g. `+919650456854`.
+  static String composeInternationalPhone(
+    String iso3166alpha2,
+    String nationalRaw,
+  ) {
+    final c = Country.tryParse(iso3166alpha2);
+    final pc = (c?.phoneCode ?? '91').trim();
+    final codeDigits = pc.replaceAll(RegExp(r'\D'), '');
+    final digits = nationalRaw.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '';
+    return '+$codeDigits$digits';
+  }
+
 
   @override
   void onInit() {
@@ -284,19 +302,7 @@ class ManualEntryController extends GetxController {
   Future<void> saveContact() async {
     if (isSaving.value) return;
 
-    final path = cardImagePath.value?.trim() ?? '';
-    if (path.isEmpty) {
-      ToastService.error('Add a business card image at the top first');
-      return;
-    }
-
-    final file = File(path);
-    if (!await file.exists()) {
-      ToastService.error('Image file is missing. Scan again.');
-      return;
-    }
-
-    // Trim & validate required fields before doing any network calls.
+    // Trim & validate required fields before any network calls.
     final first = firstNameCtrl.text.trim();
     final last = lastNameCtrl.text.trim();
     final designation = jobTitleCtrl.text.trim();
@@ -304,8 +310,15 @@ class ManualEntryController extends GetxController {
     final website = websiteCtrl.text.trim();
     final email1 = primaryEmailCtrl.text.trim();
     final email2 = secondaryEmailCtrl.text.trim();
-    final phone1 = mobileCtrl.text.trim();
-    final phone2 = phoneCtrl.text.trim();
+    final national1 = mobileCtrl.text.trim();
+    final national2 = phoneCtrl.text.trim();
+    final phone1 = composeInternationalPhone(
+      phone1CountryIso.value,
+      national1,
+    );
+    final phone2 = national2.isEmpty
+        ? ''
+        : composeInternationalPhone(phone2CountryIso.value, national2);
     final address = addressCtrl.text.trim();
 
     if (first.isEmpty) {
@@ -328,14 +341,24 @@ class ManualEntryController extends GetxController {
       ToastService.error('Please enter a valid email address');
       return;
     }
-    if (phone1.isEmpty) {
+    if (phone1.isEmpty || national1.replaceAll(RegExp(r'\D'), '').isEmpty) {
       ToastService.error('Mobile number is required');
       return;
     }
 
+    final path = cardImagePath.value?.trim() ?? '';
+    File? imageFile;
+    if (path.isNotEmpty) {
+      final f = File(path);
+      if (!await f.exists()) {
+        ToastService.error('Image file is missing. Scan again.');
+        return;
+      }
+      imageFile = f;
+    }
+
     isSaving.value = true;
     try {
-      // 1) Upload image first.
       final session = Get.find<AuthSessionService>();
       final token = session.accessToken.value.trim();
       if (token.isEmpty) {
@@ -343,51 +366,54 @@ class ManualEntryController extends GetxController {
         return;
       }
 
-      final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-      final uri = Uri.parse('$base${ApiUrl.profileImagesUpload}');
+      String? cardImgUrl;
+      if (imageFile != null) {
+        final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+        final uri = Uri.parse('$base${ApiUrl.profileImagesUpload}');
 
-      final uploadResp = await sendMultipartFormData(
-        uri: uri,
-        headers: <String, String>{
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        textFields: <String, String>{
-          // Your curl uses `eventName` + `file`.
-          'eventName': selectedEvent.value == noneEvent ? 'Direct Entry' : selectedEvent.value,
-        },
-        fileFieldName: 'file',
-        file: file,
-      );
+        final uploadResp = await sendMultipartFormData(
+          uri: uri,
+          headers: <String, String>{
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          textFields: <String, String>{
+            'eventName': selectedEvent.value == noneEvent ? 'Direct Entry' : selectedEvent.value,
+          },
+          fileFieldName: 'file',
+          file: imageFile,
+        );
 
-      if (uploadResp.statusCode < 200 || uploadResp.statusCode >= 300) {
-        ToastService.error('Image upload failed (HTTP ${uploadResp.statusCode})');
-        return;
-      }
+        if (uploadResp.statusCode < 200 || uploadResp.statusCode >= 300) {
+          ToastService.error('Image upload failed (HTTP ${uploadResp.statusCode})');
+          return;
+        }
 
-      final responseBody = uploadResp.bodyText.trim();
-      if (responseBody.isEmpty) {
-        ToastService.error('Empty upload response');
-        return;
-      }
+        final responseBody = uploadResp.bodyText.trim();
+        if (responseBody.isEmpty) {
+          ToastService.error('Empty upload response');
+          return;
+        }
 
-      dynamic decoded;
-      try {
-        decoded = json.decode(responseBody);
-      } catch (_) {
-        ToastService.error('Invalid JSON from upload API');
-        return;
-      }
+        dynamic decoded;
+        try {
+          decoded = json.decode(responseBody);
+        } catch (_) {
+          ToastService.error('Invalid JSON from upload API');
+          return;
+        }
 
-      final publicUrl = decoded is Map
-          ? (decoded['data'] is Map
-              ? (decoded['data']['cdnUrl']?.toString() ?? '')
-              : decoded['cdnUrl']?.toString() ?? '')
-          : '';
+        final publicUrl = decoded is Map
+            ? (decoded['data'] is Map
+                ? (decoded['data']['cdnUrl']?.toString() ?? '')
+                : decoded['cdnUrl']?.toString() ?? '')
+            : '';
 
-      if (publicUrl.isEmpty) {
-        ToastService.error('No `public_url` returned from server');
-        return;
+        if (publicUrl.isEmpty) {
+          ToastService.error('No image URL returned from server');
+          return;
+        }
+        cardImgUrl = publicUrl;
       }
 
       final contactService = Get.find<CreateContactService>();
@@ -401,13 +427,18 @@ class ManualEntryController extends GetxController {
           ? 'Unnamed contact'
           : '$first $last'.trim();
 
+      final orgId = selectedOrganization.value == noneOrganization
+          ? null
+          : selectedOrganizationId.value;
+      final evId = selectedEvent.value == noneEvent ? null : selectedEventId.value;
+
       final createResult = await contactService.createContact(
         ownerUserId: userId,
-        organizationId: selectedOrganizationId.value == null || selectedOrganizationId.value == noneOrganization ? null : selectedOrganizationId.value as String,
+        organizationId: orgId,
         createdBy: userId,
         fullName: fullName,
         source: 'manual',
-        eventId: selectedEventId.value == null || selectedEventId.value == noneEvent ? null : selectedEventId.value as String,
+        eventId: evId,
         allowShareOrganization: shareWithOrganization.value,
         firstName: first,
         lastName: last,
@@ -419,7 +450,7 @@ class ManualEntryController extends GetxController {
         phone2: phone2.isEmpty ? null : phone2,
         address: address,
         website: website,
-        cardImgUrl: publicUrl,
+        cardImgUrl: cardImgUrl,
         tags: List<String>.from(selectedTags),
         profilePhotoUrl: null,
       );

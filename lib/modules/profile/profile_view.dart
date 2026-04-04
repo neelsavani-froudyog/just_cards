@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_cards/routes/app_routes.dart';
 
-import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../widgets/confirm_dialog.dart';
 
 import 'profile_controller.dart';
 import 'profile_shimmer_view.dart';
@@ -66,7 +66,7 @@ class ProfileView extends GetView<ProfileController> {
                   _SettingTile(
                     icon: Icons.edit_outlined,
                     title: 'Edit Profile',
-                    onTap: () => ToastService.info('Coming soon'),
+                    onTap: () => Get.toNamed(Routes.editProfile),
                   ),
                 ]),
               ),
@@ -90,31 +90,48 @@ class ProfileView extends GetView<ProfileController> {
                   _SettingTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Support',
-                    onTap: () => ToastService.info('Coming soon'),
+                    onTap: () => Get.toNamed(Routes.support),
                   ),
                   _SettingTile(
                     icon: Icons.policy_outlined,
                     title: 'Terms of Service',
-                    onTap: () => ToastService.info('Coming soon'),
+                    onTap: () => Get.toNamed(Routes.termsConditions),
                   ),
                   _SettingTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
-                    onTap: controller.onPrivacyPolicy,
+                    onTap: () => Get.toNamed(Routes.privacyPolicy),
                   ),
                   _SettingTile(
                     icon: Icons.logout_rounded,
                     title: 'Logout',
                     danger: true,
                     onTap: () {
-                      controller.onLogout();
+                      ConfirmDialog.show(
+                        title: 'Log out?',
+                        message: 'You will need to sign in again to access your account.',
+                        confirmText: 'Logout',
+                        destructive: true,
+                      ).then((ok) {
+                        if (ok) controller.onLogout();
+                      });
                     },
                   ),
                   _SettingTile(
                     icon: Icons.delete_forever_rounded,
                     title: 'Delete Account',
                     danger: true,
-                    onTap: () => ToastService.info('Coming soon'),
+                    onTap: () {
+                      ConfirmDialog.show(
+                        title: 'Delete account?',
+                        message:
+                            'This will permanently delete your account and data. This cannot be undone.',
+                        confirmText: 'Delete',
+                        destructive: true,
+                      ).then((ok) {
+                        if (ok) controller.deleteAccount();
+                      });
+                    },
                   ),
                 ]),
               ),
@@ -137,6 +154,7 @@ class _HeaderCard extends StatelessWidget {
       if (controller.isLoading.value) {
         return const ProfileHeaderShimmerCard();
       }
+      final avatarUrl = controller.profileMe.value?.data?.avatarUrl?.trim() ?? '';
 
       return Container(
         padding: const EdgeInsets.all(16),
@@ -157,6 +175,7 @@ class _HeaderCard extends StatelessWidget {
             Container(
               width: 76,
               height: 76,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -172,11 +191,22 @@ class _HeaderCard extends StatelessWidget {
                   ],
                 ),
               ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.person_rounded,
-                color: AppColors.ink,
-                size: 34,
+              child: ClipOval(
+                child: avatarUrl.isNotEmpty
+                    ? Image.network(
+                        avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person_rounded,
+                          color: AppColors.ink,
+                          size: 34,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person_rounded,
+                        color: AppColors.ink,
+                        size: 34,
+                      ),
               ),
             ),
             const SizedBox(width: 16),

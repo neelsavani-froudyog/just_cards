@@ -416,13 +416,26 @@ class ApiService extends GetxService {
         decodedBody: decodedBody,
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
         final message = _extractErrorMessage(decodedBody);
         _logError(method: 'PATCH', endpoint: uri.toString(), message: message);
         if (showErrorToast) {
           await ToastService.error(message);
         }
         onError(message);
+        return;
+      }
+
+      // No JSON body to validate (e.g. 204 No Content).
+      if (response.statusCode == 204) {
+        if (showSuccessToast) {
+          await ToastService.success(
+            successToastMessage ?? 'Success',
+          );
+        }
+        onSuccess(<String, dynamic>{'response': null});
         return;
       }
 
@@ -525,7 +538,10 @@ class ApiService extends GetxService {
         decodedBody: decodedBody,
       );
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
+      final deleteOk = response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204;
+      if (!deleteOk) {
         final message = _extractErrorMessage(decodedBody);
         _logError(method: 'DELETE', endpoint: uri.toString(), message: message);
         if (showErrorToast) {
@@ -533,6 +549,29 @@ class ApiService extends GetxService {
         }
         onError(message);
         return;
+      }
+
+      if (decodedBody is Map) {
+        if (decodedBody.containsKey('ok') && decodedBody['ok'] == false) {
+          final message = _extractErrorMessage(decodedBody);
+          _logError(method: 'DELETE', endpoint: uri.toString(), message: message);
+          if (showErrorToast) {
+            await ToastService.error(message);
+          }
+          onError(message);
+          return;
+        }
+        if (decodedBody.containsKey('success') &&
+            decodedBody['success'] is bool &&
+            decodedBody['success'] == false) {
+          final message = _extractErrorMessage(decodedBody);
+          _logError(method: 'DELETE', endpoint: uri.toString(), message: message);
+          if (showErrorToast) {
+            await ToastService.error(message);
+          }
+          onError(message);
+          return;
+        }
       }
 
       if (showSuccessToast) {

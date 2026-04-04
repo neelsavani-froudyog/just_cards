@@ -10,6 +10,7 @@ import '../../../core/services/toast_service.dart';
 import 'organization_events_model.dart';
 import 'organization_contacts_model.dart';
 import 'organization_members_model.dart';
+import '../manage/manage_organization_controller.dart';
 
 class OrganizationDetailArgs {
   const OrganizationDetailArgs({
@@ -56,6 +57,10 @@ class OrganizationDetailController extends GetxController {
   final selectedTabIndex = 0.obs;
   final currentUserRole = ''.obs;
 
+  /// Updated when returning from [Routes.editOrganization].
+  final organizationDisplayName = ''.obs;
+  final isDeletingOrganization = false.obs;
+
   final eventsExpanded = false.obs;
 
   final inviteEmailController = TextEditingController();
@@ -96,6 +101,9 @@ class OrganizationDetailController extends GetxController {
     args = OrganizationDetailArgs.from(Get.arguments);
     currentUserRole.value = args.role.trim().toLowerCase();
     selectedTabIndex.value = args.initialTab;
+    organizationDisplayName.value = args.name.trim().isEmpty
+        ? 'Organization'
+        : args.name.trim();
     _apiService = Get.find<ApiService>();
     fetchMembers();
     fetchOrganizationEvents();
@@ -135,6 +143,38 @@ class OrganizationDetailController extends GetxController {
     // For the Invites tab (index 2) we currently work with local state
     // (`sentInvites`) and dedicated send/remove methods, so no extra fetch.
   }
+
+  void applyOrganizationEditResult(dynamic result) {
+    if (result is! Map) return;
+    final name = result['name']?.toString().trim();
+    if (name != null && name.isNotEmpty) {
+      organizationDisplayName.value = name;
+    }
+  }
+
+  Future<void> deleteOrganization() async {
+    if (isDeletingOrganization.value) return;
+    isDeletingOrganization.value = true;
+    try {
+      await _apiService.deleteRequest(
+        url: ApiUrl.profileDeleteOrganization,
+        data: <String, dynamic>{'p_org_id': args.organizationId},
+        showSuccessToast: true,
+        successToastMessage: 'Organization deleted',
+        showErrorToast: true,
+        onSuccess: (_) {
+          if (Get.isRegistered<ManageOrganizationController>()) {
+            Get.find<ManageOrganizationController>().fetchOrganizations();
+          }
+          Get.back(result: 'org_deleted');
+        },
+        onError: (_) {},
+      );
+    } finally {
+      isDeletingOrganization.value = false;
+    }
+  }
+
   Future<void> fetchContacts({required bool reset}) async {
     final orgId = args.organizationId.trim();
     if (orgId.isEmpty || isContactsLoading.value) return;
@@ -440,7 +480,7 @@ class OrganizationDetailController extends GetxController {
 
   bool get canManageOrganization {
     final role = currentUserRole.value;
-    return role != 'editor' && role != 'viewer';
+    return role != 'editor' && role != 'viewer' && role != 'admin';
   }
 
   // Contacts are fetched server-side with `p_search`.

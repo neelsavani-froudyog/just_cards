@@ -52,8 +52,12 @@ class HomeView extends GetView<HomeController> {
           child: const Icon(Icons.badge_rounded),
         ),
         body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () => controller.refreshAllData(),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
               sliver: SliverToBoxAdapter(
@@ -425,6 +429,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
             ],
+            ),
           ),
         ),
       ),
@@ -592,6 +597,9 @@ class _EventCard extends StatelessWidget {
                 'eventId': event.id,
                 'title': event.title,
                 'location': location,
+                'eventDate': event.eventDate,
+                'organizationId': event.organizationId,
+                'createdBy': event.createdBy,
                 'membersCount': event.count,
                 'cardsCount': cardsCount,
                 'role': event.role,
@@ -710,10 +718,18 @@ class _ContactTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
+        onTap: () async {
           final id = contact.id.trim();
           if (id.isEmpty) return;
-          Get.toNamed(Routes.contactDetails, arguments: id);
+          final result = await Get.toNamed(
+            Routes.contactDetails,
+            arguments: id,
+          );
+          if (result == Routes.contactDeletedPopResult) {
+            final c = Get.find<HomeController>();
+            await c.fetchContacts(reset: true);
+            await c.fetchMyContactsTotalCount();
+          }
         },
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),

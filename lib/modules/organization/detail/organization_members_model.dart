@@ -30,6 +30,7 @@ class OrganizationMembersResponse {
 class OrganizationMemberItem {
   final String role;
   final String email;
+  final String? avatarUrl;
   final String source;
   final String status;
   final String? inviteId;
@@ -41,6 +42,7 @@ class OrganizationMemberItem {
   const OrganizationMemberItem({
     required this.role,
     required this.email,
+    required this.avatarUrl,
     required this.source,
     required this.status,
     required this.inviteId,
@@ -56,6 +58,7 @@ class OrganizationMemberItem {
     return OrganizationMemberItem(
       role: (json['role'] ?? '').toString(),
       email: email,
+      avatarUrl: json['avatar_url']?.toString(),
       source: (json['source'] ?? '').toString(),
       status: (json['status'] ?? '').toString(),
       inviteId: json['invite_id']?.toString(),

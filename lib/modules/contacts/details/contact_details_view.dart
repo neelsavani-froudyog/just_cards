@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/models/contact_detail_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../widgets/confirm_dialog.dart';
 import 'contact_details_controller.dart';
 import 'contact_details_shimmer.dart';
 import 'contact_notes/contact_notes_view.dart';
@@ -20,16 +24,60 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
+        foregroundColor: AppColors.ink,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Get.back(),
         ),
         title: const Text('Contact Details'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () {},
-          ),
+          Obx(() {
+            if (!controller.canShowContactOwnerActions) {
+              return const SizedBox.shrink();
+            }
+            return PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: AppColors.ink.withValues(alpha: 0.92),
+              ),
+              color: AppColors.white,
+              onSelected: (value) {
+                if (value == 'edit') {
+                  controller.openEditContact();
+                } else if (value == 'delete') {
+                  ConfirmDialog.show(
+                    title: 'Delete contact?',
+                    message:
+                        'This will permanently delete this contact and related data. This cannot be undone.',
+                    confirmText: 'Delete',
+                    destructive: true,
+                  ).then((ok) {
+                    if (ok) controller.deleteContact();
+                  });
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text(
+                    'Edit contact',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.ink,
+                        ),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(
+                    'Delete contact',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.ink,
+                        ),
+                  ),
+                ),
+              ],
+            );
+          }),
         ],
       ),
       body: SafeArea(
@@ -65,7 +113,7 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
                       onCall: controller.onCallTap,
                       onEmail: controller.onEmailTap,
                       onWhatsApp: controller.onWhatsAppTap,
-                      onShare: controller.onShareTap,
+                      onShare: controller.shareContactDetails,
                     ),
                     const SizedBox(height: 12),
                     Obx(() {
@@ -97,64 +145,47 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
                 final t = controller.tab.value;
                 final saving = controller.isSaving.value;
                 if (t == ContactDetailsTab.details) return const SizedBox.shrink();
+                final showAttachmentSave = t == ContactDetailsTab.attachments && controller.hasLocalAttachments;
                 return Container(
                   color: const Color(0xFFF5F7FB),
                   padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
                   child: Column(
                     children: [
                       if (t == ContactDetailsTab.attachments) ...[
+                        const SizedBox.shrink(),
+                      ],
+                      if (t == ContactDetailsTab.notes || showAttachmentSave)
                         SizedBox(
                           width: double.infinity,
                           height: 52,
-                          child: OutlinedButton.icon(
-                            onPressed: saving ? null : controller.addAttachment,
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: AppColors.ink.withValues(alpha: 0.18)),
+                          child: FilledButton.icon(
+                            onPressed: t == ContactDetailsTab.notes
+                                ? () => showContactCreateNoteDialog(context)
+                                : saving
+                                    ? null
+                                    : controller.saveChanges,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
-                            icon: Icon(Icons.add_rounded, color: AppColors.ink.withValues(alpha: 0.80)),
+                            icon: t == ContactDetailsTab.notes
+                                ? const Icon(Icons.note_add_rounded, color: AppColors.white)
+                                : saving
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                                      )
+                                    : const Icon(Icons.save_rounded, color: AppColors.white),
                             label: Text(
-                              'Add Attachment',
+                              t == ContactDetailsTab.notes ? 'Create Note' : 'Save Changes',
                               style: theme.textTheme.titleSmall?.copyWith(
-                                color: AppColors.ink.withValues(alpha: 0.80),
-                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                      ],
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton.icon(
-                          onPressed: t == ContactDetailsTab.notes
-                              ? () => showContactCreateNoteDialog(context)
-                              : saving
-                                  ? null
-                                  : controller.saveChanges,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          icon: t == ContactDetailsTab.notes
-                              ? const Icon(Icons.note_add_rounded, color: AppColors.white)
-                              : saving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                                    )
-                                  : const Icon(Icons.save_rounded, color: AppColors.white),
-                          label: Text(
-                            t == ContactDetailsTab.notes ? 'Create Note' : 'Save Changes',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 );
@@ -165,6 +196,7 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
       ),
     );
   }
+
 }
 
 class _ContactLoadError extends StatelessWidget {
@@ -736,157 +768,604 @@ class _AttachmentsTab extends GetView<ContactDetailsController> {
     return Obx(() {
       final photos = controller.photos;
       final docs = controller.docs;
-      final hasAny = photos.isNotEmpty || docs.isNotEmpty;
+      final isLoading = controller.isAttachmentsLoading.value;
 
-      if (!hasAny) {
-        return Center(
-          key: key,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 104,
-                  height: 104,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-                  ),
-                  child: Icon(Icons.attach_file_rounded, size: 44, color: AppColors.ink.withValues(alpha: 0.70)),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'No Attachments yet',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Keep all your contact-related files, photos,\ndocuments in one place for easy access',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.65),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+      if (isLoading) {
+        return const _AttachmentsLoadingShimmer();
       }
 
       return ListView(
         key: key,
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
         children: [
-          if (photos.isNotEmpty) ...[
-            Text(
-              'PHOTOS',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.ink.withValues(alpha: 0.55),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+          Text(
+            'PHOTOS',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: AppColors.ink.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _ThumbGrid(
+            items: photos.toList(growable: false),
+            tileBuilder: (_, index, item) => _ImageThumb(
+              path: item,
+              onDelete: () => _confirmDelete(
+                context,
+                onConfirm: () => controller.removePhotoAt(index),
               ),
             ),
-            const SizedBox(height: 10),
-            _ThumbGrid(
-              items: photos.toList(growable: false),
-              tileBuilder: (_, __) => const _ImageThumb(),
+            onAddTap: () => _showPhotoSourceSheet(context),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'PDF / DOCS',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: AppColors.ink.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
             ),
-            const SizedBox(height: 14),
-          ],
-          if (docs.isNotEmpty) ...[
-            Text(
-              'PDF / DOCS',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.ink.withValues(alpha: 0.55),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+          ),
+          const SizedBox(height: 10),
+          _ThumbGrid(
+            items: docs.toList(growable: false),
+            tileBuilder: (_, index, item) => _DocThumb(
+              path: item,
+              onTap: () => _openDocumentPreview(context, item),
+              onDelete: () => _confirmDelete(
+                context,
+                onConfirm: () => controller.removeDocAt(index),
               ),
             ),
-            const SizedBox(height: 10),
-            _ThumbGrid(
-              items: docs.toList(growable: false),
-              tileBuilder: (_, __) => const _DocThumb(),
-            ),
-          ],
+            onAddTap: controller.addPdfFromFiles,
+          ),
         ],
       );
     });
   }
+
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    required Future<void> Function() onConfirm,
+  }) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Delete attachment?',
+                textAlign: TextAlign.center,
+                style: Theme.of(dialogContext).textTheme.titleMedium?.copyWith(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This action removes the file from this attachments list.',
+                textAlign: TextAlign.center,
+                style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.ink.withValues(alpha: 0.62),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.ink.withValues(alpha: 0.18)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: Theme.of(dialogContext).textTheme.titleSmall?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.80),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.danger,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        'Delete',
+                        style: Theme.of(dialogContext).textTheme.titleSmall?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (shouldDelete == true) await onConfirm();
+  }
+
+  Future<void> _showPhotoSourceSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Gallery'),
+                  subtitle: const Text('Select multiple images'),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await controller.addPhotosFromGallery();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Camera'),
+                  subtitle: const Text('Open document scanner'),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await controller.addPhotosFromCameraScanner();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openDocumentPreview(BuildContext context, String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return;
+    final isRemote = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+    if (!isRemote) {
+      Get.snackbar(
+        'Preview unavailable',
+        'Document preview is available after upload.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.to(() => _DocumentPreviewPage(url: trimmed));
+  }
 }
 
 class _ThumbGrid extends StatelessWidget {
-  const _ThumbGrid({required this.items, required this.tileBuilder});
+  const _ThumbGrid({
+    required this.items,
+    required this.tileBuilder,
+    required this.onAddTap,
+  });
 
   final List<String> items;
-  final Widget Function(BuildContext context, int index) tileBuilder;
+  final Widget Function(BuildContext context, int index, String item) tileBuilder;
+  final VoidCallback onAddTap;
 
   @override
   Widget build(BuildContext context) {
-    final tiles = items.length + 1; // + add tile
+    final tiles = items.length + 1;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: tiles,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisCount: 4,
+        crossAxisSpacing: 11,
+        mainAxisSpacing: 11,
       ),
       itemBuilder: (context, index) {
-        if (index == tiles - 1) return const _AddThumb();
-        return tileBuilder(context, index);
+        if (index == tiles - 1) return _AddThumb(onTap: onAddTap);
+        return tileBuilder(context, index, items[index]);
       },
     );
   }
 }
 
 class _AddThumb extends StatelessWidget {
-  const _AddThumb();
+  const _AddThumb({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.18), width: 1.5),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.18), width: 1.5),
+        ),
+        child: Icon(Icons.add_rounded, color: AppColors.ink.withValues(alpha: 0.70)),
       ),
-      child: Icon(Icons.add_rounded, color: AppColors.ink.withValues(alpha: 0.70)),
     );
   }
 }
 
 class _ImageThumb extends StatelessWidget {
-  const _ImageThumb();
+  const _ImageThumb({
+    required this.path,
+    required this.onDelete,
+  });
+
+  final String path;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        color: AppColors.ink.withValues(alpha: 0.06),
-        child: Icon(Icons.image_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
+    final trimmedPath = path.trim();
+    final isNetworkImage = trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://');
+    final imageWidget = isNetworkImage
+        ? Image.network(
+            trimmedPath,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const _ThumbShimmer();
+            },
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.image_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
+          )
+        : Image.file(
+            File(trimmedPath),
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.image_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
+          );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        if (trimmedPath.isEmpty) return;
+        showDialog<void>(
+          context: context,
+          builder: (_) => _FullImagePreviewDialog(
+            path: trimmedPath,
+            isNetworkImage: isNetworkImage,
+          ),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: AppColors.ink.withValues(alpha: 0.06),
+                child: imageWidget,
+              ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: _DeleteBadge(onTap: onDelete),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentsLoadingShimmer extends StatelessWidget {
+  const _AttachmentsLoadingShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      children: [
+        Text(
+          'PHOTOS',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: AppColors.ink.withValues(alpha: 0.55),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const _ShimmerThumbGrid(tileCount: 5),
+        const SizedBox(height: 14),
+        Text(
+          'PDF / DOCS',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: AppColors.ink.withValues(alpha: 0.55),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const _ShimmerThumbGrid(tileCount: 5),
+      ],
+    );
+  }
+}
+
+class _ShimmerThumbGrid extends StatelessWidget {
+  const _ShimmerThumbGrid({required this.tileCount});
+
+  final int tileCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tileCount,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemBuilder: (_, __) => const _ThumbShimmer(),
+    );
+  }
+}
+
+class _ThumbShimmer extends StatefulWidget {
+  const _ThumbShimmer();
+
+  @override
+  State<_ThumbShimmer> createState() => _ThumbShimmerState();
+}
+
+class _ThumbShimmerState extends State<_ThumbShimmer> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) {
+        final begin = -1.2 + (_controller.value * 2.4);
+        final end = begin + 1.0;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: LinearGradient(
+              begin: Alignment(begin, -0.3),
+              end: Alignment(end, 0.3),
+              colors: [
+                AppColors.ink.withValues(alpha: 0.04),
+                AppColors.ink.withValues(alpha: 0.10),
+                AppColors.ink.withValues(alpha: 0.04),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FullImagePreviewDialog extends StatelessWidget {
+  const _FullImagePreviewDialog({
+    required this.path,
+    required this.isNetworkImage,
+  });
+
+  final String path;
+  final bool isNetworkImage;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = isNetworkImage
+        ? Image.network(path, fit: BoxFit.contain)
+        : Image.file(File(path), fit: BoxFit.contain);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      backgroundColor: AppColors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 10,vertical: 25),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 5,
+              child: Center(child: image),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: AppColors.ink.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                color: AppColors.white,
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _DocThumb extends StatelessWidget {
-  const _DocThumb();
+  const _DocThumb({
+    required this.path,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final String path;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    final lower = path.toLowerCase();
+    final isPdf = lower.endsWith('.pdf');
+    return InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        color: AppColors.ink.withValues(alpha: 0.06),
-        child: Icon(Icons.picture_as_pdf_rounded, color: AppColors.darkGrey.withValues(alpha: 0.45)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: AppColors.ink.withValues(alpha: 0.06),
+                child: Icon(
+                  isPdf ? Icons.picture_as_pdf_rounded : Icons.description_rounded,
+                  color: AppColors.darkGrey.withValues(alpha: 0.45),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: _DeleteBadge(onTap: onDelete),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentPreviewPage extends StatefulWidget {
+  const _DocumentPreviewPage({required this.url});
+
+  final String url;
+
+  @override
+  State<_DocumentPreviewPage> createState() => _DocumentPreviewPageState();
+}
+
+class _DocumentPreviewPageState extends State<_DocumentPreviewPage> {
+  late final WebViewController _webController;
+  var _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final source = widget.url.trim();
+    final lower = source.toLowerCase();
+    final previewUrl = (lower.endsWith('.doc') || lower.endsWith('.docx'))
+        ? 'https://view.officeapps.live.com/op/embed.aspx?src=${Uri.encodeComponent(source)}'
+        : 'https://docs.google.com/gview?embedded=1&url=${Uri.encodeComponent(source)}';
+
+    _webController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (!mounted) return;
+            setState(() => _loading = false);
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(previewUrl));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Document Preview'),
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: WebViewWidget(controller: _webController)),
+          if (_loading) const Center(child: CircularProgressIndicator()),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeleteBadge extends StatelessWidget {
+  const _DeleteBadge({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: AppColors.ink.withValues(alpha: 0.55),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+        ),
       ),
     );
   }

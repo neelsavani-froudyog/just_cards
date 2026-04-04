@@ -68,23 +68,51 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                               ),
                               color: AppColors.lightHubSurface,
                               onSelected: (value) {
-                                if (value == 'settings') {
+                                if (value == 'edit') {
                                   Get.toNamed(
-                                    Routes.organizationSettings,
+                                    Routes.editOrganization,
                                     arguments: <String, dynamic>{
                                       'organizationId': a.organizationId,
                                       'name': a.name,
                                       'industry': a.industry,
+                                      'role': a.role,
+                                      'isActive': a.isActive,
                                     },
-                                  );
+                                  )?.then((result) {
+                                    if (result is Map) {
+                                      controller.applyOrganizationEditResult(
+                                        result,
+                                      );
+                                    }
+                                  });
+                                } else if (value == 'delete') {
+                                  ConfirmDialog.show(
+                                    title: 'Delete organization?',
+                                    message:
+                                        'This will permanently delete the organization and related data. This cannot be undone.',
+                                    confirmText: 'Delete',
+                                    destructive: true,
+                                  ).then((ok) {
+                                    if (ok) controller.deleteOrganization();
+                                  });
                                 }
                               },
                               itemBuilder:
                                   (context) => [
                                     PopupMenuItem(
-                                      value: 'settings',
+                                      value: 'edit',
                                       child: Text(
-                                        'Organization settings',
+                                        'Edit Organization',
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: AppColors.lightHubInk,
+                                            ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(
+                                        'Delete Organization',
                                         style: theme.textTheme.bodyLarge
                                             ?.copyWith(
                                               color: AppColors.lightHubInk,
@@ -176,7 +204,6 @@ class _OrgHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final a = controller.args;
 
     return Container(
       width: double.infinity,
@@ -204,16 +231,18 @@ class _OrgHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  a.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: AppColors.lightHubInk,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
+                Obx(() {
+                  return Text(
+                    controller.organizationDisplayName.value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: AppColors.lightHubInk,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
+                  );
+                }),
                 const SizedBox(height: 10),
                 Obx(() {
                   return Wrap(
@@ -447,7 +476,12 @@ class _EventCard extends StatelessWidget {
             arguments: <String, dynamic>{
               'eventId': event.eventId,
               'title': event.eventName.isNotEmpty ? event.eventName : 'Event',
-              'location': event.locationText.isNotEmpty ? event.locationText : '—',
+              'location':
+                  event.locationText.isNotEmpty ? event.locationText : '—',
+              'eventDate': event.eventDate,
+              'createdBy': event.createdBy,
+              'organizationId':
+                  Get.find<OrganizationDetailController>().args.organizationId,
               // Organization events payload doesn't include members count.
               'membersCount': 0,
               'cardsCount': event.contactCount,
@@ -574,7 +608,8 @@ class _ContactsTab extends StatelessWidget {
               }
 
               if (items.isEmpty) {
-                final hasSearch = controller.searchQuery.value.trim().isNotEmpty;
+                final hasSearch =
+                    controller.searchQuery.value.trim().isNotEmpty;
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -607,10 +642,12 @@ class _ContactsTab extends StatelessWidget {
                           Text(
                             'No contacts found',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.lightHubInk,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: AppColors.lightHubInk,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -619,10 +656,12 @@ class _ContactsTab extends StatelessWidget {
                                     ? 'Try a different search keyword.'
                                     : 'Contacts will appear here once cards are added to this organization.'),
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.lightHubMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.lightHubMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -637,16 +676,20 @@ class _ContactsTab extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final c = items[index];
-                  final title = c.fullName.trim().isNotEmpty
-                      ? c.fullName.trim()
-                      : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
+                  final title =
+                      c.fullName.trim().isNotEmpty
+                          ? c.fullName.trim()
+                          : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
                           ? '${c.firstName} ${c.lastName}'.trim()
                           : 'Unknown';
                   final subtitle1 =
-                      c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1.trim();
-                  final subtitle2 = c.companyName.trim().isNotEmpty
-                      ? c.companyName.trim()
-                      : c.designation.trim();
+                      c.email1.trim().isNotEmpty
+                          ? c.email1.trim()
+                          : c.phone1.trim();
+                  final subtitle2 =
+                      c.companyName.trim().isNotEmpty
+                          ? c.companyName.trim()
+                          : c.designation.trim();
 
                   return _PersonTile(
                     person: EventPerson(
@@ -654,6 +697,18 @@ class _ContactsTab extends StatelessWidget {
                       email: subtitle1.isNotEmpty ? subtitle1 : '--',
                       companyOrRole: subtitle2.isNotEmpty ? subtitle2 : '--',
                     ),
+                    onTap: () async {
+                      final id = c.id.trim();
+                      if (id.isEmpty) return;
+                      final result = await Get.toNamed(
+                        Routes.contactDetails,
+                        arguments: id,
+                      );
+                      if (result == Routes.contactDeletedPopResult) {
+                        await controller.fetchContacts(reset: true);
+                        await controller.fetchOrganizationEvents();
+                      }
+                    },
                   );
                 },
               );
@@ -666,9 +721,10 @@ class _ContactsTab extends StatelessWidget {
 }
 
 class _PersonTile extends StatelessWidget {
-  const _PersonTile({required this.person});
+  const _PersonTile({required this.person, this.onTap});
 
   final EventPerson person;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -679,7 +735,7 @@ class _PersonTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: onTap ?? () {},
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
@@ -845,6 +901,7 @@ class _MembersTab extends StatelessWidget {
             title: m.fullName,
             subtitle1: m.email,
             subtitle2: m.role,
+            avatarUrl: m.avatarUrl,
             status: m.status,
             allowActions: controller.canManageOrganization,
             onAdd: () {
@@ -993,10 +1050,12 @@ class _MembersTab extends StatelessWidget {
 }
 
 class MemberTile extends StatelessWidget {
-  const MemberTile({super.key, 
+  const MemberTile({
+    super.key,
     required this.title,
     required this.subtitle1,
     required this.subtitle2,
+    required this.avatarUrl,
     required this.status,
     this.allowActions = true,
     this.onAdd,
@@ -1007,6 +1066,7 @@ class MemberTile extends StatelessWidget {
   final String title;
   final String subtitle1;
   final String subtitle2;
+  final String? avatarUrl;
   final String? status;
   final bool allowActions;
   final VoidCallback? onAdd;
@@ -1016,130 +1076,179 @@ class MemberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final initials = _initials(title);
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
     final canShowActions =
         allowActions &&
         !isProtectedRole &&
         (onUpdate != null || onDelete != null);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.09)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.040),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.ink.withValues(alpha: 0.06),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.person_rounded,
-              size: 21,
-              color: AppColors.ink.withValues(alpha: 0.55),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w800,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentTeal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: AppColors.accentTeal.withValues(alpha: 0.60),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle1,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.62),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 0,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 2,
-                      ),
-                      child: Text(
-                        capitalizeWords(subtitle2),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: _roleColor(subtitle2),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    if (status != null && status != 'accepted') ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Text(
-                          capitalizeWords(status!),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.ink.withValues(alpha: 0.60),
-                            fontWeight: FontWeight.w600,
+                clipBehavior: Clip.antiAlias,
+                child:
+                    (avatarUrl?.trim().isNotEmpty ?? false)
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.network(
+                            avatarUrl!.trim(),
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Center(
+                                  child: Text(
+                                    initials,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          color: AppColors.ink.withValues(
+                                            alpha: 0.70,
+                                          ),
+                                        ),
+                                  ),
+                                ),
+                          ),
+                        )
+                        : Center(
+                          child: Text(
+                            initials,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.70),
+                            ),
                           ),
                         ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 0,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: 2,
+                          ),
+                          child: Text(
+                            capitalizeWords(subtitle2),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _roleColor(subtitle2),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (status != null && status != 'accepted') ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              capitalizeWords(status!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.60),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (canShowActions)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onUpdate != null)
+                      _ActionButton(
+                        icon: Icons.edit_rounded,
+                        color: AppColors.ink.withValues(alpha: 0.68),
+                        tooltip: 'Update',
+                        onTap: onUpdate!,
+                      ),
+                    if (onDelete != null) ...[
+                      const SizedBox(width: 6),
+                      _ActionButton(
+                        icon: Icons.delete_outline_rounded,
+                        color: AppColors.danger,
+                        tooltip: 'Delete',
+                        onTap: onDelete!,
                       ),
                     ],
                   ],
+                )
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.ink.withValues(alpha: 0.35),
                 ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(width: 4),
-          if (canShowActions)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onUpdate != null)
-                  _ActionButton(
-                    icon: Icons.edit_rounded,
-                    color: AppColors.ink.withValues(alpha: 0.68),
-                    tooltip: 'Update',
-                    onTap: onUpdate!,
-                  ),
-                if (onDelete != null) ...[
-                  const SizedBox(width: 6),
-                  _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                    tooltip: 'Delete',
-                    onTap: onDelete!,
-                  ),
-                ],
-              ],
-            ),
-        ],
+        ),
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final a = parts.isNotEmpty ? parts.first : '';
+    final b = parts.length > 1 ? parts[1] : '';
+    final i1 = a.isEmpty ? '' : a[0];
+    final i2 = b.isEmpty ? '' : b[0];
+    final result = (i1 + i2).toUpperCase();
+    return result.isEmpty ? '—' : result;
   }
 
   String capitalizeWords(String text) {
@@ -1322,7 +1431,8 @@ class _InvitesTab extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Obx(() {
-              if (controller.sentInvites.isEmpty) return const SizedBox.shrink();
+              if (controller.sentInvites.isEmpty)
+                return const SizedBox.shrink();
               final busy = controller.isInviting.value;
               return SizedBox(
                 height: 48,
@@ -1336,33 +1446,34 @@ class _InvitesTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Send Invite',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Icon(
-                              Icons.send_rounded,
+                  child:
+                      busy
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                               color: AppColors.white,
-                              size: 18,
                             ),
-                          ],
-                        ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Send Invite',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(
+                                Icons.send_rounded,
+                                color: AppColors.white,
+                                size: 18,
+                              ),
+                            ],
+                          ),
                 ),
               );
             }),

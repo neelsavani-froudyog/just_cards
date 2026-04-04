@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/create_contact_service.dart';
 import '../../../core/services/toast_service.dart';
 import 'event_members_model.dart';
 import 'event_contacts_model.dart';
@@ -48,15 +49,49 @@ class ManageEventController extends GetxController {
 
   final roles = const <String>['Admin', 'Editor', 'Viewer'];
 
+  final eventTitle = ''.obs;
+  final eventLocation = ''.obs;
+  final eventDateIso = ''.obs;
+  final eventNotes = ''.obs;
+  final eventOrganizationId = RxnString();
+
+  final isDeletingEvent = false.obs;
+
+  /// From `GET /profile/me` (`data.user_id`), for creator check.
+  final currentUserId = RxnString();
+
   @override
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
     args = ManageEventArgs.from(Get.arguments);
     currentUserRole.value = args.role.trim().toLowerCase();
+    eventTitle.value = args.title;
+    eventLocation.value = args.location;
+    eventDateIso.value = args.eventDateIso;
+    eventNotes.value = args.notes;
+    eventOrganizationId.value = args.organizationId;
+    _loadCurrentUserId();
     fetchContacts(reset: true);
     fetchEventCardsTotalCount();
     fetchMembers();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    try {
+      final id = await Get.find<CreateContactService>().fetchProfileUserId();
+      currentUserId.value = id;
+    } catch (_) {
+      currentUserId.value = null;
+    }
+  }
+
+  /// Edit / delete menu: only when event creator matches logged-in user.
+  bool get canShowEventOwnerActions {
+    final creator = args.createdBy.trim();
+    final me = currentUserId.value?.trim() ?? '';
+    if (creator.isEmpty || me.isEmpty) return false;
+    return creator == me;
   }
 
   @override
@@ -285,6 +320,7 @@ class ManageEventController extends GetxController {
     members[index] = EventMember(
       name: existing.name,
       email: existing.email,
+      avatarUrl: existing.avatarUrl,
       role: nextRole,
       status: existing.status,
       joinedAt: existing.joinedAt,
@@ -325,6 +361,7 @@ class ManageEventController extends GetxController {
                   (m) => EventMember(
                     name: m.fullName.isNotEmpty ? m.fullName : 'Unknown',
                     email: m.email,
+                    avatarUrl: m.avatarUrl?.trim(),
                     role: _normalizeRole(m.role),
                     status: m.status,
                     joinedAt: m.joinedAt?.trim().isEmpty == true ? null : m.joinedAt,
@@ -363,6 +400,50 @@ class ManageEventController extends GetxController {
     final role = currentUserRole.value;
     return role != 'editor' && role != 'viewer';
   }
+
+  bool get canManageEvent {
+    final role = currentUserRole.value;
+    return role != 'editor' && role != 'viewer' && role != 'admin';
+  }
+
+  void applyEventEditResult(dynamic result) {
+    if (result is! Map) return;
+    final t = result['title']?.toString().trim();
+    if (t != null && t.isNotEmpty) eventTitle.value = t;
+    final loc = result['location']?.toString().trim();
+    if (loc != null && loc.isNotEmpty) eventLocation.value = loc;
+    final d = result['eventDate']?.toString().trim();
+    if (d != null && d.isNotEmpty) eventDateIso.value = d;
+    if (result.containsKey('notes')) {
+      eventNotes.value = result['notes']?.toString() ?? '';
+    }
+    if (result.containsKey('organizationId')) {
+      final o = result['organizationId']?.toString().trim();
+      eventOrganizationId.value =
+          (o == null || o.isEmpty) ? null : o;
+    }
+  }
+
+  Future<void> deleteEvent() async {
+    if (isDeletingEvent.value) return;
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty) return;
+
+    isDeletingEvent.value = true;
+    try {
+      await _apiService.deleteRequest(
+        url: ApiUrl.events,
+        data: <String, dynamic>{'p_event_id': eventId},
+        showSuccessToast: true,
+        successToastMessage: 'Event deleted',
+        showErrorToast: true,
+        onSuccess: (_) => Get.back(result: 'event_deleted'),
+        onError: (_) {},
+      );
+    } finally {
+      isDeletingEvent.value = false;
+    }
+  }
 }
 
 class ManageEventArgs {
@@ -373,6 +454,10 @@ class ManageEventArgs {
     required this.membersCount,
     required this.cardsCount,
     required this.role,
+    this.eventDateIso = '',
+    this.notes = '',
+    this.organizationId,
+    this.createdBy = '',
   });
 
   final String eventId;
@@ -381,6 +466,10 @@ class ManageEventArgs {
   final int membersCount;
   final int cardsCount;
   final String role;
+  final String eventDateIso;
+  final String notes;
+  final String? organizationId;
+  final String createdBy;
 
   static ManageEventArgs from(dynamic args) {
     final map = (args as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
@@ -391,6 +480,12 @@ class ManageEventArgs {
       membersCount: (map['membersCount'] as int?) ?? 12,
       cardsCount: (map['cardsCount'] as int?) ?? 143,
       role: (map['role'] ?? '').toString(),
+      eventDateIso:
+          (map['eventDate'] ?? map['event_date'] ?? '').toString(),
+      notes: (map['notes'] ?? '').toString(),
+      organizationId: map['organizationId']?.toString() ??
+          map['organization_id']?.toString(),
+      createdBy: (map['createdBy'] ?? map['created_by'] ?? '').toString(),
     );
   }
 }
@@ -407,6 +502,7 @@ class EventMember {
   const EventMember({
     required this.name,
     required this.email,
+    required this.avatarUrl,
     required this.role,
     required this.status,
     this.joinedAt,
@@ -414,6 +510,7 @@ class EventMember {
 
   final String name;
   final String email;
+  final String? avatarUrl;
   final String role;
   final String? status;
   final String? joinedAt;

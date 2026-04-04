@@ -42,6 +42,7 @@ class HomeEventItem {
   final String? organizationId;
   final int membersCount;
   final String role;
+  final String createdBy;
 
   const HomeEventItem({
     required this.id,
@@ -52,6 +53,7 @@ class HomeEventItem {
     required this.organizationId,
     required this.membersCount,
     required this.role,
+    this.createdBy = '',
   });
 
   factory HomeEventItem.fromJson(Map<String, dynamic> json) {
@@ -66,6 +68,8 @@ class HomeEventItem {
         json['member_count'] ?? json['members_count'] ?? json['membersCount'],
       ),
       role: (json['member_role'] ?? json['event_role'] ?? json['my_role'] ?? json['user_role'] ?? '')
+          .toString(),
+      createdBy: (json['created_by'] ?? json['createdBy'] ?? json['user_id'] ?? '')
           .toString(),
     );
   }

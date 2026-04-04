@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -179,6 +180,126 @@ class ManualEntryView extends GetView<ManualEntryController> {
       suffixIcon: suffixIcon == null
           ? null
           : Icon(suffixIcon, color: AppColors.darkGrey.withValues(alpha: 0.55)),
+    );
+  }
+
+  void _openCountryPicker(BuildContext context, {required bool isPhone1}) {
+    showCountryPicker(
+      context: context,
+      showPhoneCode: true,
+      favorite: const <String>['IN', 'US', 'NZ'],
+      searchAutofocus: false,
+      countryListTheme: CountryListThemeData(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      onSelect: (Country c) {
+        if (isPhone1) {
+          controller.setPhone1Country(c);
+        } else {
+          controller.setPhone2Country(c);
+        }
+      },
+    );
+  }
+
+  Widget _phoneFieldWithCountry({
+    required BuildContext context,
+    required String label,
+    required TextEditingController textController,
+    required String hint,
+    required bool isPhone1,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: AppColors.darkGrey.withValues(alpha: 0.72),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          final iso = isPhone1
+              ? controller.phone1CountryIso.value
+              : controller.phone2CountryIso.value;
+          final country = Country.tryParse(iso) ?? Country.parse('IN');
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _openCountryPicker(context, isPhone1: isPhone1),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F7FB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.darkGrey.withValues(alpha: 0.10),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          country.flagEmoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '+${country.phoneCode}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.darkGrey.withValues(alpha: 0.92),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppColors.darkGrey.withValues(alpha: 0.55),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: CustomTextField(
+                  controller: textController,
+                  hint: hint,
+                  inputType: TextInputType.phone,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  cursorColor: AppColors.darkGrey.withValues(alpha: 0.65),
+                  fillColor: const Color(0xFFF5F7FB),
+                  borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.darkGrey.withValues(alpha: 0.40),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.darkGrey.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
     );
   }
 
@@ -456,6 +577,14 @@ class ManualEntryView extends GetView<ManualEntryController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _cardHeader(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Business card image (optional)',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: AppColors.darkGrey.withValues(alpha: 0.55),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                     const SizedBox(height: 16),
                     _section(
                       context: context,
@@ -508,20 +637,20 @@ class ManualEntryView extends GetView<ManualEntryController> {
                             hint: 'Address',
                           ),
                           const SizedBox(height: 14),
-                          _field(
+                          _phoneFieldWithCountry(
                             context: context,
                             label: 'Mobile',
-                            controller: controller.mobileCtrl,
-                            hint: 'Phone Number 1 ...',
-                            inputType: TextInputType.phone,
+                            textController: controller.mobileCtrl,
+                            hint: 'Phone number',
+                            isPhone1: true,
                           ),
                           const SizedBox(height: 14),
-                          _field(
+                          _phoneFieldWithCountry(
                             context: context,
                             label: 'Phone',
-                            controller: controller.phoneCtrl,
-                            hint: 'Phone number 2',
-                            inputType: TextInputType.phone,
+                            textController: controller.phoneCtrl,
+                            hint: 'Phone number (optional)',
+                            isPhone1: false,
                           ),
                           const SizedBox(height: 14),
                           _field(
