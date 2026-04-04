@@ -72,6 +72,12 @@ class AddContactSheet extends StatelessWidget {
                     title: 'Scan business card',
                     subtitle: 'Instant AI data extraction',
                     onTap: () async {
+                      final homeController = Get.find<HomeController>();
+                      
+                      if (!homeController.canProceedManualEntry) {
+                        await ToastService.error('Your scan quota is full.');
+                        return;
+                      }
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: false);
                       if (images.isNotEmpty) {
@@ -88,6 +94,12 @@ class AddContactSheet extends StatelessWidget {
                     title: 'Scan multiple cards',
                     subtitle: 'Batch process stack of cards',
                     onTap: () async {
+                       final homeController = Get.find<HomeController>();
+                      
+                      if (!homeController.canProceedManualEntry) {
+                        await ToastService.error('Your scan quota is full.');
+                        return;
+                      }
                       Get.back();
                       final images = await DocumentScannerService.scan(allowMultiple: true);
                       if (images.isNotEmpty) {
@@ -111,8 +123,7 @@ class AddContactSheet extends StatelessWidget {
                       }
 
                       final homeController = Get.find<HomeController>();
-                      await homeController.fetchScanQuotaStatus();
-
+                      
                       if (!homeController.canProceedManualEntry) {
                         await ToastService.error('Your scan quota is full.');
                         return;
@@ -138,8 +149,6 @@ class AddContactSheet extends StatelessWidget {
                       }
 
                       final homeController = Get.find<HomeController>();
-                      await homeController.fetchScanQuotaStatus();
-
                       if (homeController.canProceedManualEntry) {
                         Get.back();
                         final created = await Get.toNamed(Routes.manualEntry);

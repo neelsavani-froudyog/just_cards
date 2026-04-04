@@ -39,6 +39,13 @@ class _ScanResultViewState extends State<ScanResultView> {
   bool _isEditing = false;
   bool _isSaving = false;
   bool _isRescanning = false;
+  bool _isLoadingDialogVisible = false;
+  bool _lockOrganization = false;
+  bool _lockEvent = false;
+  String? _lockedOrganizationId;
+  String? _lockedOrganizationName;
+  String? _lockedEventId;
+  String? _lockedEventTitle;
 
   late final ApiService _apiService;
 
@@ -84,6 +91,28 @@ class _ScanResultViewState extends State<ScanResultView> {
     _images = (imagesArg is List)
         ? imagesArg.cast<String>()
         : (payloadImagePath.isNotEmpty ? <String>[payloadImagePath] : const <String>[]);
+    _lockedOrganizationId = args['organizationId']?.toString().trim();
+    _lockedOrganizationName = args['organizationName']?.toString().trim();
+    _lockedEventId = args['eventId']?.toString().trim();
+    _lockedEventTitle = args['eventTitle']?.toString().trim();
+    _lockOrganization = args['lockOrganization'] == true;
+    _lockEvent = args['lockEvent'] == true;
+
+    // Show org immediately when locked and name is provided (before API loads).
+    if (_lockOrganization) {
+      final lockedName = _lockedOrganizationName?.trim() ?? '';
+      if (lockedName.isNotEmpty) {
+        _organizations
+          ..removeWhere((e) => e == lockedName)
+          ..add(lockedName);
+        _selectedOrganization = lockedName;
+        _selectedOrganizationId =
+            (_lockedOrganizationId?.trim().isNotEmpty ?? false)
+                ? _lockedOrganizationId
+                : null;
+        _shareWithOrganization = true;
+      }
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_runOcrForCurrentImage());
@@ -175,15 +204,20 @@ class _ScanResultViewState extends State<ScanResultView> {
     }
   }
 
-  bool _looksLikeBusinessCardText(String text) {
-    final t = text.trim();
-    if (t.isEmpty) return false;
-    final hasEmail = RegExp(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
-        .hasMatch(t);
-    final hasWebsite = RegExp(r'(https?://|www\.)', caseSensitive: false)
-        .hasMatch(t);
-    final hasPhone = RegExp(r'\+?\d[\d\s\-()]{7,}\d').hasMatch(t);
-    return hasEmail || hasWebsite || hasPhone || t.length >= 40;
+  OrganizationOption? _findOrganizationById(String id) {
+    final target = id.trim().toLowerCase();
+    if (target.isEmpty) return null;
+    for (final item in _organizationOptions) {
+      if (item.id.trim().toLowerCase() == target) return item;
+    }
+    return null;
+  }
+
+  HomeEventItem? _findEventById(String id) {
+    for (final item in _eventOptions) {
+      if (item.id.trim() == id) return item;
+    }
+    return null;
   }
 
   Future<void> _runOcrForCurrentImage() async {
@@ -199,6 +233,7 @@ class _ScanResultViewState extends State<ScanResultView> {
 
   Future<void> _parseOcrTextAndFillFields() async {
     if (_rawOcrText.isEmpty) return;
+    await _showLoadingDialog('Parsing card...');
 
     ParseCardService parseService;
     try {
@@ -208,6 +243,7 @@ class _ScanResultViewState extends State<ScanResultView> {
     }
 
     final outcome = await parseService.parseCard(_rawOcrText);
+    await _hideLoadingDialog();
     if (!mounted) return;
     final fields = outcome.fields;
     if (outcome.success && fields != null) {
@@ -281,6 +317,7 @@ class _ScanResultViewState extends State<ScanResultView> {
   }
 
   void _setOrganization(String? v) {
+    if (_lockOrganization) return;
     FocusScope.of(context).unfocus();
     if (v == null) return;
 
@@ -319,6 +356,7 @@ class _ScanResultViewState extends State<ScanResultView> {
   }
 
   void _setEvent(String? v) {
+    if (_lockEvent) return;
     FocusScope.of(context).unfocus();
     if (v == null) return;
     if (!mounted) return;
@@ -373,9 +411,35 @@ class _ScanResultViewState extends State<ScanResultView> {
             _organizations
               ..clear()
               ..addAll(names);
-            _selectedOrganization = _noneOrganization;
-            _selectedOrganizationId = null;
-            _shareWithOrganization = false;
+            if (_lockOrganization) {
+              final lockedId = _lockedOrganizationId?.trim() ?? '';
+              final lockedName = _lockedOrganizationName?.trim() ?? '';
+              final match = lockedId.isEmpty ? null : _findOrganizationById(lockedId);
+              if (match != null) {
+                _selectedOrganization = match.name;
+                _selectedOrganizationId = match.id;
+                _shareWithOrganization = true;
+                unawaited(_fetchEventsByOrganization(match.id));
+              } else if (lockedName.isNotEmpty) {
+                if (!_organizations.contains(lockedName)) {
+                  _organizations.add(lockedName);
+                }
+                _selectedOrganization = lockedName;
+                _selectedOrganizationId = lockedId.isNotEmpty ? lockedId : null;
+                _shareWithOrganization = true;
+                if (lockedId.isNotEmpty) {
+                  unawaited(_fetchEventsByOrganization(lockedId));
+                }
+              } else {
+                _selectedOrganization = _noneOrganization;
+                _selectedOrganizationId = null;
+                _shareWithOrganization = false;
+              }
+            } else {
+              _selectedOrganization = _noneOrganization;
+              _selectedOrganizationId = null;
+              _shareWithOrganization = false;
+            }
           });
         },
         onError: (_) {},
@@ -416,8 +480,25 @@ class _ScanResultViewState extends State<ScanResultView> {
             _events
               ..clear()
               ..addAll(names);
-            _selectedEvent = _noneEvent;
-            _selectedEventId = null;
+            if (_lockEvent &&
+                _lockedEventId != null &&
+                _lockedEventId!.isNotEmpty) {
+              final match = _findEventById(_lockedEventId!);
+              if (match != null) {
+                _selectedEvent = match.title.trim().isEmpty
+                    ? (_lockedEventTitle ?? _noneEvent)
+                    : match.title.trim();
+                _selectedEventId = match.id.trim();
+              } else {
+                _selectedEvent = _lockedEventTitle?.trim().isNotEmpty == true
+                    ? _lockedEventTitle!.trim()
+                    : _noneEvent;
+                _selectedEventId = _lockedEventId;
+              }
+            } else {
+              _selectedEvent = _noneEvent;
+              _selectedEventId = null;
+            }
           });
         },
         onError: (_) {},
@@ -467,8 +548,25 @@ class _ScanResultViewState extends State<ScanResultView> {
             _events
               ..clear()
               ..addAll(names);
-            _selectedEvent = _noneEvent;
-            _selectedEventId = null;
+            if (_lockEvent &&
+                _lockedEventId != null &&
+                _lockedEventId!.isNotEmpty) {
+              final match = _findEventById(_lockedEventId!);
+              if (match != null) {
+                _selectedEvent = match.title.trim().isEmpty
+                    ? (_lockedEventTitle ?? _noneEvent)
+                    : match.title.trim();
+                _selectedEventId = match.id.trim();
+              } else {
+                _selectedEvent = _lockedEventTitle?.trim().isNotEmpty == true
+                    ? _lockedEventTitle!.trim()
+                    : _noneEvent;
+                _selectedEventId = _lockedEventId;
+              }
+            } else {
+              _selectedEvent = _noneEvent;
+              _selectedEventId = null;
+            }
           });
         },
         onError: (_) {},
@@ -485,7 +583,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       hintText: 'Select organization',
       label: 'Add to Organisation',
       showSearchBox: false,
-      enabled: !_isOrganizationsLoading,
+      enabled: !_isOrganizationsLoading && !_lockOrganization,
       itemAsString: (s) => s,
       onChanged: _setOrganization,
       bgColor: const Color(0xFFF5F7FB),
@@ -503,7 +601,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       hintText: 'Select event',
       label: 'Associate with Event',
       showSearchBox: false,
-      enabled: !_isEventsLoading,
+      enabled: !_isEventsLoading && !_lockEvent,
       itemAsString: (s) => s,
       onChanged: _setEvent,
       bgColor: const Color(0xFFF5F7FB),
@@ -640,18 +738,25 @@ class _ScanResultViewState extends State<ScanResultView> {
           ? 'Unnamed contact'
           : '$first $last'.trim();
 
+      final lockedOrgId = _lockedOrganizationId?.trim();
       final orgId = _selectedOrganizationId?.trim();
-      final resolvedOrgId = (_selectedOrganization == _noneOrganization ||
-              orgId == null ||
-              orgId.isEmpty)
-          ? null
-          : orgId;
+      final resolvedOrgId =
+          (_lockOrganization && lockedOrgId != null && lockedOrgId.isNotEmpty)
+              ? lockedOrgId
+              : (_selectedOrganization == _noneOrganization ||
+                      orgId == null ||
+                      orgId.isEmpty)
+                  ? null
+                  : orgId;
 
+      final lockedEventId = _lockedEventId?.trim();
       final eid = _selectedEventId?.trim();
       final resolvedEventId =
-          (_selectedEvent == _noneEvent || eid == null || eid.isEmpty)
-              ? null
-              : eid;
+          (_lockEvent && lockedEventId != null && lockedEventId.isNotEmpty)
+              ? lockedEventId
+              : (_selectedEvent == _noneEvent || eid == null || eid.isEmpty)
+                  ? null
+                  : eid;
 
       final createResult = await contactService.createContact(
         ownerUserId: userId,
@@ -689,10 +794,62 @@ class _ScanResultViewState extends State<ScanResultView> {
       }
       Get.back(result: true, closeOverlays: false);
     } finally {
+      await _hideLoadingDialog();
       if (mounted) {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  Future<void> _showLoadingDialog(String message) async {
+    if (!mounted || _isLoadingDialogVisible) return;
+    _isLoadingDialogVisible = true;
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        contentPadding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.6),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Our AI Magic Capturing!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColors.darkGrey,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.darkGrey.withValues(alpha: 0.60),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      _isLoadingDialogVisible = false;
+    }));
+  }
+
+  Future<void> _hideLoadingDialog() async {
+    if (!mounted || !_isLoadingDialogVisible) return;
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    _isLoadingDialogVisible = false;
   }
 
   Future<void> _rescanCard() async {

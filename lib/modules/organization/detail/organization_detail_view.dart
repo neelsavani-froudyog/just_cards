@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_cards/modules/organization/detail/organization_events_model.dart';
 import 'package:just_cards/core/services/document_scanner_service.dart';
-import 'package:just_cards/core/services/toast_service.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -176,12 +174,20 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                         final images = await DocumentScannerService.scan(
                           allowMultiple: false,
                         );
-                        if (images.isNotEmpty) {
-                          await ToastService.success(
-                            '${images.length} page(s) captured',
-                          );
+                        if (images.isEmpty) return;
+                        final result = await Get.toNamed(
+                          Routes.scanResult,
+                          arguments: <String, dynamic>{
+                            'images': images,
+                            'organizationId': controller.args.organizationId,
+                            'organizationName': controller.args.name,
+                            'lockOrganization': true,
+                          },
+                        );
+                        if (result == true) {
+                          await controller.fetchContacts(reset: true);
+                          await controller.fetchOrganizationEvents();
                         }
-                        Get.back();
                       },
                       child: const Icon(Icons.badge_rounded),
                     );

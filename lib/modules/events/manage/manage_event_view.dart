@@ -1,9 +1,10 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_cards/core/services/document_scanner_service.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/toast_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/custom_search_dropdown.dart';
 import '../../../widgets/custom_text_field.dart';
@@ -239,12 +240,24 @@ class ManageEventView extends GetView<ManageEventController> {
                       final images = await DocumentScannerService.scan(
                         allowMultiple: false,
                       );
-                      if (images.isNotEmpty) {
-                        await ToastService.success(
-                          '${images.length} page(s) captured',
-                        );
+                      if (images.isEmpty) return;
+                      final orgId =
+                          controller.eventOrganizationId.value?.trim() ?? '';
+                          log('orgId: $orgId');
+                      final result = await Get.toNamed(
+                        Routes.scanResult,
+                        arguments: <String, dynamic>{
+                          'images': images,
+                          'eventId': controller.args.eventId,
+                          'eventTitle': controller.eventTitle.value,
+                          'organizationId': orgId.isEmpty ? null : orgId,
+                          'lockEvent': true,
+                          'lockOrganization': orgId.isNotEmpty,
+                        },
+                      );
+                      if (result == true) {
+                        await controller.fetchContacts(reset: true);
                       }
-                      Get.back();
                     },
                     child: const Icon(Icons.badge_rounded),
                   );

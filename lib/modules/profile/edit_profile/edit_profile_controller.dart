@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,6 +20,7 @@ class EditProfileController extends GetxController {
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final avatarUrl = ''.obs;
+  final phoneCountryIso = 'IN'.obs;
 
   final isLoading = false.obs;
   final isSaving = false.obs;
@@ -44,6 +46,55 @@ class EditProfileController extends GetxController {
     super.onClose();
   }
 
+  void setPhoneCountry(Country country) {
+    phoneCountryIso.value = country.countryCode;
+  }
+
+  static String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
+
+  /// Splits E.164 into (country, national). Defaults to IN if unknown.
+  void _applyPhoneFromProfile(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return;
+    if (!trimmed.startsWith('+')) {
+      phoneController.text = trimmed;
+      return;
+    }
+    final digits = _digitsOnly(trimmed);
+    if (digits.isEmpty) return;
+    final service = CountryService();
+    Country? match;
+    var bestLen = 0;
+    for (final c in service.getAll()) {
+      final code = c.phoneCode;
+      if (code.isEmpty) continue;
+      if (digits.startsWith(code) && code.length > bestLen) {
+        match = c;
+        bestLen = code.length;
+      }
+    }
+    if (match != null) {
+      phoneCountryIso.value = match.countryCode;
+      phoneController.text = digits.substring(bestLen);
+    } else {
+      phoneController.text = digits;
+    }
+  }
+
+  /// [nationalRaw] = subscriber number only (no country code). Returns e.g. `+919650456854`.
+  static String composeInternationalPhone(
+    String iso3166alpha2,
+    String nationalRaw,
+  ) {
+    final c = CountryService().findByCode(iso3166alpha2) ??
+        CountryService().findByCode('IN');
+    final pc = (c?.phoneCode ?? '91').trim();
+    final codeDigits = _digitsOnly(pc);
+    final digits = _digitsOnly(nationalRaw);
+    if (digits.isEmpty) return '';
+    return '+$codeDigits$digits';
+  }
+
   Future<void> loadProfile() async {
     if (isLoading.value) return;
     isLoading.value = true;
@@ -61,7 +112,7 @@ class EditProfileController extends GetxController {
 
           fullNameController.text = data.fullName;
           companyNameController.text = (data.companyName ?? '').trim();
-          phoneController.text = (data.phone ?? '').trim();
+          _applyPhoneFromProfile((data.phone ?? '').trim());
           emailController.text = (data.email).trim();
           avatarUrl.value = (data.avatarUrl ?? '').trim();
         },
@@ -96,8 +147,14 @@ class EditProfileController extends GetxController {
   Future<void> save() async {
     if (isSaving.value) return;
 
-    final fullName = fullNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
-    final companyName = companyNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
+    final fullName =
+        fullNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
+    final companyName =
+        companyNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
+    final phone = composeInternationalPhone(
+      phoneCountryIso.value,
+      phoneController.text.trim(),
+    );
 
     if (fullName.length < 2) {
       ToastService.error('Please enter your full name');
@@ -113,9 +170,9 @@ class EditProfileController extends GetxController {
         url: ApiUrl.createProfile,
         data: <String, dynamic>{
           'p_full_name': fullName,
-          'p_phone': phoneController.text.trim(),
-          'p_avatar_url': avatarForSave,
-          'p_company_name': companyName.isEmpty ? null : companyName,
+          'p_phone': phone.trim().isEmpty ? null : phone,
+          'p_avatar_url': avatarForSave.trim().isEmpty ? null : avatarForSave,
+          'p_company_name': companyName.trim().isEmpty ? null : companyName,
         },
         showSuccessToast: true,
         successToastMessage: 'Profile updated',

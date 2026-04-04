@@ -37,6 +37,7 @@ class HomeView extends GetView<HomeController> {
         backgroundColor: AppColors.surface,
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
+            await controller.fetchScanQuotaStatus();
             final result = await Get.bottomSheet(
               const AddContactSheet(),
               isScrollControlled: true,

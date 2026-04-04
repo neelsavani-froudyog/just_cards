@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -216,6 +217,95 @@ class _FormCard extends StatelessWidget {
 
   final EditProfileController controller;
 
+  void _openCountryPicker(BuildContext context) {
+    showCountryPicker(
+      context: context,
+      showPhoneCode: true,
+      favorite: const <String>['IN', 'US', 'NZ'],
+      searchAutofocus: false,
+      countryListTheme: CountryListThemeData(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      onSelect: controller.setPhoneCountry,
+    );
+  }
+
+  Widget _phoneFieldWithCountry(BuildContext context, {required bool enabled}) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Phone',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: AppColors.ink.withValues(alpha: 0.70),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          final iso = controller.phoneCountryIso.value;
+          final country =
+              CountryService().findByCode(iso) ?? CountryService().findByCode('IN');
+          final phoneCode = country?.phoneCode ?? '91';
+          final flag = country?.flagEmoji ?? '🇮🇳';
+          return Row(
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: enabled ? () => _openCountryPicker(context) : null,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldFill.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.ink.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(flag, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 6),
+                        Text(
+                          '+$phoneCode',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.90),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppColors.ink.withValues(alpha: 0.55),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: controller.phoneController,
+                  enabled: enabled,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: _inputDecoration(hintText: 'Enter phone number'),
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -266,16 +356,7 @@ class _FormCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _LabeledField(
-              label: 'Phone',
-              child: TextField(
-                controller: controller.phoneController,
-                enabled: !loading,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                decoration: _inputDecoration(hintText: 'Enter phone number'),
-              ),
-            ),
+            _phoneFieldWithCountry(context, enabled: !loading),
             const SizedBox(height: 12),
             _LabeledField(
               label: 'Email',
