@@ -32,9 +32,7 @@ import '../modules/organization/detail/organization_detail_binding.dart';
 import '../modules/organization/detail/organization_detail_view.dart';
 import '../modules/organization/manage/manage_organization_binding.dart';
 import '../modules/organization/manage/manage_organization_view.dart';
-import '../modules/legal/terms_conditions_view.dart';
-import '../modules/legal/privacy_policy_view.dart';
-import '../modules/legal/support_view.dart';
+import '../modules/legal/legal_markdown_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
 import '../modules/contacts/qr_import/qr_scanner_view.dart';
 import '../modules/contacts/edit_contact/edit_contact_binding.dart';
@@ -121,9 +119,11 @@ class AppPages {
       page: InviteMembersView.new,
       binding: InviteMembersBinding(),
     ),
-    GetPage(name: Routes.termsConditions, page: TermsConditionsView.new),
-    GetPage(name: Routes.privacyPolicy, page: PrivacyPolicyView.new),
-    GetPage(name: Routes.support, page: SupportView.new),
+    GetPage(name: Routes.termsPrivacy, page: LegalMarkdownView.new),
+    GetPage(name: Routes.termsConditions, page: LegalMarkdownView.new),
+    GetPage(name: Routes.privacyPolicy, page: LegalMarkdownView.new),
+    GetPage(name: Routes.support, page: LegalMarkdownView.new),
+    GetPage(name: Routes.aboutUs, page: LegalMarkdownView.new),
     GetPage(
       name: Routes.editProfile,
       page: EditProfileView.new,

@@ -18,7 +18,6 @@ class ManageEventView extends GetView<ManageEventController> {
 
   @override
   Widget build(BuildContext context) {
-    final a = controller.args;
     final theme = Theme.of(context);
 
     return Obx(() {
@@ -168,11 +167,14 @@ class ManageEventView extends GetView<ManageEventController> {
                                           tint: AppColors.primary,
                                         );
                                       }),
-                                      _InfoChip(
-                                        icon: Icons.group_rounded,
-                                        label: '${a.membersCount} Members',
-                                        tint: AppColors.primary,
-                                      ),
+                                      Obx(() {
+                                        final membersCount = controller.members.length;
+                                        return _InfoChip(
+                                          icon: Icons.group_rounded,
+                                          label: '$membersCount Members',
+                                          tint: AppColors.primary,
+                                        );
+                                      }),
                                       Obx(() {
                                         final total =
                                             controller
@@ -566,6 +568,9 @@ class _MembersTabState extends State<_MembersTab> {
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final m = controller.members[index];
+          final status = (m.status ?? '').trim().toLowerCase();
+          final isPendingInvite =
+              status == 'pending' || (m.joinedAt == null && status != 'accepted');
           return _PersonTile(
             title: m.name,
             subtitle1: m.email,
@@ -574,6 +579,10 @@ class _MembersTabState extends State<_MembersTab> {
             status: m.status,
             isMember: true,
             allowActions: controller.canShowInvitesTab,
+            deleteIcon: isPendingInvite
+                ? Icons.undo_rounded
+                : Icons.delete_outline_rounded,
+            deleteTooltip: isPendingInvite ? 'Recall invite' : 'Delete',
             onAdd: () {
               controller.resendInviteForMember(m);
             },
@@ -699,19 +708,29 @@ class _MembersTabState extends State<_MembersTab> {
                 emailController.dispose();
               });
             },
-            onDelete:
-                m.joinedAt == null
-                    ? null
-                    : () {
-                      ConfirmDialog.show(
-                        title: 'Delete member?',
-                        message: 'Remove ${m.email} from event members?',
-                        confirmText: 'Delete',
-                        destructive: true,
-                      ).then((ok) {
-                        if (ok) controller.deleteMember(index);
-                      });
-                    },
+            onDelete: () {
+              if (isPendingInvite) {
+                ConfirmDialog.show(
+                  title: 'Recall invite?',
+                  message: 'Remove pending invite for ${m.email}?',
+                  confirmText: 'Recall',
+                  destructive: true,
+                  icon: Icons.undo_rounded,
+                ).then((ok) {
+                  if (ok) controller.recallInviteForMember(m);
+                });
+                return;
+              }
+
+              ConfirmDialog.show(
+                title: 'Delete member?',
+                message: 'Remove ${m.email} from event members?',
+                confirmText: 'Delete',
+                destructive: true,
+              ).then((ok) {
+                if (ok) controller.deleteMember(index);
+              });
+            },
           );
         },
       );
@@ -987,6 +1006,8 @@ class _PersonTile extends StatelessWidget {
     this.onAdd,
     this.onUpdate,
     this.onDelete,
+    this.deleteIcon = Icons.delete_outline_rounded,
+    this.deleteTooltip = 'Delete',
     this.onTap,
   });
 
@@ -1000,6 +1021,8 @@ class _PersonTile extends StatelessWidget {
   final VoidCallback? onAdd;
   final VoidCallback? onUpdate;
   final VoidCallback? onDelete;
+  final IconData deleteIcon;
+  final String deleteTooltip;
   final VoidCallback? onTap;
 
   @override
@@ -1155,9 +1178,9 @@ class _PersonTile extends StatelessWidget {
                     if (onDelete != null) ...[
                       const SizedBox(width: 6),
                       _ActionButton(
-                        icon: Icons.delete_outline_rounded,
+                        icon: deleteIcon,
                         color: AppColors.danger,
-                        tooltip: 'Delete',
+                        tooltip: deleteTooltip,
                         onTap: onDelete!,
                       ),
                     ],

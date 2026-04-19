@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:just_cards/modules/contacts/qr_import/qr_data_entry/qr_contact_controller.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_routes.dart';
 import 'contact_qr_parser.dart';
@@ -46,6 +47,16 @@ class _QrScannerViewState extends State<QrScannerView> {
       await _controller.stop();
 
       final data = ContactQrParser.parse(raw);
+      if (data.format != 'vcard') {
+        const message = 'This is not a valid contact QR';
+        if (!mounted) return;
+        setState(() => _errorText = message);
+        await ToastService.error(message);
+        await _controller.start();
+        _busy = false;
+        return;
+      }
+
       final args = <String, dynamic>{
         ...data.toMap(),
         '__appBarTitle': 'Contact from QR',

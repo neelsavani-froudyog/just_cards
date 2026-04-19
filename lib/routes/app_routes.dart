@@ -23,6 +23,7 @@ abstract class Routes {
   static const termsConditions = _Paths.termsConditions;
   static const privacyPolicy = _Paths.privacyPolicy;
   static const support = _Paths.support;
+  static const aboutUs = _Paths.aboutUs;
   static const editProfile = _Paths.editProfile;
   static const scanResult = _Paths.scanResult;
   static const qrScanner = _Paths.qrScanner;
@@ -53,6 +54,7 @@ abstract class _Paths {
   static const termsConditions = '/termsConditions';
   static const privacyPolicy = '/privacyPolicy';
   static const support = '/support';
+  static const aboutUs = '/aboutUs';
   static const editProfile = '/editProfile';
   static const scanResult = '/scanResult';
   static const qrScanner = '/qrScanner';

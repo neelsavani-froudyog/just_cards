@@ -28,6 +28,8 @@ class HomeController extends GetxController {
   final scansLeftCount = 0.obs;
   final isScanQuotaLoading = false.obs;
   final scanQuota = Rxn<ScanQuotaStatusItem>();
+  final unreadNotificationsCount = 0.obs;
+  final isNotificationsCountLoading = false.obs;
 
   final contacts = <HomeContact>[].obs;
   final isContactsLoading = false.obs;
@@ -37,6 +39,7 @@ class HomeController extends GetxController {
   final contactsTotal = 0.obs;
   final contactsLimit = 20.obs;
   final contactsOffset = 0.obs;
+  final isQuickAddSheetFlowInProgress = false.obs;
 
   @override
   void onInit() {
@@ -51,7 +54,44 @@ class HomeController extends GetxController {
       fetchContacts(reset: true),
       fetchScanQuotaStatus(),
       fetchMyContactsTotalCount(),
+      fetchUnreadNotificationsCount(),
     ]);
+  }
+
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.parse(value?.toString() ?? '');
+  }
+
+  Future<void> fetchUnreadNotificationsCount() async {
+    if (isNotificationsCountLoading.value) return;
+    isNotificationsCountLoading.value = true;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.notifications,
+        data: <String, dynamic>{
+          'status': 'pending',
+          'search': '',
+          'limit': 1,
+          'offset': 0,
+        },
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) return;
+          final data = raw['data'];
+          if (data is! Map<String, dynamic>) return;
+          final counts = data['counts'];
+          if (counts is! Map<String, dynamic>) return;
+          unreadNotificationsCount.value = _toInt(counts['pending']);
+        },
+        onError: (_) {},
+      );
+    } finally {
+      isNotificationsCountLoading.value = false;
+    }
   }
 
   Future<void> fetchMyContactsTotalCount() async {

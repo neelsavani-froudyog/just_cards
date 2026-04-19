@@ -44,6 +44,8 @@ class ApiUrl {
   static const String scanQuotaStatus = '/scan-quota/status';
   static const String parseCard = '/scan-quota/parse-card';
   static const String eventsInvites = '/events/invites';
+  /// Recall / notify for a pending event invite batch (body: `invite_batch_id`).
+  static const String eventInvitesNotify = '/events/invites/notify';
   static const String eventsMembers = '/events/members';
   static const String eventsOrganization = '/events/organization';
 

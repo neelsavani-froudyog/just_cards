@@ -313,16 +313,44 @@ class ManageEventController extends GetxController {
     );
   }
 
+  Future<void> recallInviteForMember(EventMember member) async {
+    if (isInviting.value) return;
+
+    final batchId = member.inviteBatchId?.trim() ?? '';
+    if (batchId.isEmpty) {
+      ToastService.error('Invite batch ID is missing');
+      return;
+    }
+
+    isInviting.value = true;
+    try {
+      await _apiService.postRequest(
+        url: ApiUrl.eventInvitesNotify,
+        data: <String, dynamic>{'invite_batch_id': batchId},
+        showSuccessToast: true,
+        successToastMessage: 'Invite recalled',
+        showErrorToast: true,
+        onSuccess: (_) => fetchMembers(),
+        onError: (_) {},
+      );
+    } finally {
+      isInviting.value = false;
+    }
+  }
+
   void updateMemberRole(int index, String inviteRole) {
     if (index < 0 || index >= members.length) return;
     final existing = members[index];
     final nextRole = _memberRoleFromInviteRole(inviteRole);
     members[index] = EventMember(
+      id: existing.id,
       name: existing.name,
       email: existing.email,
       avatarUrl: existing.avatarUrl,
       role: nextRole,
       status: existing.status,
+      inviteId: existing.inviteId,
+      inviteBatchId: existing.inviteBatchId,
       joinedAt: existing.joinedAt,
     );
   }
@@ -359,11 +387,18 @@ class ManageEventController extends GetxController {
             parsed.data
                 .map(
                   (m) => EventMember(
+                    id: m.id,
                     name: m.fullName.isNotEmpty ? m.fullName : 'Unknown',
                     email: m.email,
                     avatarUrl: m.avatarUrl?.trim(),
                     role: _normalizeRole(m.role),
                     status: m.status,
+                    inviteId: m.inviteId?.trim().isEmpty == true
+                        ? null
+                        : m.inviteId?.trim(),
+                    inviteBatchId: m.inviteBatchId?.trim().isEmpty == true
+                        ? null
+                        : m.inviteBatchId?.trim(),
                     joinedAt: m.joinedAt?.trim().isEmpty == true ? null : m.joinedAt,
                   ),
                 )
@@ -500,19 +535,25 @@ class EventPerson {
 
 class EventMember {
   const EventMember({
+    required this.id,
     required this.name,
     required this.email,
     required this.avatarUrl,
     required this.role,
     required this.status,
+    this.inviteId,
+    this.inviteBatchId,
     this.joinedAt,
   });
 
+  final String id;
   final String name;
   final String email;
   final String? avatarUrl;
   final String role;
   final String? status;
+  final String? inviteId;
+  final String? inviteBatchId;
   final String? joinedAt;
 }
 

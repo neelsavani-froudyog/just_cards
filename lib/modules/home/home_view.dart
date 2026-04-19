@@ -16,6 +16,31 @@ import 'widgets/add_contact_sheet.dart';
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
+  Future<void> _openQuickAddSheet() async {
+    if (controller.isQuickAddSheetFlowInProgress.value ||
+        (Get.isBottomSheetOpen ?? false)) {
+      return;
+    }
+
+    controller.isQuickAddSheetFlowInProgress.value = true;
+    try {
+      await controller.fetchScanQuotaStatus();
+
+      if (Get.isBottomSheetOpen ?? false) return;
+
+      final result = await Get.bottomSheet(
+        const AddContactSheet(),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+      );
+      if (result == true) {
+        await controller.refreshAllData();
+      }
+    } finally {
+      controller.isQuickAddSheetFlowInProgress.value = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final greeting = controller.greeting();
@@ -36,17 +61,7 @@ class HomeView extends GetView<HomeController> {
       child: Scaffold(
         backgroundColor: AppColors.surface,
         floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            await controller.fetchScanQuotaStatus();
-            final result = await Get.bottomSheet(
-              const AddContactSheet(),
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-            );
-            if (result == true) {
-              await controller.refreshAllData();
-            }
-          },
+          onPressed: _openQuickAddSheet,
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           elevation: 10,
@@ -93,11 +108,14 @@ class HomeView extends GetView<HomeController> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Get.toNamed(Routes.notifications),
-                      icon: const Icon(Icons.notifications_none_rounded),
-                      color: AppColors.ink,
-                      tooltip: 'Notifications',
+                    Obx(
+                      () => _NotificationBellButton(
+                        count: controller.unreadNotificationsCount.value,
+                        onTap: () async {
+                          await Get.toNamed(Routes.notifications);
+                          await controller.fetchUnreadNotificationsCount();
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -199,11 +217,11 @@ class HomeView extends GetView<HomeController> {
                   }
                   if (controller.events.isEmpty) {
                     return SizedBox(
-                      height: 118,
+                      height: 132,
                       child: Padding(
                         padding: const EdgeInsets.only(left: 18),
                         child: Container(
-                          padding: const EdgeInsets.only(left: 25),
+                          padding: const EdgeInsets.fromLTRB(18, 10, 12, 10),
                           decoration: BoxDecoration(
                             color: AppColors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -252,12 +270,35 @@ class HomeView extends GetView<HomeController> {
                                     Text(
                                       controller.eventsErrorText.value ??
                                           'Create your first event to get started.',
-                                      maxLines: 2,
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: AppColors.ink.withValues(alpha: 0.60),
                                             fontWeight: FontWeight.w600,
                                           ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: FilledButton.tonalIcon(
+                                        onPressed: _openQuickAddSheet,
+                                        icon: const Icon(Icons.add_rounded, size: 16),
+                                        label: const Text('Add'),
+                                        style: FilledButton.styleFrom(
+                                          visualDensity: VisualDensity.compact,
+                                          foregroundColor: AppColors.primary,
+                                          backgroundColor: AppColors.primary.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -412,6 +453,23 @@ class HomeView extends GetView<HomeController> {
                                       fontWeight: FontWeight.w600,
                                     ),
                               ),
+                              const SizedBox(height: 14),
+                              FilledButton.icon(
+                                onPressed: _openQuickAddSheet,
+                                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                                label: const Text('Add Contact'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -472,6 +530,87 @@ class _SearchBar extends StatelessWidget {
       filled: true,
       fillColor: AppColors.surface,
       borderColor: AppColors.ink.withValues(alpha: 0.2),
+    );
+  }
+}
+
+class _NotificationBellButton extends StatelessWidget {
+  const _NotificationBellButton({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeText = count > 99 ? '99+' : count.toString();
+    final isSingleDigit = badgeText.length == 1;
+    return Tooltip(
+      message: 'Notifications',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Ink(
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.95),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ink.withValues(alpha: 0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Center(
+                  child: Icon(
+                    Icons.notifications_none_rounded,
+                    color: AppColors.ink.withValues(alpha: 0.90),
+                    size: 24,
+                  ),
+                ),
+                if (count > 0)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      height: 18,
+                      constraints: BoxConstraints(
+                        minWidth: isSingleDigit ? 18 : 22,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSingleDigit ? 0 : 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger,
+                        borderRadius: BorderRadius.circular(9999),
+                        border: Border.all(color: AppColors.white, width: 1.2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        badgeText,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          ),
+        ),
+      ),
     );
   }
 }

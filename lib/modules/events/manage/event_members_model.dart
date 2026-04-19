@@ -35,6 +35,8 @@ class EventMemberItem {
   final String? avatarUrl;
   final String role;
   final String? status;
+  final String? inviteId;
+  final String? inviteBatchId;
   final String? invitedBy;
   final String? joinedAt;
 
@@ -46,6 +48,8 @@ class EventMemberItem {
     required this.avatarUrl,
     required this.role,
     required this.status,
+    required this.inviteId,
+    required this.inviteBatchId,
     required this.invitedBy,
     required this.joinedAt,
   });
@@ -59,8 +63,28 @@ class EventMemberItem {
       avatarUrl: json['avatar_url']?.toString(),
       role: (json['role'] ?? 'viewer').toString(),
       status: json['status']?.toString(),
+      inviteId: json['invite_id']?.toString(),
+      inviteBatchId: _firstString(
+        json,
+        const <String>[
+          'invite_batch_id',
+          'inviteBatchId',
+          'batch_id',
+          'invite_batch',
+        ],
+      ),
       invitedBy: json['invited_by']?.toString(),
       joinedAt: json['joined_at']?.toString(),
     );
+  }
+
+  static String? _firstString(Map<String, dynamic> json, List<String> keys) {
+    for (final k in keys) {
+      final v = json[k];
+      if (v == null) continue;
+      final s = v.toString().trim();
+      if (s.isNotEmpty) return s;
+    }
+    return null;
   }
 }

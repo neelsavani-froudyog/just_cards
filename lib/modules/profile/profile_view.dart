@@ -103,6 +103,11 @@ class ProfileView extends GetView<ProfileController> {
                     onTap: () => Get.toNamed(Routes.privacyPolicy),
                   ),
                   _SettingTile(
+                    icon: Icons.info_outline_rounded,
+                    title: 'About Us',
+                    onTap: () => Get.toNamed(Routes.aboutUs),
+                  ),
+                  _SettingTile(
                     icon: Icons.logout_rounded,
                     title: 'Logout',
                     danger: true,

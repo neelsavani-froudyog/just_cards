@@ -89,10 +89,21 @@ class ApiService extends GetxService {
 
   String _extractErrorMessage(dynamic decodedBody) {
     if (decodedBody is Map) {
-      final dynamic message = decodedBody['message'] ?? decodedBody['error'];
-      return (message?.toString().isNotEmpty ?? false)
-          ? message.toString()
-          : 'Request failed';
+      final dynamic data = decodedBody['data'];
+      final List<dynamic> candidates = <dynamic>[
+         data is Map ? data['error'] : null,
+        data is Map ? data['message'] : null,
+        decodedBody['error'],
+        decodedBody['message'],
+      ];
+
+      for (final candidate in candidates) {
+        final text = candidate?.toString().trim();
+        if (text != null && text.isNotEmpty) {
+          return text;
+        }
+      }
+      return 'Request failed';
     }
     return decodedBody?.toString() ?? 'Request failed';
   }
@@ -180,9 +191,7 @@ class ApiService extends GetxService {
       if (decodedBody is Map) {
         final dynamic statusCode = decodedBody['statusCode'];
         if (statusCode != null && statusCode.toString() != '200') {
-          final message = decodedBody['message']?.toString() ??
-              decodedBody['error']?.toString() ??
-              'Request failed';
+          final message = _extractErrorMessage(decodedBody);
           _logError(method: 'POST', endpoint: uri.toString(), message: message);
           if (showErrorToast) {
             await ToastService.error(message);
@@ -192,9 +201,7 @@ class ApiService extends GetxService {
         }
         final dynamic success = decodedBody['success'];
         if (success is bool && success == false) {
-          final message = decodedBody['error']?.toString() ??
-              decodedBody['message']?.toString() ??
-              'Request failed';
+          final message = _extractErrorMessage(decodedBody);
           _logError(method: 'POST', endpoint: uri.toString(), message: message);
           if (showErrorToast) {
             await ToastService.error(message);
