@@ -7,6 +7,7 @@ import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/create_contact_service.dart';
 import '../../../core/services/toast_service.dart';
+import '../../home/home_controller.dart';
 import 'event_members_model.dart';
 import 'event_contacts_model.dart';
 
@@ -465,6 +466,7 @@ class ManageEventController extends GetxController {
     if (eventId.isEmpty) return;
 
     isDeletingEvent.value = true;
+    var deleted = false;
     try {
       await _apiService.deleteRequest(
         url: ApiUrl.events,
@@ -472,9 +474,15 @@ class ManageEventController extends GetxController {
         showSuccessToast: true,
         successToastMessage: 'Event deleted',
         showErrorToast: true,
-        onSuccess: (_) => Get.back(result: 'event_deleted'),
+        onSuccess: (_) => deleted = true,
         onError: (_) {},
       );
+      if (deleted) {
+        if (Get.isRegistered<HomeController>()) {
+          await Get.find<HomeController>().refreshAllData();
+        }
+        Get.back(result: 'event_deleted');
+      }
     } finally {
       isDeletingEvent.value = false;
     }
