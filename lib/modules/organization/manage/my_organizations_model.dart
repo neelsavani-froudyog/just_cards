@@ -45,6 +45,7 @@ class MyOrganizationsResponse {
 class OrganizationSummary {
   final String id;
   final String name;
+  final String type;
   final String? industry;
   final String? createdBy;
   final String role;
@@ -55,6 +56,7 @@ class OrganizationSummary {
   const OrganizationSummary({
     required this.id,
     required this.name,
+    required this.type,
     required this.industry,
     required this.createdBy,
     required this.role,
@@ -67,6 +69,7 @@ class OrganizationSummary {
     return OrganizationSummary(
       id: (json['id'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
+      type: (json['type'] ?? '').toString(),
       industry: json['industry']?.toString(),
       createdBy: json['created_by']?.toString(),
       role: (json['member_role'] ?? json['my_role'] ?? json['user_role'] ?? '').toString(),

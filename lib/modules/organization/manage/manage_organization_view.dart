@@ -100,24 +100,37 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
           );
         }
 
+        final ownedOrganizations = controller.organizations
+            .where((org) => _isOwner(org))
+            .toList(growable: false);
+        final memberOrganizations = controller.organizations
+            .where((org) => !_isOwner(org))
+            .toList(growable: false);
+
         return RefreshIndicator(
           onRefresh: controller.fetchOrganizations,
-          child: ListView.separated(
+          child: ListView(
             controller: controller.scrollController,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            itemCount: controller.organizations.length +
-                (controller.isFetchingMore.value ? 1 : 0),
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              if (index >= controller.organizations.length) {
-                return const Padding(
+            children: [
+              if (ownedOrganizations.isNotEmpty) ...[
+                for (final org in ownedOrganizations) ...[
+                  _OrganizationCard(org: org),
+                  const SizedBox(height: 12),
+                ],
+              ],
+              if (memberOrganizations.isNotEmpty) ...[
+                for (final org in memberOrganizations) ...[
+                  _OrganizationCard(org: org),
+                  const SizedBox(height: 12),
+                ],
+              ],
+              if (controller.isFetchingMore.value)
+                const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final org = controller.organizations[index];
-              return _OrganizationCard(org: org);
-            },
+                ),
+            ],
           ),
         );
       }),
@@ -192,6 +205,10 @@ class _OrganizationCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                   ),
+                  if (!_isOwner(org)) ...[
+                    const SizedBox(height: 8),
+                    const _RoleBadge(label: 'Shared'),
+                  ],
                 ],
               ),
             ),
@@ -215,6 +232,56 @@ class _OrganizationCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+bool _isOwner(OrganizationSummary org) {
+  final normalizedType = org.type.trim().toLowerCase();
+  if (normalizedType.isNotEmpty) {
+    return normalizedType == 'owner';
+  }
+  return org.role.trim().toLowerCase() == 'owner';
+}
+
+class _OrganizationSectionHeader extends StatelessWidget {
+  const _OrganizationSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: AppColors.ink.withValues(alpha: 0.7),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+    );
+  }
+}
+
+class _RoleBadge extends StatelessWidget {
+  const _RoleBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
       ),
     );
   }
