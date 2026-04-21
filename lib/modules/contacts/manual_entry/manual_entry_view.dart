@@ -229,6 +229,7 @@ class ManualEntryView extends GetView<ManualEntryController> {
               ? controller.phone1CountryIso.value
               : controller.phone2CountryIso.value;
           final country = Country.tryParse(iso) ?? Country.parse('IN');
+          final isIndiaCode = country.phoneCode == '91';
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -279,6 +280,7 @@ class ManualEntryView extends GetView<ManualEntryController> {
                   controller: textController,
                   hint: hint,
                   inputType: TextInputType.phone,
+                  maxLength: isIndiaCode ? 10 : null,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 12,

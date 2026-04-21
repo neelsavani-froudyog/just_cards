@@ -167,22 +167,6 @@ class _QrScannerViewState extends State<QrScannerView> {
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
-                if (_errorText != null) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _errorText!,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -67,6 +68,8 @@ class QrContactController extends GetxController {
   final suggestedTags = <String>['Priority', 'VIP', 'Prospect'].obs;
 
   final shareWithOrganization = false.obs;
+  final phone1CountryIso = 'IN'.obs;
+  final phone2CountryIso = 'IN'.obs;
 
   /// Replace with real IDs from your events API when available.
   static const Map<String, String> _eventIdByLabel = <String, String>{
@@ -76,6 +79,26 @@ class QrContactController extends GetxController {
     'Smart Tech': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
     'Other': '0495f860-b490-4901-bf65-4ea7ad7f1b97',
   };
+
+  void setPhone1Country(Country country) {
+    phone1CountryIso.value = country.countryCode;
+  }
+
+  void setPhone2Country(Country country) {
+    phone2CountryIso.value = country.countryCode;
+  }
+
+  static String composeInternationalPhone(
+    String iso3166alpha2,
+    String nationalRaw,
+  ) {
+    final c = Country.tryParse(iso3166alpha2);
+    final pc = (c?.phoneCode ?? '91').trim();
+    final codeDigits = pc.replaceAll(RegExp(r'\D'), '');
+    final digits = nationalRaw.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '';
+    return '+$codeDigits$digits';
+  }
 
   @override
   void onInit() {
@@ -376,8 +399,15 @@ class QrContactController extends GetxController {
     final website = websiteCtrl.text.trim();
     final email1 = primaryEmailCtrl.text.trim();
     final email2 = secondaryEmailCtrl.text.trim();
-    final phone1 = mobileCtrl.text.trim();
-    final phone2 = phoneCtrl.text.trim();
+    final national1 = mobileCtrl.text.trim();
+    final national2 = phoneCtrl.text.trim();
+    final phone1 = composeInternationalPhone(
+      phone1CountryIso.value,
+      national1,
+    );
+    final phone2 = national2.isEmpty
+        ? ''
+        : composeInternationalPhone(phone2CountryIso.value, national2);
     final address = addressCtrl.text.trim();
 
     if (first.isEmpty) {
@@ -400,7 +430,7 @@ class QrContactController extends GetxController {
       ToastService.error('Please enter a valid email address');
       return;
     }
-    if (phone1.isEmpty) {
+    if (phone1.isEmpty || national1.replaceAll(RegExp(r'\D'), '').isEmpty) {
       ToastService.error('Mobile number is required');
       return;
     }
