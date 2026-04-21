@@ -3,33 +3,36 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 class ToastService {
   static Future<void> success(String message) {
-    return Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
+    return _show(
+      message: message,
       backgroundColor: Colors.green.shade700,
-      textColor: Colors.white,
-      fontSize: 14,
     );
   }
 
   static Future<void> info(String message) {
-    return Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
+    return _show(
+      message: message,
       backgroundColor: Colors.blueGrey.shade700,
-      textColor: Colors.white,
-      fontSize: 14,
     );
   }
 
   static Future<void> error(String message) {
-    return Fluttertoast.showToast(
+    return _show(
+      message: message,
+      backgroundColor: Colors.red.shade700,
+    );
+  }
+
+  static Future<void> _show({
+    required String message,
+    required Color backgroundColor,
+  }) async {
+    await Fluttertoast.cancel();
+    await Fluttertoast.showToast(
       msg: message,
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: backgroundColor,
       textColor: Colors.white,
       fontSize: 14,
     );

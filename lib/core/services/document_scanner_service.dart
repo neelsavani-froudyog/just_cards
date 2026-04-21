@@ -1,13 +1,11 @@
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 
-import 'toast_service.dart';
-
 class DocumentScannerService {
   const DocumentScannerService._();
 
   static Future<List<String>> scan({required bool allowMultiple}) async {
     final options = DocumentScannerOptions(
-      documentFormats: {DocumentFormat.jpeg},
+      documentFormat: DocumentFormat.jpeg,
       mode: ScannerMode.full,
       pageLimit: allowMultiple ? 20 : 1,
       isGalleryImport: true,
