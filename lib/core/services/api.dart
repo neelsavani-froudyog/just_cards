@@ -32,6 +32,8 @@ class ApiUrl {
       '/organizations/invites/respond';
   static const String eventsInvitesRespond = '/events/invites/respond';
   static const String notifications = '/notifications';
+  /// Body: `{ "p_notification_id": "<uuid>" }`.
+  static const String notificationsSeen = '/notifications/seen';
   /// `POST` create event.
   ///
   /// `PATCH` update (same path), body e.g.:
@@ -57,8 +59,11 @@ class ApiUrl {
   /// POST create, PATCH update (`p_contact_id` + fields), DELETE (`p_contact_id`).
   static const String contacts = '/contacts';
   static const String contactsByEvent = '/contacts/by-event';
+  static const String contactsByEventExport = '/contacts/by-event/export';
   static const String contactsByEventTotalCount = '/contacts/by-event/total-count';
   static const String contactsByOrganization = '/contacts/by-organization';
+  static const String contactsByOrganizationExport =
+      '/contacts/by-organization/export';
   static const String myContacts = '/contacts/my';
   static const String myContactsTotalCount = '/contacts/my/total-count';
   static const String contactDetail = '/contacts/detail';

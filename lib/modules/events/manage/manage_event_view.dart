@@ -44,7 +44,8 @@ class ManageEventView extends GetView<ManageEventController> {
                   onPressed: () => Get.back(),
                 ),
                 title: const Text('Manage Event'),
-                actions: canShowEventOwnerActions
+                actions: (canShowEventOwnerActions ||
+                            controller.canShowDownloadContactsAction)
                           ? [
                             PopupMenuButton<String>(
                               icon: Icon(
@@ -55,7 +56,9 @@ class ManageEventView extends GetView<ManageEventController> {
                               ),
                               color: AppColors.lightHubSurface,
                               onSelected: (value) {
-                                if (value == 'edit') {
+                                if (value == 'download_contacts') {
+                                  controller.exportEventContactsCsvGuarded();
+                                } else if (value == 'edit') {
                                   Get.toNamed(
                                     Routes.editEvent,
                                     arguments: <String, dynamic>{
@@ -86,26 +89,39 @@ class ManageEventView extends GetView<ManageEventController> {
                               },
                               itemBuilder:
                                   (context) => [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text(
-                                        'Edit Event',
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: AppColors.lightHubInk,
-                                            ),
+                                    if (controller.canShowDownloadContactsAction)
+                                      PopupMenuItem(
+                                        value: 'download_contacts',
+                                        child: Text(
+                                          'Download Contacts',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
                                       ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(
-                                        'Delete Event',
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: AppColors.lightHubInk,
-                                            ),
+                                    if (canShowEventOwnerActions)
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text(
+                                          'Edit Event',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
                                       ),
-                                    ),
+                                    if (canShowEventOwnerActions)
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text(
+                                          'Delete Event',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
+                                      ),
                                   ],
                             ),
                           ]
@@ -236,6 +252,7 @@ class ManageEventView extends GetView<ManageEventController> {
                     return const SizedBox.shrink();
                   }
                   return FloatingActionButton(
+                    heroTag: 'manage_event_scan_fab',
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,
                     onPressed: () async {
@@ -316,22 +333,32 @@ class _ContactsTab extends StatelessWidget {
       final items = controller.contacts;
 
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-            child: CustomTextField(
-              hint: 'Search...',
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: AppColors.ink.withValues(alpha: 0.55),
-              ),
-              borderRadius: 12,
-              filled: true,
-              fillColor: AppColors.white,
-              borderColor: AppColors.ink.withValues(alpha: 0.10),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              onChanged: controller.setSearch,
-            ),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+            child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CustomTextField(
+                      hint: 'Search...',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: AppColors.ink.withValues(alpha: 0.55),
+                      ),
+                      borderRadius: 12,
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FB),
+                      borderColor: AppColors.ink.withValues(alpha: 0.10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      onChanged: controller.setSearch,
+                    ),
+                    
+                  ],
+                ),
           ),
           if (isLoading)
             const Expanded(child: ManageEventContactsShimmerView())
@@ -495,246 +522,302 @@ class _MembersTabState extends State<_MembersTab> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
-    return Obx(() {
-      if (controller.isMembersLoading.value) {
-        return const ManageEventMembersShimmerView();
-      }
-      if (controller.members.isEmpty) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.10),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.group_off_rounded,
-                      color: AppColors.primary,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No members found',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    controller.membersErrorText.value ??
-                        'Members will appear here once users join this event.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.ink.withValues(alpha: 0.60),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton.tonal(
-                    onPressed: controller.fetchMembers,
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text('Refresh'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
-        itemCount: controller.members.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final m = controller.members[index];
-          final status = (m.status ?? '').trim().toLowerCase();
-          final isPendingInvite =
-              status == 'pending' || (m.joinedAt == null && status != 'accepted');
-          return _PersonTile(
-            title: m.name,
-            subtitle1: m.email,
-            subtitle2: m.role,
-            avatarUrl: m.avatarUrl,
-            status: m.status,
-            isMember: true,
-            allowActions: controller.canShowInvitesTab,
-            deleteIcon: isPendingInvite
-                ? Icons.undo_rounded
-                : Icons.delete_outline_rounded,
-            deleteTooltip: isPendingInvite ? 'Recall invite' : 'Delete',
-            onAdd: () {
-              controller.resendInviteForMember(m);
-            },
-            onUpdate: () {
-              final memberRole = m.role.toLowerCase();
-              String selected =
-                  memberRole.contains('admin')
-                      ? 'Admin'
-                      : memberRole.contains('editor')
-                      ? 'Editor'
-                      : 'Viewer';
-
-              final nameController = TextEditingController(text: m.name);
-              final emailController = TextEditingController(text: m.email);
-
-              Get.dialog<void>(
-                AlertDialog(
-                  title: const Text('Update Member'),
-                  content: StatefulBuilder(
-                    builder: (context, setState) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Name',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: nameController,
-                            hint: 'Name',
-                            readOnly: true,
-                            enabled: false,
-                            borderRadius: 12,
-                            filled: true,
-                            fillColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Email',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: emailController,
-                            hint: 'Email',
-                            readOnly: true,
-                            enabled: false,
-                            borderRadius: 12,
-                            filled: true,
-                            fillColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Assign Role',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomSearchDropdown<String>(
-                            items: controller.roles,
-                            selectedItem: selected,
-                            hintText: 'Select role',
-                            showSearchBox: false,
-                            itemAsString: (s) => s,
-                            onChanged: (v) {
-                              if (v == null) return;
-                              setState(() => selected = v);
-                            },
-                            bgColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            borderRadius: 12,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 4,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        controller.updateMemberRole(index, selected);
-                        Get.back();
-                      },
-                      child: const Text('Update'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(height: 12),
+        Expanded(
+          child: Obx(() {
+            Future<void> onRefresh() => controller.fetchMembers();
+            if (controller.isMembersLoading.value) {
+              return RefreshIndicator(
+                onRefresh: onRefresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(
+                      height: 500,
+                      child: ManageEventMembersShimmerView(),
                     ),
                   ],
                 ),
-              ).whenComplete(() {
-                nameController.dispose();
-                emailController.dispose();
-              });
-            },
-            onDelete: () {
-              if (isPendingInvite) {
-                ConfirmDialog.show(
-                  title: 'Recall invite?',
-                  message: 'Remove pending invite for ${m.email}?',
-                  confirmText: 'Recall',
-                  destructive: true,
-                  icon: Icons.undo_rounded,
-                ).then((ok) {
-                  if (ok) controller.recallInviteForMember(m);
-                });
-                return;
-              }
+              );
+            }
+            if (controller.members.isEmpty) {
+              return RefreshIndicator(
+                onRefresh: onRefresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: 500,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.group_off_rounded,
+                                    color: AppColors.primary,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No members found',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  controller.membersErrorText.value ??
+                                      'Members will appear here once users join this event.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.ink.withValues(alpha: 0.60),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton.tonal(
+                                  onPressed: controller.fetchMembers,
+                                  style: FilledButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    backgroundColor: AppColors.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text('Refresh'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: onRefresh,
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                itemCount: controller.members.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final m = controller.members[index];
+                  final status = (m.status ?? '').trim().toLowerCase();
+                  final isPendingInvite =
+                      status == 'pending' ||
+                      (m.joinedAt == null && status != 'accepted');
+                  return _PersonTile(
+                    title: m.name,
+                    subtitle1: m.email,
+                    subtitle2: m.role,
+                    avatarUrl: m.avatarUrl,
+                    status: m.status,
+                    isMember: true,
+                    allowActions: controller.canShowInvitesTab,
+                    deleteIcon: isPendingInvite
+                        ? Icons.undo_rounded
+                        : Icons.delete_outline_rounded,
+                    deleteTooltip: isPendingInvite ? 'Recall invite' : 'Delete',
+                    onAdd: () {
+                      controller.resendInviteForMember(m);
+                    },
+                    onUpdate: () {
+                      final memberRole = m.role.toLowerCase();
+                      String selected =
+                          memberRole.contains('admin')
+                              ? 'Admin'
+                              : memberRole.contains('editor')
+                              ? 'Editor'
+                              : 'Viewer';
 
-              ConfirmDialog.show(
-                title: 'Delete member?',
-                message: 'Remove ${m.email} from event members?',
-                confirmText: 'Delete',
-                destructive: true,
-              ).then((ok) {
-                if (ok) controller.deleteMember(index);
-              });
-            },
-          );
-        },
-      );
-    });
+                      final nameController = TextEditingController(text: m.name);
+                      final emailController = TextEditingController(
+                        text: m.email,
+                      );
+
+                      Get.dialog<void>(
+                        AlertDialog(
+                          title: const Text('Update Member'),
+                          content: StatefulBuilder(
+                            builder: (context, setState) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Name',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge?.copyWith(
+                                      color: AppColors.ink.withValues(
+                                        alpha: 0.70,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  CustomTextField(
+                                    controller: nameController,
+                                    hint: 'Name',
+                                    readOnly: true,
+                                    enabled: false,
+                                    borderRadius: 12,
+                                    filled: true,
+                                    fillColor: AppColors.white,
+                                    borderColor: AppColors.ink.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'Email',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge?.copyWith(
+                                      color: AppColors.ink.withValues(
+                                        alpha: 0.70,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  CustomTextField(
+                                    controller: emailController,
+                                    hint: 'Email',
+                                    readOnly: true,
+                                    enabled: false,
+                                    borderRadius: 12,
+                                    filled: true,
+                                    fillColor: AppColors.white,
+                                    borderColor: AppColors.ink.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'Assign Role',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge?.copyWith(
+                                      color: AppColors.ink.withValues(
+                                        alpha: 0.70,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  CustomSearchDropdown<String>(
+                                    items: controller.roles,
+                                    selectedItem: selected,
+                                    hintText: 'Select role',
+                                    showSearchBox: false,
+                                    itemAsString: (s) => s,
+                                    onChanged: (v) {
+                                      if (v == null) return;
+                                      setState(() => selected = v);
+                                    },
+                                    bgColor: AppColors.white,
+                                    borderColor: AppColors.ink.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                    borderRadius: 12,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 4,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                controller.updateMemberRole(index, selected);
+                                Get.back();
+                              },
+                              child: const Text('Update'),
+                            ),
+                          ],
+                        ),
+                      ).whenComplete(() {
+                        nameController.dispose();
+                        emailController.dispose();
+                      });
+                    },
+                    onDelete: () {
+                      if (isPendingInvite) {
+                        ConfirmDialog.show(
+                          title: 'Recall invite?',
+                          message: 'Remove pending invite for ${m.email}?',
+                          confirmText: 'Recall',
+                          destructive: true,
+                          icon: Icons.undo_rounded,
+                        ).then((ok) {
+                          if (ok) controller.recallInviteForMember(m);
+                        });
+                        return;
+                      }
+
+                      ConfirmDialog.show(
+                        title: 'Delete member?',
+                        message: 'Remove ${m.email} from event members?',
+                        confirmText: 'Delete',
+                        destructive: true,
+                      ).then((ok) {
+                        if (ok) controller.deleteMember(index);
+                      });
+                    },
+                  );
+                },
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 }
 
@@ -1187,6 +1270,7 @@ class _PersonTile extends StatelessWidget {
                   ],
                 )
               else
+              if (!isMember)
                 Icon(
                   Icons.chevron_right_rounded,
                   color: AppColors.ink.withValues(alpha: 0.35),

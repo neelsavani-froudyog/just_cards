@@ -42,6 +42,7 @@ class HomeEventItem {
   final String? organizationId;
   final int membersCount;
   final String role;
+  final String type;
   final String createdBy;
 
   const HomeEventItem({
@@ -53,6 +54,7 @@ class HomeEventItem {
     required this.organizationId,
     required this.membersCount,
     required this.role,
+    required this.type,
     this.createdBy = '',
   });
 
@@ -69,6 +71,7 @@ class HomeEventItem {
       ),
       role: (json['member_role'] ?? json['event_role'] ?? json['my_role'] ?? json['user_role'] ?? '')
           .toString(),
+      type: (json['type'] ?? '').toString(),
       createdBy: (json['created_by'] ?? json['createdBy'] ?? json['user_id'] ?? '')
           .toString(),
     );

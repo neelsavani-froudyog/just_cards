@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/auth_session_service.dart';
 import '../../../core/services/create_contact_service.dart';
+import '../../../core/services/http_sender_io.dart';
 import '../../../core/services/toast_service.dart';
+import '../../../core/utils/contacts_csv_export.dart';
+import '../../../routes/app_routes.dart';
 import '../../home/home_controller.dart';
 import 'event_members_model.dart';
 import 'event_contacts_model.dart';
@@ -37,6 +42,8 @@ class ManageEventController extends GetxController {
   // Cards count (total contacts in this event)
   final eventCardsTotalCount = RxnInt();
   final isEventCardsTotalLoading = false.obs;
+  final isExportingContacts = false.obs;
+  final isExportingMembers = false.obs;
 
   Timer? _contactsSearchDebounce;
 
@@ -87,12 +94,17 @@ class ManageEventController extends GetxController {
     }
   }
 
-  /// Edit / delete menu: only when event creator matches logged-in user.
+  /// Edit/delete actions visibility based on event type and member role.
   bool get canShowEventOwnerActions {
-    final creator = args.createdBy.trim();
-    final me = currentUserId.value?.trim() ?? '';
-    if (creator.isEmpty || me.isEmpty) return false;
-    return creator == me;
+    final type = args.type.trim().toLowerCase();
+    final memberRole = args.memberRole.trim().toLowerCase();
+    print('type: $type, memberRole: $memberRole');
+
+    if (type == 'owner') return true;
+    if (type == 'member') {
+      return memberRole == 'owner' || memberRole == 'admin';
+    }
+    return false;
   }
 
   @override
@@ -247,6 +259,94 @@ class ManageEventController extends GetxController {
     }
   }
 
+  /// Exports event contacts: tries `POST /contacts/by-event/export`, then
+  /// falls back to `POST /contacts/by-event` + client-built CSV if needed.
+  Future<void> exportEventContactsCsvGuarded() async {
+    if (isExportingContacts.value) return;
+    if (contacts.isEmpty) {
+      ToastService.info('No contacts to export');
+      return;
+    }
+    await exportEventContactsCsv();
+  }
+
+  /// Exports event contacts as XLSX using `/contacts/by-event/export`,
+  /// then falls back to `/contacts/by-event` if needed.
+  Future<void> exportEventContactsCsv() async {
+    if (isExportingContacts.value) return;
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty) return;
+
+    isExportingContacts.value = true;
+    try {
+      final session = Get.find<AuthSessionService>();
+      final token = session.accessToken.value.trim();
+      if (token.isEmpty) {
+        ToastService.error('Not signed in');
+        return;
+      }
+
+      final eventStem = sanitizeCsvExportStem(
+        eventTitle.value,
+        fallback: 'event',
+      );
+      final defaultFileName = '${eventStem}_contacts.xlsx';
+
+      ParsedContactsExport parsed =
+          const ParsedContactsExport(errorMessage: 'Export failed');
+      try {
+        final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+        final uri = Uri.parse('$base${ApiUrl.contactsByEventExport}');
+
+        final response = await sendHttpRequest(
+          method: 'POST',
+          uri: uri,
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept':
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/json, text/csv, */*',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode(<String, String>{'p_event_id': eventId}),
+        );
+
+        if (response.statusCode == 401) {
+          session.clear();
+          Get.offAllNamed(Routes.login);
+          return;
+        }
+
+        parsed = parseContactsExportHttpResponse(
+          statusCode: response.statusCode,
+          bodyText: response.bodyText,
+          headers: response.headers,
+        );
+      } catch (_) {
+        parsed = const ParsedContactsExport(
+          errorMessage: 'Export request failed',
+        );
+      }
+
+      if (!parsed.isSuccess) {
+        ToastService.error(parsed.errorMessage ?? 'Could not export contacts');
+        return;
+      }
+
+      final rows = contacts.toList();
+      if (rows.isEmpty) {
+        ToastService.info('No contacts to export');
+        return;
+      }
+      await saveContactsXlsxToDevice(
+        bytes: buildEventContactsXlsxBytes(rows),
+        fileName: defaultFileName,
+      );
+    } catch (_) {
+      ToastService.error('Could not export contacts');
+    } finally {
+      isExportingContacts.value = false;
+    }
+  }
   Future<void> _sendInvitesRequest(List<SentInvite> invites) async {
     if (isInviting.value) return;
     if (invites.isEmpty) {
@@ -442,6 +542,21 @@ class ManageEventController extends GetxController {
     return role != 'editor' && role != 'viewer' && role != 'admin';
   }
 
+  bool get canShowDownloadContactsAction {
+    final type = args.type.trim().toLowerCase();
+    final memberRole = args.memberRole.trim().toLowerCase();
+    final role = currentUserRole.value.trim().toLowerCase();
+
+    if (type == 'owner') return true;
+    if (type == 'member') {
+      return memberRole == 'owner' || memberRole == 'editor' || memberRole == 'admin';
+    }
+
+    // Backward-compatible fallback for older route payloads.
+    if (role == 'owner') return true;
+    return role == 'editor' || role == 'admin';
+  }
+
   void applyEventEditResult(dynamic result) {
     if (result is! Map) return;
     final t = result['title']?.toString().trim();
@@ -497,6 +612,8 @@ class ManageEventArgs {
     required this.membersCount,
     required this.cardsCount,
     required this.role,
+    this.type = '',
+    this.memberRole = '',
     this.eventDateIso = '',
     this.notes = '',
     this.organizationId,
@@ -509,6 +626,8 @@ class ManageEventArgs {
   final int membersCount;
   final int cardsCount;
   final String role;
+  final String type;
+  final String memberRole;
   final String eventDateIso;
   final String notes;
   final String? organizationId;
@@ -523,6 +642,9 @@ class ManageEventArgs {
       membersCount: (map['membersCount'] as int?) ?? 12,
       cardsCount: (map['cardsCount'] as int?) ?? 143,
       role: (map['role'] ?? '').toString(),
+      type: (map['type'] ?? '').toString(),
+      memberRole:
+          (map['member_role'] ?? map['memberRole'] ?? '').toString(),
       eventDateIso:
           (map['eventDate'] ?? map['event_date'] ?? '').toString(),
       notes: (map['notes'] ?? '').toString(),

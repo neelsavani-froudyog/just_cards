@@ -114,6 +114,42 @@ class AppNotificationItem {
     required this.organizationName,
   });
 
+  AppNotificationItem copyWith({
+    String? id,
+    String? role,
+    String? title,
+    bool? isSeen,
+    String? message,
+    NotificationPayload? payload,
+    String? entityId,
+    String? createdAt,
+    String? actionType,
+    String? entityType,
+    String? actionStatus,
+    String? invitedByName,
+    bool? requiresAction,
+    String? notificationType,
+    String? organizationName,
+  }) {
+    return AppNotificationItem(
+      id: id ?? this.id,
+      role: role ?? this.role,
+      title: title ?? this.title,
+      isSeen: isSeen ?? this.isSeen,
+      message: message ?? this.message,
+      payload: payload ?? this.payload,
+      entityId: entityId ?? this.entityId,
+      createdAt: createdAt ?? this.createdAt,
+      actionType: actionType ?? this.actionType,
+      entityType: entityType ?? this.entityType,
+      actionStatus: actionStatus ?? this.actionStatus,
+      invitedByName: invitedByName ?? this.invitedByName,
+      requiresAction: requiresAction ?? this.requiresAction,
+      notificationType: notificationType ?? this.notificationType,
+      organizationName: organizationName ?? this.organizationName,
+    );
+  }
+
   factory AppNotificationItem.fromJson(Map<String, dynamic> json) {
 
     return AppNotificationItem(
@@ -128,7 +164,7 @@ class AppNotificationItem {
             : <String, dynamic>{},
       ),
       entityId: (json['entity_id'] ?? '').toString(),
-      createdAt: json['created_at'],
+      createdAt: (json['created_at'] ?? '').toString(),
       actionType: (json['action_type'] ?? '').toString(),
       entityType: (json['entity_type'] ?? '').toString(),
       actionStatus: (json['action_status'] ?? '').toString(),

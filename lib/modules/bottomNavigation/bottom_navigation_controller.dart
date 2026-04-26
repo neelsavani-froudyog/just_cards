@@ -8,10 +8,19 @@ class BottomNavigationController extends GetxController {
   Future<void> onSelect(int index) async {
     selectedIndex.value = index;
 
-    if (index != 0 || !Get.isRegistered<HomeController>()) {
+    if (!Get.isRegistered<HomeController>()) {
       return;
     }
 
-    await Get.find<HomeController>().refreshAllData();
+    final homeController = Get.find<HomeController>();
+
+    if (index == 0) {
+      await homeController.refreshAllData();
+      return;
+    }
+
+    if (index == 1) {
+      await homeController.refreshContactsData();
+    }
   }
 }

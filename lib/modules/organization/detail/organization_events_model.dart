@@ -34,6 +34,9 @@ class OrganizationEvent {
     required this.eventDate,
     required this.locationText,
     required this.contactCount,
+    required this.memberCount,
+    required this.type,
+    required this.memberRole,
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
@@ -44,21 +47,41 @@ class OrganizationEvent {
   final String eventDate; // backend: yyyy-MM-dd
   final String locationText;
   final int contactCount;
+  final int memberCount;
+  final String type;
+  final String memberRole;
   final String createdAt;
   final String updatedAt;
   final String createdBy;
 
   factory OrganizationEvent.fromJson(Map<String, dynamic> json) {
     return OrganizationEvent(
-      eventId: json['event_id']?.toString() ?? '',
-      eventName: json['event_name']?.toString() ?? '',
+      eventId: (json['event_id'] ?? json['id'] ?? '').toString(),
+      eventName: (json['event_name'] ?? json['name'] ?? '').toString(),
       eventDate: json['event_date']?.toString() ?? '',
       locationText: json['location_text']?.toString() ?? '',
       contactCount: (json['contact_count'] as num?)?.toInt() ?? 0,
+      memberCount: _toInt(
+        json['member_count'] ?? json['members_count'] ?? json['membersCount'],
+      ),
+      type: (json['type'] ?? '').toString(),
+      memberRole:
+          (json['member_role'] ??
+                  json['event_role'] ??
+                  json['my_role'] ??
+                  json['user_role'] ??
+                  '')
+              .toString(),
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
       createdBy: json['created_by']?.toString() ?? '',
     );
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
 

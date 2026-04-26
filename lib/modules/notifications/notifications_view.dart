@@ -304,6 +304,10 @@ class _NotificationCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () async {
+          final notificationsController = Get.find<NotificationsController>();
+          if (!item.isSeen && item.id.isNotEmpty) {
+            await notificationsController.markNotificationSeen(item.id);
+          }
           final shouldRefresh = await Get.toNamed(
             isEventInvite ? Routes.joinEvent : Routes.joinOrganization,
             arguments: isEventInvite
@@ -324,7 +328,7 @@ class _NotificationCard extends StatelessWidget {
                   },
           );
           if (shouldRefresh == true) {
-            Get.find<NotificationsController>().fetchNotifications(reset: true);
+            notificationsController.fetchNotifications(reset: true);
           }
         },
         child: Ink(

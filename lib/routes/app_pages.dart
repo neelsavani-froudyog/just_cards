@@ -14,6 +14,7 @@ import '../modules/contacts/details/contact_details_binding.dart';
 import '../modules/contacts/details/contact_details_view.dart';
 import '../modules/events/edit/edit_event_binding.dart';
 import '../modules/events/edit/edit_event_view.dart';
+import '../modules/events/all_events/all_events_view.dart';
 import '../modules/events/manage/manage_event_binding.dart';
 import '../modules/events/manage/manage_event_view.dart';
 import '../modules/events/join/join_event_binding.dart';
@@ -89,6 +90,7 @@ class AppPages {
       page: ManageEventView.new,
       binding: ManageEventBinding(),
     ),
+    GetPage(name: Routes.allEvents, page: AllEventsView.new),
     GetPage(
       name: Routes.editEvent,
       page: EditEventView.new,

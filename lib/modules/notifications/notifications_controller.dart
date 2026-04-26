@@ -125,5 +125,24 @@ class NotificationsController extends GetxController {
   }
 
   Future<void> loadMore() => fetchNotifications(reset: false);
+
+  /// Marks a notification as seen on the server (`POST /notifications/seen`).
+  Future<void> markNotificationSeen(String notificationId) async {
+    if (notificationId.isEmpty) return;
+
+    await _apiService.postRequest(
+      url: ApiUrl.notificationsSeen,
+      data: <String, dynamic>{'p_notification_id': notificationId},
+      showSuccessToast: false,
+      showErrorToast: false,
+      onSuccess: (_) {
+        final idx = notifications.indexWhere((n) => n.id == notificationId);
+        if (idx >= 0) {
+          notifications[idx] = notifications[idx].copyWith(isSeen: true);
+        }
+      },
+      onError: (_) {},
+    );
+  }
 }
 

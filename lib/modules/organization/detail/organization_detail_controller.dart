@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/api.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/auth_session_service.dart';
+import '../../../core/services/http_sender_io.dart';
+import '../../../core/utils/contacts_csv_export.dart';
+import '../../../routes/app_routes.dart';
 import '../../events/manage/manage_event_controller.dart' show SentInvite;
 import '../../../core/services/toast_service.dart';
 import 'organization_events_model.dart';
@@ -17,6 +22,7 @@ class OrganizationDetailArgs {
     required this.organizationId,
     required this.name,
     required this.role,
+    this.type = '',
     this.industry,
     this.isActive = true,
     this.initialTab = 0,
@@ -25,21 +31,24 @@ class OrganizationDetailArgs {
   final String organizationId;
   final String name;
   final String role;
+  final String type;
   final String? industry;
   final bool isActive;
   final int initialTab;
 
   factory OrganizationDetailArgs.from(dynamic arguments) {
-    final map = (arguments as Map?)?.cast<String, dynamic>() ??
+    final map =
+        (arguments as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
     final dynamic tabRaw = map['initialTab'];
-    final tab = tabRaw is int
-        ? tabRaw
-        : int.tryParse(tabRaw?.toString() ?? '') ?? 0;
+    final tab =
+        tabRaw is int ? tabRaw : int.tryParse(tabRaw?.toString() ?? '') ?? 0;
     return OrganizationDetailArgs(
-      organizationId: map['organizationId']?.toString() ?? '',
+      organizationId:
+          (map['organizationId'] ?? map['organization_id'] ?? '').toString(),
       name: map['name']?.toString() ?? 'Organization',
-      role: map['role']?.toString() ?? '',
+      role: (map['role'] ?? map['member_role'] ?? '').toString(),
+      type: (map['type'] ?? map['organization_type'] ?? '').toString(),
       industry: map['industry']?.toString(),
       isActive: map['isActive'] == true,
       initialTab: tab.clamp(0, 2),
@@ -79,6 +88,7 @@ class OrganizationDetailController extends GetxController {
   final contactsTotal = 0.obs;
   final contactsLimit = 10.obs;
   final contactsOffset = 0.obs;
+  final isExportingContacts = false.obs;
   Timer? _contactsSearchDebounce;
 
   final members = <OrganizationMemberItem>[].obs;
@@ -101,9 +111,8 @@ class OrganizationDetailController extends GetxController {
     args = OrganizationDetailArgs.from(Get.arguments);
     currentUserRole.value = args.role.trim().toLowerCase();
     selectedTabIndex.value = args.initialTab;
-    organizationDisplayName.value = args.name.trim().isEmpty
-        ? 'Organization'
-        : args.name.trim();
+    organizationDisplayName.value =
+        args.name.trim().isEmpty ? 'Organization' : args.name.trim();
     _apiService = Get.find<ApiService>();
     fetchMembers();
     fetchOrganizationEvents();
@@ -193,7 +202,10 @@ class OrganizationDetailController extends GetxController {
           'p_organization_id': orgId,
           'p_limit': contactsLimit.value,
           'p_offset': contactsOffset.value,
-          'p_search': searchQuery.value.trim().isEmpty ? null : searchQuery.value.trim(),
+          'p_search':
+              searchQuery.value.trim().isEmpty
+                  ? null
+                  : searchQuery.value.trim(),
         },
         showSuccessToast: false,
         showErrorToast: false,
@@ -205,9 +217,10 @@ class OrganizationDetailController extends GetxController {
           }
           final parsed = OrganizationContactsResponse.fromJson(raw);
           if (!parsed.ok) {
-            contactsErrorText.value = parsed.message.isNotEmpty
-                ? parsed.message
-                : 'Failed to load contacts';
+            contactsErrorText.value =
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load contacts';
             return;
           }
 
@@ -227,9 +240,144 @@ class OrganizationDetailController extends GetxController {
     }
   }
 
+  /// Exports org contacts: `POST /contacts/by-organization/export`, then
+  /// falls back to `POST /contacts/by-organization` + client CSV (same as event flow).
+  Future<void> exportOrganizationContactsCsv() async {
+    if (isExportingContacts.value) return;
+    final orgId = args.organizationId.trim();
+    if (orgId.isEmpty) {
+      ToastService.error('Organization id is missing');
+      return;
+    }
 
-  void toggleEventsExpanded() =>
-      eventsExpanded.value = !eventsExpanded.value;
+    isExportingContacts.value = true;
+    try {
+      final session = Get.find<AuthSessionService>();
+      final token = session.accessToken.value.trim();
+      if (token.isEmpty) {
+        ToastService.error('Not signed in');
+        return;
+      }
+
+      final orgNameForFile =
+          organizationDisplayName.value.trim().isNotEmpty
+              ? organizationDisplayName.value
+              : args.name;
+      final orgStem = sanitizeCsvExportStem(
+        orgNameForFile,
+        fallback: 'organization',
+      );
+      final defaultFileName = '${orgStem}_contacts.xlsx';
+
+      ParsedContactsExport parsed = const ParsedContactsExport(
+        errorMessage: 'Export failed',
+      );
+      try {
+        final base = ApiUrl.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+        final uri = Uri.parse('$base${ApiUrl.contactsByOrganizationExport}');
+
+        final response = await sendHttpRequest(
+          method: 'POST',
+          uri: uri,
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept':
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/json, text/csv, */*',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode(<String, String>{'p_organization_id': orgId}),
+        );
+
+        if (response.statusCode == 401) {
+          session.clear();
+          Get.offAllNamed(Routes.login);
+          return;
+        }
+
+        parsed = parseContactsExportHttpResponse(
+          statusCode: response.statusCode,
+          bodyText: response.bodyText,
+          headers: response.headers,
+        );
+      } catch (_) {
+        parsed = const ParsedContactsExport(
+          errorMessage: 'Export request failed',
+        );
+      }
+
+      if (parsed.isSuccess) {
+        final rows = await _fetchAllOrganizationContactsForExport();
+        if (rows == null) {
+          ToastService.error(
+            parsed.errorMessage ?? 'Could not export contacts',
+          );
+          return;
+        }
+        if (rows.isEmpty) {
+          ToastService.info('No contacts to export');
+          return;
+        }
+        await saveContactsXlsxToDevice(
+          bytes: buildOrganizationContactsXlsxBytes(rows),
+          fileName: defaultFileName,
+        );
+        return;
+      }
+
+      final rows = await _fetchAllOrganizationContactsForExport();
+      if (rows == null) {
+        ToastService.error(parsed.errorMessage ?? 'Could not export contacts');
+        return;
+      }
+      if (rows.isEmpty) {
+        ToastService.info('No contacts to export');
+        return;
+      }
+      await saveContactsXlsxToDevice(
+        bytes: buildOrganizationContactsXlsxBytes(rows),
+        fileName: defaultFileName,
+      );
+    } catch (_) {
+      ToastService.error('Could not export contacts');
+    } finally {
+      isExportingContacts.value = false;
+    }
+  }
+
+  Future<List<OrganizationContactItem>?>
+  _fetchAllOrganizationContactsForExport() async {
+    final orgId = args.organizationId.trim();
+    if (orgId.isEmpty) return null;
+
+    List<OrganizationContactItem>? rows;
+    await _apiService.postRequest(
+      url: ApiUrl.contactsByOrganization,
+      data: <String, dynamic>{
+        'p_organization_id': orgId,
+        'p_limit': 10000,
+        'p_offset': 0,
+        'p_search':
+            searchQuery.value.trim().isEmpty ? null : searchQuery.value.trim(),
+      },
+      showSuccessToast: false,
+      showErrorToast: false,
+      onSuccess: (payload) {
+        final raw = payload['response'];
+        if (raw is! Map<String, dynamic>) {
+          rows = null;
+          return;
+        }
+        final p = OrganizationContactsResponse.fromJson(raw);
+        rows = p.ok ? p.data : null;
+      },
+      onError: (_) {
+        rows = null;
+      },
+    );
+    return rows;
+  }
+
+  void toggleEventsExpanded() => eventsExpanded.value = !eventsExpanded.value;
 
   void setInviteRole(String? v) {
     if (v == null) return;
@@ -258,7 +406,9 @@ class OrganizationDetailController extends GetxController {
           final parsed = OrganizationMembersResponse.fromJson(raw);
           if (!parsed.ok) {
             membersErrorText.value =
-                parsed.message.isNotEmpty ? parsed.message : 'Failed to load members';
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load members';
             return;
           }
 
@@ -266,7 +416,9 @@ class OrganizationDetailController extends GetxController {
         },
         onError: (message) {
           membersErrorText.value =
-              (message?.isNotEmpty ?? false) ? message! : 'Failed to load members';
+              (message?.isNotEmpty ?? false)
+                  ? message!
+                  : 'Failed to load members';
         },
       );
     } finally {
@@ -297,7 +449,9 @@ class OrganizationDetailController extends GetxController {
           final parsed = OrganizationEventsResponse.fromJson(raw);
           if (!parsed.ok) {
             eventsErrorText.value =
-                parsed.message.isNotEmpty ? parsed.message : 'Failed to load events';
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load events';
             orgEvents.clear();
             return;
           }
@@ -306,7 +460,9 @@ class OrganizationDetailController extends GetxController {
         },
         onError: (message) {
           eventsErrorText.value =
-              (message?.isNotEmpty ?? false) ? message! : 'Failed to load events';
+              (message?.isNotEmpty ?? false)
+                  ? message!
+                  : 'Failed to load events';
           orgEvents.clear();
         },
       );
@@ -342,7 +498,8 @@ class OrganizationDetailController extends GetxController {
             <String, dynamic>{
               'email': member.email,
               'role': _apiRoleFromBackendRole(member.role),
-              'invited_user_id': member.userId.isNotEmpty ? member.userId : null,
+              'invited_user_id':
+                  member.userId.isNotEmpty ? member.userId : null,
             },
           ],
         },
@@ -435,21 +592,25 @@ class OrganizationDetailController extends GetxController {
 
     isInviting.value = true;
     try {
-      final users = sentInvites
-          .map(
-            (invite) => <String, dynamic>{
-              'email': invite.email,
-              'role': invite.role.toLowerCase(),
-              'invited_user_id': null,
-            },
-          )
-          .toList();
+      final users =
+          sentInvites
+              .map(
+                (invite) => <String, dynamic>{
+                  'email': invite.email,
+                  'role': invite.role.toLowerCase(),
+                  'invited_user_id': null,
+                },
+              )
+              .toList();
 
       await _apiService.postRequest(
         url: ApiUrl.organizationsInvites,
         data: <String, dynamic>{
           'organization_id': orgId,
-          'note': inviteMessageController.text.isNotEmpty ? inviteMessageController.text.trim() : null,
+          'note':
+              inviteMessageController.text.isNotEmpty
+                  ? inviteMessageController.text.trim()
+                  : null,
           'users': users,
         },
         showSuccessToast: true,
@@ -483,6 +644,18 @@ class OrganizationDetailController extends GetxController {
     return role != 'editor' && role != 'viewer' && role != 'admin';
   }
 
+  bool get canShowDownloadContactsAction {
+    final type = args.type.trim().toLowerCase();
+    final memberRole = args.role.trim().toLowerCase();
+    print('type: $type, memberRole: $memberRole');
+
+    if (type == 'owner') return true;
+    if (type == 'member') {
+      return memberRole == 'owner' || memberRole == 'admin';
+    }
+    return false;
+  }
+
   // Contacts are fetched server-side with `p_search`.
 
   Future<void> updateMemberRole(int index, String selected) async {
@@ -496,18 +669,17 @@ class OrganizationDetailController extends GetxController {
     }
 
     final v = selected.toLowerCase().trim();
-    final apiRole = v.contains('admin')
-        ? 'admin'
-        : v.contains('editor')
+    final apiRole =
+        v.contains('admin')
+            ? 'admin'
+            : v.contains('editor')
             ? 'editor'
             : 'viewer';
 
     await _apiService.patchRequest(
       url: ApiUrl.organizationsInvitesRole,
       queryParameters: <String, dynamic>{'id': inviteId},
-      data: <String, dynamic>{
-        'role': apiRole,
-      },
+      data: <String, dynamic>{'role': apiRole},
       showSuccessToast: true,
       successToastMessage: 'Role updated',
       showErrorToast: true,

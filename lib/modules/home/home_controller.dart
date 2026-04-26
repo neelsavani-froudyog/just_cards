@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../core/services/api.dart';
 import '../../core/services/api_service.dart';
+import '../notifications/notifications_model.dart';
 import 'home_contacts_model.dart';
 import 'home_events_model.dart';
 import 'scan_quota_status_model.dart';
@@ -12,14 +13,21 @@ class HomeController extends GetxController {
   final selectedFilter = 0.obs;
   final searchQuery = ''.obs;
 
-  final filters = const ['All', 'Today', 'Yesterday', 'Last 7 days', 'Last 30 days'];
+  final filters = const [
+    'All',
+    'Today',
+    'Yesterday',
+    'Last 7 days',
+    'Last 30 days',
+  ];
 
-  final overview = <HomeOverviewStat>[
-    const HomeOverviewStat('Contacts', '--'),
-    const HomeOverviewStat('Scans', '--'),
-    const HomeOverviewStat('Events', '--'),
-    const HomeOverviewStat('Scans Left', '--'),
-  ].obs;
+  final overview =
+      <HomeOverviewStat>[
+        const HomeOverviewStat('Contacts', '--'),
+        const HomeOverviewStat('Scans', '--'),
+        const HomeOverviewStat('Events', '--'),
+        const HomeOverviewStat('Scans Left', '--'),
+      ].obs;
 
   final events = <HomeMiniEvent>[].obs;
   final isEventsLoading = false.obs;
@@ -40,12 +48,25 @@ class HomeController extends GetxController {
   final contactsLimit = 20.obs;
   final contactsOffset = 0.obs;
   final isQuickAddSheetFlowInProgress = false.obs;
+  int _contactsRequestVersion = 0;
+  Worker? _contactsSearchWorker;
 
   @override
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
+    _contactsSearchWorker = debounce<String>(
+      searchQuery,
+      (_) => fetchContacts(reset: true),
+      time: const Duration(milliseconds: 350),
+    );
     refreshAllData();
+  }
+
+  @override
+  void onClose() {
+    _contactsSearchWorker?.dispose();
+    super.onClose();
   }
 
   Future<void> refreshAllData() async {
@@ -58,37 +79,66 @@ class HomeController extends GetxController {
     ]);
   }
 
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.parse(value?.toString() ?? '');
+  Future<void> refreshContactsData() async {
+    await Future.wait(<Future<void>>[
+      fetchContacts(reset: true),
+      fetchMyContactsTotalCount(),
+      fetchScanQuotaStatus(),
+    ]);
   }
 
+  /// Badge count = notifications with `is_seen == false` (not invite "pending" totals).
   Future<void> fetchUnreadNotificationsCount() async {
     if (isNotificationsCountLoading.value) return;
     isNotificationsCountLoading.value = true;
     try {
-      await _apiService.postRequest(
-        url: ApiUrl.notifications,
-        data: <String, dynamic>{
-          'status': 'pending',
-          'search': '',
-          'limit': 1,
-          'offset': 0,
-        },
-        showSuccessToast: false,
-        showErrorToast: false,
-        onSuccess: (payload) {
-          final raw = payload['response'];
-          if (raw is! Map<String, dynamic>) return;
-          final data = raw['data'];
-          if (data is! Map<String, dynamic>) return;
-          final counts = data['counts'];
-          if (counts is! Map<String, dynamic>) return;
-          unreadNotificationsCount.value = _toInt(counts['pending']);
-        },
-        onError: (_) {},
-      );
+      var unseenTotal = 0;
+      var offset = 0;
+      const limit = 80;
+      const maxPages = 25;
+
+      for (var pageIdx = 0; pageIdx < maxPages; pageIdx++) {
+        var pageItems = <AppNotificationItem>[];
+        var failed = false;
+
+        await _apiService.postRequest(
+          url: ApiUrl.notifications,
+          data: <String, dynamic>{
+            'status': 'pending',
+            'search': '',
+            'limit': limit,
+            'offset': offset,
+          },
+          showSuccessToast: false,
+          showErrorToast: false,
+          onSuccess: (payload) {
+            try {
+              final raw = payload['response'];
+              if (raw is Map<String, dynamic>) {
+                pageItems =
+                    NotificationsResponse.fromJson(raw).data.notifications;
+              }
+            } catch (_) {
+              failed = true;
+            }
+          },
+          onError: (_) => failed = true,
+        );
+
+        if (failed) {
+          if (pageIdx == 0) return;
+          break;
+        }
+
+        if (pageItems.isEmpty) break;
+
+        unseenTotal += pageItems.where((n) => !n.isSeen).length;
+
+        if (pageItems.length < limit) break;
+        offset += limit;
+      }
+
+      unreadNotificationsCount.value = unseenTotal;
     } finally {
       isNotificationsCountLoading.value = false;
     }
@@ -148,26 +198,39 @@ class HomeController extends GetxController {
   }
 
   Future<void> fetchContacts({required bool reset}) async {
-    if (isContactsLoading.value) return;
+    final requestVersion = ++_contactsRequestVersion;
     isContactsLoading.value = true;
     contactsErrorText.value = null;
 
     if (reset) {
       contactsOffset.value = 0;
+      contactsTotal.value = 0;
       contacts.clear();
     }
+
+    final selectedFilterIndex = selectedFilter.value;
+    final requestOffset = contactsOffset.value;
+    final requestLimit = contactsLimit.value;
 
     try {
       await _apiService.postRequest(
         url: ApiUrl.myContacts,
         data: <String, dynamic>{
-          'p_filter': _apiFilterFromIndex(selectedFilter.value),
-          'p_limit': contactsLimit.value,
-          'p_offset': contactsOffset.value,
+          'p_filter': _apiFilterFromIndex(selectedFilterIndex),
+          'p_limit': requestLimit,
+          'p_offset': requestOffset,
+          'p_search':
+              searchQuery.value.trim().isEmpty
+                  ? null
+                  : searchQuery.value.trim(),
         },
         showSuccessToast: false,
         showErrorToast: false,
         onSuccess: (payload) {
+          if (requestVersion != _contactsRequestVersion) {
+            return;
+          }
+
           final raw = payload['response'];
           if (raw is! Map<String, dynamic>) {
             contactsErrorText.value = 'Invalid contacts response';
@@ -176,9 +239,10 @@ class HomeController extends GetxController {
 
           final parsed = HomeContactsResponse.fromJson(raw);
           if (!parsed.ok) {
-            contactsErrorText.value = parsed.message.isNotEmpty
-                ? parsed.message
-                : 'Failed to load contacts';
+            contactsErrorText.value =
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load contacts';
             return;
           }
 
@@ -187,30 +251,38 @@ class HomeController extends GetxController {
                 .map(
                   (c) => HomeContact(
                     id: c.id,
-                    name: c.fullName.trim().isNotEmpty
-                        ? c.fullName.trim()
-                        : '${c.firstName} ${c.lastName}'.trim(),
-                    email: c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1,
-                    company: c.companyName.trim().isNotEmpty
-                        ? c.companyName.trim()
-                        : c.designation.trim(),
+                    name:
+                        c.fullName.trim().isNotEmpty
+                            ? c.fullName.trim()
+                            : '${c.firstName} ${c.lastName}'.trim(),
+                    email:
+                        c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1,
+                    company:
+                        c.companyName.trim().isNotEmpty
+                            ? c.companyName.trim()
+                            : c.designation.trim(),
                   ),
                 )
                 .toList(),
           );
 
           contactsTotal.value = parsed.total;
-          contactsLimit.value = parsed.limit == 0 ? contactsLimit.value : parsed.limit;
+          contactsLimit.value = parsed.limit == 0 ? requestLimit : parsed.limit;
           contactsOffset.value = parsed.offset;
         },
         onError: (message) {
+          if (requestVersion != _contactsRequestVersion) {
+            return;
+          }
           contactsErrorText.value =
               message.isNotEmpty ? message : 'Failed to load contacts';
         },
       );
     } finally {
-      isContactsLoading.value = false;
-      _syncOverview();
+      if (requestVersion == _contactsRequestVersion) {
+        isContactsLoading.value = false;
+        _syncOverview();
+      }
     }
   }
 
@@ -232,7 +304,9 @@ class HomeController extends GetxController {
           final parsed = HomeEventsResponse.fromJson(raw);
           if (!parsed.ok) {
             eventsErrorText.value =
-                parsed.message.isNotEmpty ? parsed.message : 'Failed to load events';
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load events';
             return;
           }
           events.assignAll(
@@ -247,6 +321,7 @@ class HomeController extends GetxController {
                     scope: e.scope,
                     organizationId: e.organizationId,
                     role: e.role,
+                    type: e.type,
                     createdBy: e.createdBy,
                   ),
                 )
@@ -255,7 +330,9 @@ class HomeController extends GetxController {
         },
         onError: (message) {
           eventsErrorText.value =
-              (message?.isNotEmpty ?? false) ? message : 'Failed to load events';
+              (message?.isNotEmpty ?? false)
+                  ? message
+                  : 'Failed to load events';
         },
       );
     } finally {
@@ -296,7 +373,9 @@ class HomeController extends GetxController {
 
   void _syncOverview() {
     final contactsCountText =
-        (myContactsTotalCount.value != null) ? myContactsTotalCount.value.toString() : '--';
+        (myContactsTotalCount.value != null)
+            ? myContactsTotalCount.value.toString()
+            : '--';
     overview.assignAll(<HomeOverviewStat>[
       HomeOverviewStat('Contacts', contactsCountText),
       HomeOverviewStat('Scans', scansCount.value.toString()),
@@ -307,12 +386,20 @@ class HomeController extends GetxController {
 
   bool get canProceedManualEntry => (scanQuota.value?.remainingCount ?? 0) > 0;
 
+  bool get hasActiveSearch => searchQuery.value.trim().isNotEmpty;
+
   void setFilter(int index) {
     selectedFilter.value = index;
     fetchContacts(reset: true);
   }
 
-  void setSearch(String v) => searchQuery.value = v;
+  void setSearch(String v) {
+    final normalized = v.trimLeft();
+    if (searchQuery.value == normalized) {
+      return;
+    }
+    searchQuery.value = normalized;
+  }
 
   String greeting() {
     final h = DateTime.now().hour;
@@ -332,6 +419,7 @@ class HomeMiniEvent {
     this.scope = '',
     this.organizationId,
     this.role = '',
+    this.type = '',
     this.createdBy = '',
   });
 
@@ -343,6 +431,7 @@ class HomeMiniEvent {
   final String scope;
   final String? organizationId;
   final String role;
+  final String type;
   final String createdBy;
 }
 

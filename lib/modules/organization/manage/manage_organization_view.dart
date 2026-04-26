@@ -26,6 +26,7 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'manage_organization_create_fab',
         onPressed: () async {
           await Get.toNamed(Routes.createOrganization);
           controller.fetchOrganizations();
@@ -150,9 +151,12 @@ class _OrganizationCard extends StatelessWidget {
         Routes.organizationDetail,
         arguments: <String, dynamic>{
           'organizationId': org.id,
+          'organization_id': org.id,
           'name': org.name,
           'industry': org.industry,
+          'type': org.type,
           'role': org.role,
+          'member_role': org.role,
           'isActive': org.isActive,
         },
       ),

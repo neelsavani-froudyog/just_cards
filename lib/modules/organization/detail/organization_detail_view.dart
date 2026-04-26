@@ -27,6 +27,8 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
       right: false,
       child: Obx(() {
         final canManageOrganization = controller.canManageOrganization;
+        final canShowDownloadContactsAction =
+            controller.canShowDownloadContactsAction;
         final tabCount = canManageOrganization ? 3 : 2;
         final maxIndex = tabCount - 1;
         final safeIndex = controller.selectedTabIndex.value.clamp(0, maxIndex);
@@ -55,7 +57,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                     ),
                   ),
                   actions:
-                      canManageOrganization
+                      (canManageOrganization || canShowDownloadContactsAction)
                           ? [
                             PopupMenuButton<String>(
                               icon: Icon(
@@ -66,7 +68,9 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                               ),
                               color: AppColors.lightHubSurface,
                               onSelected: (value) {
-                                if (value == 'edit') {
+                                if (value == 'download_contacts') {
+                                  controller.exportOrganizationContactsCsv();
+                                } else if (value == 'edit') {
                                   Get.toNamed(
                                     Routes.editOrganization,
                                     arguments: <String, dynamic>{
@@ -97,26 +101,39 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                               },
                               itemBuilder:
                                   (context) => [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text(
-                                        'Edit Organization',
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: AppColors.lightHubInk,
-                                            ),
+                                    if (canShowDownloadContactsAction)
+                                      PopupMenuItem(
+                                        value: 'download_contacts',
+                                        child: Text(
+                                          'Download Contacts',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
                                       ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(
-                                        'Delete Organization',
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: AppColors.lightHubInk,
-                                            ),
+                                    if (canManageOrganization)
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text(
+                                          'Edit Organization',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
                                       ),
-                                    ),
+                                    if (canManageOrganization)
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text(
+                                          'Delete Organization',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: AppColors.lightHubInk,
+                                              ),
+                                        ),
+                                      ),
                                   ],
                             ),
                           ]
@@ -168,6 +185,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                       return const SizedBox.shrink();
                     }
                     return FloatingActionButton(
+                      heroTag: 'organization_detail_scan_fab',
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.white,
                       onPressed: () async {
@@ -485,11 +503,14 @@ class _EventCard extends StatelessWidget {
               'location':
                   event.locationText.isNotEmpty ? event.locationText : '—',
               'eventDate': event.eventDate,
+              'type': event.type.isNotEmpty ? event.type : 'member',
+              'member_role': event.memberRole.isNotEmpty
+                  ? event.memberRole
+                  : Get.find<OrganizationDetailController>().args.role,
               'createdBy': event.createdBy,
               'organizationId':
                   Get.find<OrganizationDetailController>().args.organizationId,
-              // Organization events payload doesn't include members count.
-              'membersCount': 0,
+              'membersCount': event.memberCount,
               'cardsCount': event.contactCount,
               // Use org role for permissions in Manage Event UI.
               'role': Get.find<OrganizationDetailController>().args.role,
@@ -578,30 +599,37 @@ class _ContactsTab extends StatelessWidget {
     return Container(
       color: AppColors.lightHubBg,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-            child: CustomTextField(
-              controller: controller.searchController,
-              hint: 'Search...',
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: AppColors.lightHubMuted,
-              ),
-              borderRadius: 12,
-              filled: true,
-              fillColor: AppColors.lightHubSurface,
-              borderColor: AppColors.lightHubBorder,
-              textStyle: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.lightHubInk),
-              hintStyle: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.lightHubHint),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              cursorColor: AppColors.lightHubBlue,
-              onChanged: controller.setSearch,
-            ),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+            child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CustomTextField(
+                      controller: controller.searchController,
+                      hint: 'Search...',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: AppColors.lightHubMuted,
+                      ),
+                      borderRadius: 12,
+                      filled: true,
+                      fillColor: AppColors.lightHubBg,
+                      borderColor: AppColors.lightHubBorder,
+                      textStyle: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: AppColors.lightHubInk),
+                      hintStyle: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: AppColors.lightHubHint),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      cursorColor: AppColors.lightHubBlue,
+                      onChanged: controller.setSearch,
+                    ),
+                  ],
+                ),
           ),
           Expanded(
             child: Obx(() {

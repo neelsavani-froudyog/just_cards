@@ -7,7 +7,9 @@ import 'package:upgrader/upgrader.dart';
 import '../../core/services/auth_session_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
+import '../bottomNavigation/bottom_navigation_controller.dart';
 import '../../widgets/custom_text_field.dart';
+import '../events/create/create_event_sheet.dart';
 import 'home_controller.dart';
 import 'home_events_shimmer_view.dart';
 import 'home_contacts_shimmer_sliver.dart';
@@ -41,26 +43,43 @@ class HomeView extends GetView<HomeController> {
     }
   }
 
+  Future<void> _openCreateEventSheet() async {
+    if (Get.isBottomSheetOpen ?? false) return;
+    final created = await CreateEventSheet.open();
+    if (created == true) {
+      await controller.refreshAllData();
+    }
+  }
+
+  Future<void> _openContactsTab() async {
+    if (!Get.isRegistered<BottomNavigationController>()) {
+      return;
+    }
+    await Get.find<BottomNavigationController>().onSelect(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final greeting = controller.greeting();
     final session = Get.find<AuthSessionService>();
 
     return UpgradeAlert(
-      upgrader: Upgrader(
-        messages: JustCardsUpgraderMessages(),
-      ),
+      upgrader: Upgrader(messages: JustCardsUpgraderMessages()),
       showIgnore: false,
       showLater: false,
       barrierDismissible: false,
       showReleaseNotes: true,
       showPrompt: false,
       shouldPopScope: () => false,
-      dialogStyle: Platform.isIOS ? UpgradeDialogStyle.cupertino : UpgradeDialogStyle.material,
+      dialogStyle:
+          Platform.isIOS
+              ? UpgradeDialogStyle.cupertino
+              : UpgradeDialogStyle.material,
       navigatorKey: Get.key,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         floatingActionButton: FloatingActionButton(
+          heroTag: 'home_quick_add_fab',
           onPressed: _openQuickAddSheet,
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
@@ -74,420 +93,466 @@ class HomeView extends GetView<HomeController> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Obx(
-                            () => Text(
-                              'Hi, ${session.displayName.value}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleMedium?.copyWith(
-                                color: AppColors.ink.withValues(alpha: 0.55),
-                                fontWeight: FontWeight.w700,
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Obx(
+                                () => Text(
+                                  'Hi, ${session.displayName.value}',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    color: AppColors.ink.withValues(
+                                      alpha: 0.55,
+                                    ),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            greeting,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.ink,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Obx(
-                      () => _NotificationBellButton(
-                        count: controller.unreadNotificationsCount.value,
-                        onTap: () async {
-                          await Get.toNamed(Routes.notifications);
-                          await controller.fetchUnreadNotificationsCount();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
-              sliver: SliverToBoxAdapter(
-                child: _SearchBar(
-                  hintText: 'Search…',
-                  onChanged: controller.setSearch,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.dashboard_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Overview',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 5, 18, 10),
-              sliver: SliverToBoxAdapter(
-                child: Obx(
-                  () => _OverviewStats(stats: controller.overview.toList()),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.event_rounded,
-                        size: 16,
-                        color: AppColors.accentTeal,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Events',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
-                    ),
-                    Obx(() {
-                      final count = controller.events.length;
-                      if (count == 0) return const SizedBox.shrink();
-                      return Row(
-                        children: [
-                          const SizedBox(width: 4),
-                          Text(
-                            '($count)',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.62),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                    
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(0, 5, 18, 10),
-              sliver: SliverToBoxAdapter(
-                child: Obx(() {
-                  if (controller.isEventsLoading.value) {
-                    return const HomeEventsShimmerView();
-                  }
-                  if (controller.events.isEmpty) {
-                    return SizedBox(
-                      height: 132,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 18),
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(18, 10, 12, 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.ink.withValues(alpha: 0.12),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.ink.withValues(alpha: 0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                              const SizedBox(height: 4),
+                              Text(
+                                greeting,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineMedium?.copyWith(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
+                                ),
                               ),
                             ],
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        ),
+                        Obx(
+                          () => _NotificationBellButton(
+                            count: controller.unreadNotificationsCount.value,
+                            onTap: () async {
+                              await Get.toNamed(Routes.notifications);
+                              await controller.fetchUnreadNotificationsCount();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: _SearchBar(
+                      hintText: 'Search…',
+                      onTap: _openContactsTab,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.dashboard_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Overview',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(
+                            color: AppColors.ink,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 5, 18, 10),
+                  sliver: SliverToBoxAdapter(
+                    child: Obx(
+                      () => _OverviewStats(stats: controller.overview.toList()),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.event_rounded,
+                            size: 16,
+                            color: AppColors.accentTeal,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Events',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(color: AppColors.ink),
+                        ),
+                        Obx(() {
+                          final count = controller.events.length;
+                          if (count == 0) return const SizedBox.shrink();
+                          return Row(
                             children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.primary.withValues(alpha: 0.10),
-                                ),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.event_busy_rounded,
-                                  color: AppColors.primary,
-                                  size: 20,
+                              const SizedBox(width: 4),
+                              Text(
+                                '($count)',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.ink.withValues(alpha: 0.62),
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'No events found',
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            ],
+                          );
+                        }),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Get.toNamed(Routes.allEvents),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Text('View All'),
+                              SizedBox(width: 2),
+                              Icon(Icons.arrow_forward_ios_rounded, size: 12),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(0, 5, 18, 10),
+                  sliver: SliverToBoxAdapter(
+                    child: Obx(() {
+                      if (controller.isEventsLoading.value) {
+                        return const HomeEventsShimmerView();
+                      }
+                      if (controller.events.isEmpty) {
+                        return SizedBox(
+                          height: 168,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 18),
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                10,
+                                12,
+                                10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.ink.withValues(alpha: 0.12),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.ink.withValues(
+                                      alpha: 0.02,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.10,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.event_busy_rounded,
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'No events found',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall?.copyWith(
                                             color: AppColors.ink,
                                             fontWeight: FontWeight.w800,
                                           ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      controller.eventsErrorText.value ??
-                                          'Create your first event to get started.',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: AppColors.ink.withValues(alpha: 0.60),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          controller.eventsErrorText.value ??
+                                              'Create your first event to get started.',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall?.copyWith(
+                                            color: AppColors.ink.withValues(
+                                              alpha: 0.60,
+                                            ),
                                             fontWeight: FontWeight.w600,
                                           ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: FilledButton.tonalIcon(
-                                        onPressed: _openQuickAddSheet,
-                                        icon: const Icon(Icons.add_rounded, size: 16),
-                                        label: const Text('Add'),
-                                        style: FilledButton.styleFrom(
-                                          visualDensity: VisualDensity.compact,
-                                          foregroundColor: AppColors.primary,
-                                          backgroundColor: AppColors.primary.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: FilledButton.icon(
+                                            onPressed: _openCreateEventSheet,
+                                            icon: const Icon(
+                                              Icons.event_available_rounded,
+                                              size: 18,
+                                            ),
+                                            label: const Text('Create event'),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor:
+                                                  AppColors.primary,
+                                              foregroundColor: AppColors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 10,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return SizedBox(
-                    height: 118,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) =>
-                          _EventCard(event: controller.events[index]),
-                      separatorBuilder: (_, __) => const SizedBox(width: 14),
-                      itemCount: controller.events.length,
-                    ),
-                  );
-                }),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
-              sliver: SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 42,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: controller.filters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      return Obx(() {
-                        final selected =
-                            controller.selectedFilter.value == index;
-                        return ChoiceChip(
-                          label: Text(controller.filters[index]),
-                          selected: selected,
-                          onSelected: (_) => controller.setFilter(index),
-                          selectedColor: AppColors.accentTeal.withValues(
-                            alpha: 0.18,
-                          ),
-                          backgroundColor: AppColors.white,
-                          labelStyle: Theme.of(
-                            context,
-                          ).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color:
-                                selected
-                                    ? AppColors.ink
-                                    : AppColors.ink.withValues(alpha: 0.62),
-                          ),
-                          side: BorderSide(
-                            color:
-                                selected
-                                    ? AppColors.accentTeal.withValues(
-                                      alpha: 0.70,
-                                    )
-                                    : AppColors.ink.withValues(alpha: 0.08),
-                            width: selected ? 1.6 : 1,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
+                            ),
                           ),
                         );
-                      });
-                    },
+                      }
+
+                      return SizedBox(
+                        height: 118,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder:
+                              (context, index) =>
+                                  _EventCard(event: controller.events[index]),
+                          separatorBuilder:
+                              (_, __) => const SizedBox(width: 14),
+                          itemCount: controller.events.length,
+                        ),
+                      );
+                    }),
                   ),
                 ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
-              sliver: Obx(
-                () {
-                  if (controller.isContactsLoading.value) {
-                    return const HomeContactsShimmerSliver();
-                  }
-                  if (controller.contacts.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.92),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: AppColors.ink.withValues(alpha: 0.08),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 42,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: controller.filters.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          return Obx(() {
+                            final selected =
+                                controller.selectedFilter.value == index;
+                            return ChoiceChip(
+                              label: Text(controller.filters[index]),
+                              selected: selected,
+                              onSelected: (_) => controller.setFilter(index),
+                              selectedColor: AppColors.accentTeal.withValues(
+                                alpha: 0.18,
+                              ),
+                              backgroundColor: AppColors.white,
+                              labelStyle: Theme.of(
+                                context,
+                              ).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color:
+                                    selected
+                                        ? AppColors.ink
+                                        : AppColors.ink.withValues(alpha: 0.62),
+                              ),
+                              side: BorderSide(
+                                color:
+                                    selected
+                                        ? AppColors.accentTeal.withValues(
+                                          alpha: 0.70,
+                                        )
+                                        : AppColors.ink.withValues(alpha: 0.08),
+                                width: selected ? 1.6 : 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 10,
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+                  sliver: Obx(() {
+                    if (controller.isContactsLoading.value) {
+                      return const HomeContactsShimmerSliver();
+                    }
+                    if (controller.contacts.isEmpty) {
+                      return SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                            decoration: BoxDecoration(
+                              color: AppColors.white.withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppColors.ink.withValues(alpha: 0.08),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.ink.withValues(alpha: 0.03),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.ink.withValues(alpha: 0.03),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 58,
-                                height: 58,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.accentTeal.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.accentTeal
-                                        .withValues(alpha: 0.30),
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.person_search_rounded,
-                                  color:
-                                      AppColors.ink.withValues(alpha: 0.72),
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No contacts found',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: AppColors.ink,
-                                      fontWeight: FontWeight.w800,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentTeal.withValues(
+                                      alpha: 0.12,
                                     ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                controller.contactsErrorText.value ??
-                                    'Scan a card or add a contact manually to see it here.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.ink.withValues(alpha: 0.60),
-                                      fontWeight: FontWeight.w600,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.accentTeal.withValues(
+                                        alpha: 0.30,
+                                      ),
                                     ),
-                              ),
-                              const SizedBox(height: 14),
-                              FilledButton.icon(
-                                onPressed: _openQuickAddSheet,
-                                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                                label: const Text('Add Contact'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: AppColors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.person_search_rounded,
+                                    color: AppColors.ink.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                    size: 28,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No contacts found',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  controller.contactsErrorText.value ??
+                                      'Scan a card or add a contact manually to see it here.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.ink.withValues(
+                                      alpha: 0.60,
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton.icon(
+                                  onPressed: _openQuickAddSheet,
+                                  icon: const Icon(
+                                    Icons.person_add_alt_1_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Add Contact'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: AppColors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      );
+                    }
+                    return SliverList.separated(
+                      itemCount: controller.contacts.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final contact = controller.contacts[index];
+                        return _ContactTile(contact: contact);
+                      },
                     );
-                  }
-                  return SliverList.separated(
-                    itemCount: controller.contacts.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final contact = controller.contacts[index];
-                      return _ContactTile(contact: contact);
-                    },
-                  );
-                },
-              ),
-            ),
-            ],
+                  }),
+                ),
+              ],
             ),
           ),
         ),
@@ -511,10 +576,10 @@ class JustCardsUpgraderMessages extends UpgraderMessages {
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.hintText, required this.onChanged});
+  const _SearchBar({required this.hintText, required this.onTap});
 
   final String hintText;
-  final ValueChanged<String> onChanged;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +589,8 @@ class _SearchBar extends StatelessWidget {
         Icons.search_rounded,
         color: AppColors.ink.withValues(alpha: 0.55),
       ),
-      onChanged: onChanged,
+      readOnly: true,
+      onTap: onTap,
       borderRadius: 8,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       filled: true,
@@ -555,59 +621,64 @@ class _NotificationBellButton extends StatelessWidget {
             width: 44,
             height: 44,
             child: Ink(
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.95),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.ink.withValues(alpha: 0.08),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Center(
-                  child: Icon(
-                    Icons.notifications_none_rounded,
-                    color: AppColors.ink.withValues(alpha: 0.90),
-                    size: 24,
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.95),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.ink.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
                   ),
-                ),
-                if (count > 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      height: 18,
-                      constraints: BoxConstraints(
-                        minWidth: isSingleDigit ? 18 : 22,
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSingleDigit ? 0 : 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger,
-                        borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: AppColors.white, width: 1.2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        badgeText,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          height: 1,
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Center(
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      color: AppColors.ink.withValues(alpha: 0.90),
+                      size: 24,
+                    ),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        height: 18,
+                        constraints: BoxConstraints(
+                          minWidth: isSingleDigit ? 18 : 22,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSingleDigit ? 0 : 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(9999),
+                          border: Border.all(
+                            color: AppColors.white,
+                            width: 1.2,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          badgeText,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            height: 1,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),
@@ -722,9 +793,8 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const cardsCount = 143;
-    final location = event.location.isNotEmpty
-        ? event.location
-        : 'Location not specified';
+    final location =
+        event.location.isNotEmpty ? event.location : 'Location not specified';
 
     return Material(
       color: Colors.transparent,
@@ -738,6 +808,8 @@ class _EventCard extends StatelessWidget {
                 'title': event.title,
                 'location': location,
                 'eventDate': event.eventDate,
+                'type': event.type.isNotEmpty ? event.type : 'member',
+                'member_role': event.role,
                 'organizationId': event.organizationId,
                 'createdBy': event.createdBy,
                 'membersCount': event.count,
@@ -805,7 +877,6 @@ class _EventCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
                 ],
               ),
             ],
@@ -837,9 +908,9 @@ class _MetricPill extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppColors.ink.withValues(alpha: 0.70),
-                fontWeight: FontWeight.w800,
-              ),
+            color: AppColors.ink.withValues(alpha: 0.70),
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ],
     );

@@ -35,10 +35,12 @@ class EventMemberItem {
   final String? avatarUrl;
   final String role;
   final String? status;
+  final String? source;
   final String? inviteId;
   final String? inviteBatchId;
   final String? invitedBy;
   final String? joinedAt;
+  final String? invitedAt;
 
   const EventMemberItem({
     required this.id,
@@ -48,22 +50,34 @@ class EventMemberItem {
     required this.avatarUrl,
     required this.role,
     required this.status,
+    required this.source,
     required this.inviteId,
     required this.inviteBatchId,
     required this.invitedBy,
     required this.joinedAt,
+    required this.invitedAt,
   });
 
   factory EventMemberItem.fromJson(Map<String, dynamic> json) {
+    final userId = (json['user_id'] ?? '').toString();
+    final inviteId = json['invite_id']?.toString();
+    final idRaw = (json['id'] ?? '').toString().trim();
+    final resolvedId =
+        idRaw.isNotEmpty
+            ? idRaw
+            : (userId.trim().isNotEmpty
+                ? userId.trim()
+                : (inviteId ?? '').trim());
     return EventMemberItem(
-      id: (json['id'] ?? '').toString(),
-      userId: (json['user_id'] ?? '').toString(),
+      id: resolvedId,
+      userId: userId,
       fullName: (json['full_name'] ?? json['name'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
       avatarUrl: json['avatar_url']?.toString(),
       role: (json['role'] ?? 'viewer').toString(),
       status: json['status']?.toString(),
-      inviteId: json['invite_id']?.toString(),
+      source: json['source']?.toString(),
+      inviteId: inviteId,
       inviteBatchId: _firstString(
         json,
         const <String>[
@@ -75,6 +89,7 @@ class EventMemberItem {
       ),
       invitedBy: json['invited_by']?.toString(),
       joinedAt: json['joined_at']?.toString(),
+      invitedAt: json['invited_at']?.toString(),
     );
   }
 

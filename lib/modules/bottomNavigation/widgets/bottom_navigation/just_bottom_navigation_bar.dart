@@ -39,15 +39,18 @@ class JustBottomNavigationBar extends StatelessWidget {
                 indicatorColor: AppColors.primary.withValues(alpha: 0.14),
                 labelTextStyle: WidgetStatePropertyAll(
                   Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink.withValues(alpha: 0.70),
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink.withValues(alpha: 0.70),
+                  ),
                 ),
                 iconTheme: WidgetStateProperty.resolveWith((states) {
                   final selected = states.contains(WidgetState.selected);
                   return IconThemeData(
                     size: 24,
-                    color: selected ? AppColors.primary : AppColors.ink.withValues(alpha: 0.50),
+                    color:
+                        selected
+                            ? AppColors.primary
+                            : AppColors.ink.withValues(alpha: 0.50),
                   );
                 }),
               ),
@@ -65,6 +68,11 @@ class JustBottomNavigationBar extends StatelessWidget {
                     label: 'Home',
                   ),
                   NavigationDestination(
+                    icon: Icon(Icons.contacts_outlined),
+                    selectedIcon: Icon(Icons.contacts_rounded),
+                    label: 'Contact',
+                  ),
+                  NavigationDestination(
                     icon: Icon(Icons.person_outline_rounded),
                     selectedIcon: Icon(Icons.person_rounded),
                     label: 'Profile',
@@ -78,4 +86,3 @@ class JustBottomNavigationBar extends StatelessWidget {
     );
   }
 }
-
