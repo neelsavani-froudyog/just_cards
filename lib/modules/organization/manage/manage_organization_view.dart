@@ -52,9 +52,9 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
                     error,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.danger,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   FilledButton(
@@ -83,17 +83,17 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
                   Text(
                     'No organizations yet',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Tap the button below to create your first organization.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.55),
-                        ),
+                      color: AppColors.ink.withValues(alpha: 0.55),
+                    ),
                   ),
                 ],
               ),
@@ -102,10 +102,10 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
         }
 
         final ownedOrganizations = controller.organizations
-            .where((org) => _isOwner(org))
+            .where((org) => _normalizedRole(org) == _OrgRole.owner)
             .toList(growable: false);
         final memberOrganizations = controller.organizations
-            .where((org) => !_isOwner(org))
+            .where((org) => _normalizedRole(org) != _OrgRole.owner)
             .toList(growable: false);
 
         return RefreshIndicator(
@@ -147,19 +147,20 @@ class _OrganizationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Get.toNamed(
-        Routes.organizationDetail,
-        arguments: <String, dynamic>{
-          'organizationId': org.id,
-          'organization_id': org.id,
-          'name': org.name,
-          'industry': org.industry,
-          'type': org.type,
-          'role': org.role,
-          'member_role': org.role,
-          'isActive': org.isActive,
-        },
-      ),
+      onTap:
+          () => Get.toNamed(
+            Routes.organizationDetail,
+            arguments: <String, dynamic>{
+              'organizationId': org.id,
+              'organization_id': org.id,
+              'name': org.name,
+              'industry': org.industry,
+              'type': org.type,
+              'role': org.role,
+              'member_role': org.role,
+              'isActive': org.isActive,
+            },
+          ),
       borderRadius: BorderRadius.circular(18),
       child: Ink(
         padding: const EdgeInsets.all(16),
@@ -197,41 +198,43 @@ class _OrganizationCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    org.industry?.isNotEmpty == true ? org.industry! : 'General',
+                    org.industry?.isNotEmpty == true
+                        ? org.industry!
+                        : 'General',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.58),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: AppColors.ink.withValues(alpha: 0.58),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  if (!_isOwner(org)) ...[
-                    const SizedBox(height: 8),
-                    const _RoleBadge(label: 'Shared'),
-                  ],
+                  const SizedBox(height: 8),
+                  _RoleBadge(role: _normalizedRole(org)),
                 ],
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: org.isActive
-                    ? const Color(0xFF22C55E).withValues(alpha: 0.15)
-                    : const Color(0xFF64748B).withValues(alpha: 0.18),
+                color:
+                    org.isActive
+                        ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+                        : const Color(0xFF64748B).withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
                 org.isActive ? 'Active' : 'Inactive',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: org.isActive
+                  color:
+                      org.isActive
                           ? const Color(0xFF15803D)
                           : const Color(0xFF334155),
-                      fontWeight: FontWeight.w700,
-                    ),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -241,12 +244,25 @@ class _OrganizationCard extends StatelessWidget {
   }
 }
 
-bool _isOwner(OrganizationSummary org) {
+enum _OrgRole { owner, editor, viewer, member }
+
+_OrgRole _normalizedRole(OrganizationSummary org) {
   final normalizedType = org.type.trim().toLowerCase();
-  if (normalizedType.isNotEmpty) {
-    return normalizedType == 'owner';
+  final normalizedRole = org.role.trim().toLowerCase();
+  final candidate = normalizedType.isNotEmpty && normalizedType != 'member'
+      ? normalizedType
+      : normalizedRole;
+
+  switch (candidate) {
+    case 'owner':
+      return _OrgRole.owner;
+    case 'editor':
+      return _OrgRole.editor;
+    case 'viewer':
+      return _OrgRole.viewer;
+    default:
+      return _OrgRole.member;
   }
-  return org.role.trim().toLowerCase() == 'owner';
 }
 
 class _OrganizationSectionHeader extends StatelessWidget {
@@ -259,35 +275,89 @@ class _OrganizationSectionHeader extends StatelessWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: AppColors.ink.withValues(alpha: 0.7),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.7),
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.2,
+      ),
     );
   }
 }
 
 class _RoleBadge extends StatelessWidget {
-  const _RoleBadge({required this.label});
+  const _RoleBadge({required this.role});
 
-  final String label;
+  final _OrgRole role;
 
   @override
   Widget build(BuildContext context) {
+    final style = _badgeStyle(role);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
+        color: style.backgroundColor,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(style.icon, size: 14, color: style.foregroundColor),
+          const SizedBox(width: 6),
+          Text(
+            style.label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: style.foregroundColor,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+        ],
       ),
     );
   }
 }
 
+class _BadgeStyle {
+  const _BadgeStyle({
+    required this.label,
+    required this.icon,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color backgroundColor;
+  final Color foregroundColor;
+}
+
+_BadgeStyle _badgeStyle(_OrgRole role) {
+  switch (role) {
+    case _OrgRole.owner:
+      return _BadgeStyle(
+        label: 'Owner',
+        icon: Icons.workspace_premium_rounded,
+        backgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.16),
+        foregroundColor: const Color(0xFFB45309),
+      );
+    case _OrgRole.editor:
+      return _BadgeStyle(
+        label: 'Editor',
+        icon: Icons.person_rounded,
+        backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
+        foregroundColor: const Color(0xFF1D4ED8),
+      );
+    case _OrgRole.viewer:
+      return _BadgeStyle(
+        label: 'Viewer',
+        icon: Icons.person_rounded,
+        backgroundColor: AppColors.ink.withValues(alpha: 0.08),
+        foregroundColor: AppColors.ink.withValues(alpha: 0.75),
+      );
+    case _OrgRole.member:
+      return _BadgeStyle(
+        label: 'Member',
+        icon: Icons.person_rounded,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+        foregroundColor: AppColors.primary,
+      );
+  }
+}
