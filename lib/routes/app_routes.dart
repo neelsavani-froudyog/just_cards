@@ -31,6 +31,7 @@ abstract class Routes {
   static const manualEntry = _Paths.manualEntry;
   static const editContact = _Paths.editContact;
   static const qrContact = _Paths.qrContact;
+  static const contactSearch = _Paths.contactSearch;
 }
 
 abstract class _Paths {
@@ -63,4 +64,5 @@ abstract class _Paths {
   static const manualEntry = '/manualEntry';
   static const editContact = '/editContact';
   static const qrContact = '/qrContact';
+  static const contactSearch = '/contactSearch';
 }

@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:get/get.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../core/services/api.dart';
 import '../../core/services/api_service.dart';
@@ -9,6 +12,10 @@ import 'scan_quota_status_model.dart';
 
 class HomeController extends GetxController {
   late final ApiService _apiService;
+  late final CacheManager _cache;
+
+  static const _cacheKeyEvents = 'home:events:v1';
+  static const _cacheKeyScanQuota = 'home:scanQuota:v1';
 
   final selectedFilter = 0.obs;
   final searchQuery = ''.obs;
@@ -55,12 +62,13 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     _apiService = Get.find<ApiService>();
+    _cache = DefaultCacheManager();
     _contactsSearchWorker = debounce<String>(
       searchQuery,
       (_) => fetchContacts(reset: true),
       time: const Duration(milliseconds: 350),
     );
-    refreshAllData();
+    _initLoad();
   }
 
   @override
@@ -69,11 +77,35 @@ class HomeController extends GetxController {
     super.onClose();
   }
 
-  Future<void> refreshAllData() async {
+  Future<void> _initLoad() async {
     await Future.wait(<Future<void>>[
-      fetchEvents(),
-      fetchContacts(reset: true),
-      fetchScanQuotaStatus(),
+      _hydrateEventsFromCache(),
+      _hydrateScanQuotaFromCache(),
+      _hydrateContactsFromCache(),
+    ]);
+
+    // If we have cached data, skip the initial network refresh to avoid
+    // unnecessary shimmer/loading when switching tabs.
+    final hasCached =
+        events.isNotEmpty || scanQuota.value != null || contacts.isNotEmpty;
+    if (!hasCached) {
+      await refreshAllData(force: true);
+      return;
+    }
+
+    // Still fetch counts (cheap) without disturbing cached lists.
+    await Future.wait(<Future<void>>[
+      fetchMyContactsTotalCount(),
+      fetchUnreadNotificationsCount(),
+    ]);
+    _syncOverview();
+  }
+
+  Future<void> refreshAllData({bool force = false}) async {
+    await Future.wait(<Future<void>>[
+      fetchEvents(force: force),
+      fetchContacts(reset: true, force: force),
+      fetchScanQuotaStatus(force: force),
       fetchMyContactsTotalCount(),
       fetchUnreadNotificationsCount(),
     ]);
@@ -81,10 +113,112 @@ class HomeController extends GetxController {
 
   Future<void> refreshContactsData() async {
     await Future.wait(<Future<void>>[
-      fetchContacts(reset: true),
+      fetchContacts(reset: true, force: true),
       fetchMyContactsTotalCount(),
-      fetchScanQuotaStatus(),
+      fetchScanQuotaStatus(force: true),
     ]);
+  }
+
+  String _contactsCacheKey({
+    required int filterIndex,
+    required String query,
+  }) {
+    final normalized = query.trim().toLowerCase();
+    return 'home:contacts:v1:$filterIndex|$normalized';
+  }
+
+  Future<Map<String, dynamic>?> _readCacheMap(String key) async {
+    try {
+      final cached = await _cache.getFileFromCache(key);
+      if (cached == null) return null;
+      final text = await cached.file.readAsString();
+      final decoded = json.decode(text);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writeCacheMap(String key, Map<String, dynamic> value) async {
+    try {
+      final bytes = utf8.encode(json.encode(value));
+      await _cache.putFile(key, bytes, fileExtension: 'json');
+    } catch (_) {}
+  }
+
+  Future<void> _hydrateEventsFromCache() async {
+    final raw = await _readCacheMap(_cacheKeyEvents);
+    if (raw == null) return;
+    try {
+      final parsed = HomeEventsResponse.fromJson(raw);
+      if (!parsed.ok) return;
+      events.assignAll(
+        parsed.data
+            .map(
+              (e) => HomeMiniEvent(
+                e.title.isNotEmpty ? e.title : 'Untitled Event',
+                e.membersCount,
+                id: e.id,
+                location: e.location,
+                eventDate: e.eventDate,
+                scope: e.scope,
+                organizationId: e.organizationId,
+                role: e.role,
+                type: e.type,
+                createdBy: e.createdBy,
+              ),
+            )
+            .toList(),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _hydrateScanQuotaFromCache() async {
+    final raw = await _readCacheMap(_cacheKeyScanQuota);
+    if (raw == null) return;
+    try {
+      final parsed = ScanQuotaStatusResponse.fromJson(raw);
+      final item = parsed.primary;
+      scanQuota.value = item;
+      scansCount.value = item?.usedCount ?? 0;
+      scansLeftCount.value = item?.remainingCount ?? 0;
+    } catch (_) {}
+  }
+
+  Future<void> _hydrateContactsFromCache() async {
+    final key = _contactsCacheKey(
+      filterIndex: selectedFilter.value,
+      query: searchQuery.value,
+    );
+    final raw = await _readCacheMap(key);
+    if (raw == null) return;
+    try {
+      final parsed = HomeContactsResponse.fromJson(raw);
+      if (!parsed.ok) return;
+      contacts.assignAll(
+        parsed.data
+            .map(
+              (c) => HomeContact(
+                id: c.id,
+                name:
+                    c.fullName.trim().isNotEmpty
+                        ? c.fullName.trim()
+                        : '${c.firstName} ${c.lastName}'.trim(),
+                email: c.email1.trim().isNotEmpty ? c.email1.trim() : c.phone1,
+                company:
+                    c.companyName.trim().isNotEmpty
+                        ? c.companyName.trim()
+                        : c.designation.trim(),
+              ),
+            )
+            .toList(),
+      );
+      contactsTotal.value = parsed.total;
+      contactsLimit.value = parsed.limit == 0 ? contactsLimit.value : parsed.limit;
+      contactsOffset.value = parsed.offset;
+    } catch (_) {}
   }
 
   /// Badge count = notifications with `is_seen == false` (not invite "pending" totals).
@@ -197,20 +331,67 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<void> fetchContacts({required bool reset}) async {
+  Future<void> fetchContacts({required bool reset, bool force = false}) async {
     final requestVersion = ++_contactsRequestVersion;
-    isContactsLoading.value = true;
     contactsErrorText.value = null;
 
     if (reset) {
       contactsOffset.value = 0;
       contactsTotal.value = 0;
-      contacts.clear();
+      if (force) {
+        isContactsLoading.value = true;
+        contacts.clear();
+      }
     }
 
     final selectedFilterIndex = selectedFilter.value;
     final requestOffset = contactsOffset.value;
     final requestLimit = contactsLimit.value;
+    final cacheKey = _contactsCacheKey(
+      filterIndex: selectedFilterIndex,
+      query: searchQuery.value,
+    );
+
+    if (!force && reset) {
+      final cached = await _readCacheMap(cacheKey);
+      if (cached != null) {
+        try {
+          final parsed = HomeContactsResponse.fromJson(cached);
+          if (parsed.ok) {
+            contacts.assignAll(
+              parsed.data
+                  .map(
+                    (c) => HomeContact(
+                      id: c.id,
+                      name:
+                          c.fullName.trim().isNotEmpty
+                              ? c.fullName.trim()
+                              : '${c.firstName} ${c.lastName}'.trim(),
+                      email:
+                          c.email1.trim().isNotEmpty
+                              ? c.email1.trim()
+                              : c.phone1,
+                      company:
+                          c.companyName.trim().isNotEmpty
+                              ? c.companyName.trim()
+                              : c.designation.trim(),
+                    ),
+                  )
+                  .toList(),
+            );
+            contactsTotal.value = parsed.total;
+            contactsLimit.value =
+                parsed.limit == 0 ? requestLimit : parsed.limit;
+            contactsOffset.value = parsed.offset;
+            isContactsLoading.value = false;
+            _syncOverview();
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
+    isContactsLoading.value = true;
 
     try {
       await _apiService.postRequest(
@@ -231,11 +412,12 @@ class HomeController extends GetxController {
             return;
           }
 
-          final raw = payload['response'];
-          if (raw is! Map<String, dynamic>) {
+          final rawDynamic = payload['response'];
+          if (rawDynamic is! Map) {
             contactsErrorText.value = 'Invalid contacts response';
             return;
           }
+          final raw = Map<String, dynamic>.from(rawDynamic);
 
           final parsed = HomeContactsResponse.fromJson(raw);
           if (!parsed.ok) {
@@ -245,6 +427,8 @@ class HomeController extends GetxController {
                     : 'Failed to load contacts';
             return;
           }
+
+          _writeCacheMap(cacheKey, raw);
 
           contacts.assignAll(
             parsed.data
@@ -286,8 +470,40 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<void> fetchEvents() async {
+  Future<void> fetchEvents({bool force = false}) async {
     if (isEventsLoading.value) return;
+
+    if (!force) {
+      final cached = await _readCacheMap(_cacheKeyEvents);
+      if (cached != null) {
+        try {
+          final parsed = HomeEventsResponse.fromJson(cached);
+          if (parsed.ok) {
+            events.assignAll(
+              parsed.data
+                  .map(
+                    (e) => HomeMiniEvent(
+                      e.title.isNotEmpty ? e.title : 'Untitled Event',
+                      e.membersCount,
+                      id: e.id,
+                      location: e.location,
+                      eventDate: e.eventDate,
+                      scope: e.scope,
+                      organizationId: e.organizationId,
+                      role: e.role,
+                      type: e.type,
+                      createdBy: e.createdBy,
+                    ),
+                  )
+                  .toList(),
+            );
+            _syncOverview();
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
     isEventsLoading.value = true;
     eventsErrorText.value = null;
     try {
@@ -296,11 +512,12 @@ class HomeController extends GetxController {
         showSuccessToast: false,
         showErrorToast: false,
         onSuccess: (payload) {
-          final raw = payload['response'];
-          if (raw is! Map<String, dynamic>) {
+          final rawDynamic = payload['response'];
+          if (rawDynamic is! Map) {
             eventsErrorText.value = 'Invalid events response';
             return;
           }
+          final raw = Map<String, dynamic>.from(rawDynamic);
           final parsed = HomeEventsResponse.fromJson(raw);
           if (!parsed.ok) {
             eventsErrorText.value =
@@ -309,6 +526,7 @@ class HomeController extends GetxController {
                     : 'Failed to load events';
             return;
           }
+          _writeCacheMap(_cacheKeyEvents, raw);
           events.assignAll(
             parsed.data
                 .map(
@@ -341,8 +559,24 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<void> fetchScanQuotaStatus() async {
+  Future<void> fetchScanQuotaStatus({bool force = false}) async {
     if (isScanQuotaLoading.value) return;
+
+    if (!force) {
+      final cached = await _readCacheMap(_cacheKeyScanQuota);
+      if (cached != null) {
+        try {
+          final parsed = ScanQuotaStatusResponse.fromJson(cached);
+          final item = parsed.primary;
+          scanQuota.value = item;
+          scansCount.value = item?.usedCount ?? 0;
+          scansLeftCount.value = item?.remainingCount ?? 0;
+          _syncOverview();
+          return;
+        } catch (_) {}
+      }
+    }
+
     isScanQuotaLoading.value = true;
     try {
       await _apiService.getRequest(
@@ -350,16 +584,18 @@ class HomeController extends GetxController {
         showSuccessToast: false,
         showErrorToast: false,
         onSuccess: (payload) {
-          final root = payload['response'];
-          if (root is! Map<String, dynamic>) {
+          final rootDynamic = payload['response'];
+          if (rootDynamic is! Map) {
             _syncOverview();
             return;
           }
+          final root = Map<String, dynamic>.from(rootDynamic);
           final parsed = ScanQuotaStatusResponse.fromJson(root);
           final item = parsed.primary;
           scanQuota.value = item;
           scansCount.value = item?.usedCount ?? 0;
           scansLeftCount.value = item?.remainingCount ?? 0;
+          _writeCacheMap(_cacheKeyScanQuota, root);
           _syncOverview();
         },
         onError: (_) {

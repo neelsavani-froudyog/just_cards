@@ -15,8 +15,29 @@ import 'home_events_shimmer_view.dart';
 import 'home_contacts_shimmer_sliver.dart';
 import 'widgets/add_contact_sheet.dart';
 
-class HomeView extends GetView<HomeController> {
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
+
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  late final HomeController controller;
+  late final TextEditingController _homeSearchController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<HomeController>();
+    _homeSearchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _homeSearchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openQuickAddSheet() async {
     if (controller.isQuickAddSheetFlowInProgress.value ||
@@ -58,7 +79,6 @@ class HomeView extends GetView<HomeController> {
     await Get.find<BottomNavigationController>().onSelect(1);
   }
 
-  @override
   Widget build(BuildContext context) {
     final greeting = controller.greeting();
     final session = Get.find<AuthSessionService>();
@@ -89,7 +109,7 @@ class HomeView extends GetView<HomeController> {
         body: SafeArea(
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () => controller.refreshAllData(),
+            onRefresh: () => controller.refreshAllData(force: true),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -147,7 +167,15 @@ class HomeView extends GetView<HomeController> {
                   sliver: SliverToBoxAdapter(
                     child: _SearchBar(
                       hintText: 'Search…',
-                      onTap: _openContactsTab,
+                      controller: _homeSearchController,
+                      onSubmitted: (q) async {
+                        final query = q.trim();
+                        await Get.toNamed(
+                          Routes.contactSearch,
+                          arguments: query,
+                        );
+                        _homeSearchController.clear();
+                      },
                     ),
                   ),
                 ),
@@ -441,7 +469,8 @@ class HomeView extends GetView<HomeController> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
                   sliver: Obx(() {
-                    if (controller.isContactsLoading.value) {
+                    if (controller.isContactsLoading.value &&
+                        controller.contacts.isEmpty) {
                       return const HomeContactsShimmerSliver();
                     }
                     if (controller.contacts.isEmpty) {
@@ -576,21 +605,27 @@ class JustCardsUpgraderMessages extends UpgraderMessages {
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.hintText, required this.onTap});
+  const _SearchBar({
+    required this.hintText,
+    required this.controller,
+    required this.onSubmitted,
+  });
 
   final String hintText;
-  final VoidCallback onTap;
+  final TextEditingController controller;
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return CustomTextField(
+      controller: controller,
       hint: hintText,
       prefixIcon: Icon(
         Icons.search_rounded,
         color: AppColors.ink.withValues(alpha: 0.55),
       ),
-      readOnly: true,
-      onTap: onTap,
+      textInputAction: TextInputAction.search,
+      onSubmitted: onSubmitted,
       borderRadius: 8,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       filled: true,

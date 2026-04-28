@@ -20,7 +20,10 @@ class BottomNavigationController extends GetxController {
     }
 
     if (index == 1) {
-      await homeController.refreshContactsData();
+      await Future.wait(<Future<void>>[
+        homeController.fetchContacts(reset: true),
+        homeController.fetchMyContactsTotalCount(),
+      ]);
     }
   }
 }

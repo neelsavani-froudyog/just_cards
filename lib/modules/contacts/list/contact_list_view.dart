@@ -127,9 +127,31 @@ class ContactListView extends GetView<HomeController> {
                 ),
               ),
               SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+                sliver: Obx(() {
+                  if (!controller.isContactsLoading.value ||
+                      controller.contacts.isEmpty) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+                  return SliverToBoxAdapter(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 3,
+                        backgroundColor: AppColors.ink.withValues(alpha: 0.06),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              SliverPadding(
                 padding: const EdgeInsets.fromLTRB(18, 4, 18, 100),
                 sliver: Obx(() {
-                  if (controller.isContactsLoading.value) {
+                  if (controller.isContactsLoading.value &&
+                      controller.contacts.isEmpty) {
                     return const HomeContactsShimmerSliver();
                   }
                   if (controller.contacts.isEmpty) {

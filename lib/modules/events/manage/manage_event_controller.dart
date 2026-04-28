@@ -290,7 +290,7 @@ class ManageEventController extends GetxController {
         eventTitle.value,
         fallback: 'event',
       );
-      final defaultFileName = '${eventStem}_contacts.xlsx';
+      final defaultFileName = '${eventStem}_contacts_${DateTime.now().millisecondsSinceEpoch}.xlsx';
 
       ParsedContactsExport parsed =
           const ParsedContactsExport(errorMessage: 'Export failed');
@@ -549,12 +549,12 @@ class ManageEventController extends GetxController {
 
     if (type == 'owner') return true;
     if (type == 'member') {
-      return memberRole == 'owner' || memberRole == 'editor' || memberRole == 'admin';
+      return memberRole == 'owner';
     }
 
     // Backward-compatible fallback for older route payloads.
     if (role == 'owner') return true;
-    return role == 'editor' || role == 'admin';
+    return role == 'owner';
   }
 
   void applyEventEditResult(dynamic result) {

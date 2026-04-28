@@ -267,7 +267,7 @@ class OrganizationDetailController extends GetxController {
         orgNameForFile,
         fallback: 'organization',
       );
-      final defaultFileName = '${orgStem}_contacts.xlsx';
+      final defaultFileName = '${orgStem}_contacts_${DateTime.now().millisecondsSinceEpoch}.xlsx';
 
       ParsedContactsExport parsed = const ParsedContactsExport(
         errorMessage: 'Export failed',

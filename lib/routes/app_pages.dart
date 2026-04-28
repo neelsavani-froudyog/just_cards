@@ -12,6 +12,7 @@ import '../modules/auth/otp/otp_view.dart';
 import '../modules/bottomNavigation/bottom_navigation_view.dart';
 import '../modules/contacts/details/contact_details_binding.dart';
 import '../modules/contacts/details/contact_details_view.dart';
+import '../modules/contacts/list/contact_search_view.dart';
 import '../modules/events/edit/edit_event_binding.dart';
 import '../modules/events/edit/edit_event_view.dart';
 import '../modules/events/all_events/all_events_view.dart';
@@ -148,5 +149,6 @@ class AppPages {
       page: QrContactFormView.new,
       binding: QrContactBinding(),
     ),
+    GetPage(name: Routes.contactSearch, page: ContactSearchView.new),
   ];
 }

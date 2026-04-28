@@ -133,7 +133,7 @@ class CustomTextField extends StatelessWidget {
             isDense: true,
             counterText: '',
             prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
+            suffix: suffixIcon,
           ),
     );
 
