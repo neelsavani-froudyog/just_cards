@@ -588,16 +588,9 @@ class QrContactFormView extends GetView<QrContactController> {
                           const SizedBox(height: 14),
                           _field(
                             context: context,
-                            label: 'First Name',
-                            controller: controller.firstNameCtrl,
-                            hint: 'First Name',
-                          ),
-                          const SizedBox(height: 14),
-                          _field(
-                            context: context,
-                            label: 'Last Name',
-                            controller: controller.lastNameCtrl,
-                            hint: 'Last Name',
+                            label: 'Full Name',
+                            controller: controller.fullNameCtrl,
+                            hint: 'Full name',
                           ),
                           const SizedBox(height: 14),
                           _field(

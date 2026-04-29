@@ -632,121 +632,126 @@ class _ContactsTab extends StatelessWidget {
                 ),
           ),
           Expanded(
-            child: Obx(() {
-              final isLoading = controller.isContactsLoading.value;
-              final err = controller.contactsErrorText.value;
-              final items = controller.contacts;
+            child: RefreshIndicator(
+              onRefresh: () => controller.fetchContacts(reset: true),
+              child: Obx(() {
+                final isLoading = controller.isContactsLoading.value;
+                final err = controller.contactsErrorText.value;
+                final items = controller.contacts;
 
-              if (isLoading) {
-                return const OrganizationContactsShimmerView();
-              }
+                if (isLoading) {
+                  return const OrganizationContactsShimmerView();
+                }
 
-              if (items.isEmpty) {
-                final hasSearch =
-                    controller.searchQuery.value.trim().isNotEmpty;
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightHubSurface,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppColors.lightHubBorder),
+                if (items.isEmpty) {
+                  final hasSearch =
+                      controller.searchQuery.value.trim().isNotEmpty;
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightHubSurface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppColors.lightHubBorder),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.10),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.person_search_rounded,
+                                color: AppColors.primary,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No contacts found',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
+                                color: AppColors.lightHubInk,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              err ??
+                                  (hasSearch
+                                      ? 'Try a different search keyword.'
+                                      : 'Contacts will appear here once cards are added to this organization.'),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.lightHubMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.10),
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.person_search_rounded,
-                              color: AppColors.primary,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No contacts found',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: AppColors.lightHubInk,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            err ??
-                                (hasSearch
-                                    ? 'Try a different search keyword.'
-                                    : 'Contacts will appear here once cards are added to this organization.'),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.lightHubMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final c = items[index];
-                  final title =
-                      c.fullName.trim().isNotEmpty
-                          ? c.fullName.trim()
-                          : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
-                          ? '${c.firstName} ${c.lastName}'.trim()
-                          : 'Unknown';
-                  final subtitle1 =
-                      c.email1.trim().isNotEmpty
-                          ? c.email1.trim()
-                          : c.phone1.trim();
-                  final subtitle2 =
-                      c.companyName.trim().isNotEmpty
-                          ? c.companyName.trim()
-                          : c.designation.trim();
-
-                  return _PersonTile(
-                    person: EventPerson(
-                      name: title,
-                      email: subtitle1.isNotEmpty ? subtitle1 : '--',
-                      companyOrRole: subtitle2.isNotEmpty ? subtitle2 : '--',
-                    ),
-                    onTap: () async {
-                      final id = c.id.trim();
-                      if (id.isEmpty) return;
-                      final result = await Get.toNamed(
-                        Routes.contactDetails,
-                        arguments: id,
-                      );
-                      if (result == Routes.contactDeletedPopResult) {
-                        await controller.fetchContacts(reset: true);
-                        await controller.fetchOrganizationEvents();
-                      }
-                    },
+                    ],
                   );
-                },
-              );
-            }),
+                }
+
+                return ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final c = items[index];
+                    final title =
+                        c.fullName.trim().isNotEmpty
+                            ? c.fullName.trim()
+                            : '${c.firstName} ${c.lastName}'.trim().isNotEmpty
+                            ? '${c.firstName} ${c.lastName}'.trim()
+                            : 'Unknown';
+                    final subtitle1 =
+                        c.email1.trim().isNotEmpty
+                            ? c.email1.trim()
+                            : c.phone1.trim();
+                    final subtitle2 =
+                        c.companyName.trim().isNotEmpty
+                            ? c.companyName.trim()
+                            : c.designation.trim();
+
+                    return _PersonTile(
+                      person: EventPerson(
+                        name: title,
+                        email: subtitle1.isNotEmpty ? subtitle1 : '--',
+                        companyOrRole: subtitle2.isNotEmpty ? subtitle2 : '--',
+                      ),
+                      onTap: () async {
+                        final id = c.id.trim();
+                        if (id.isEmpty) return;
+                        final result = await Get.toNamed(
+                          Routes.contactDetails,
+                          arguments: id,
+                        );
+                        if (result == Routes.contactDeletedPopResult) {
+                          await controller.fetchContacts(reset: true);
+                          await controller.fetchOrganizationEvents();
+                        }
+                      },
+                    );
+                  },
+                );
+              }),
+            ),
           ),
         ],
       ),
@@ -870,216 +875,236 @@ class _MembersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.isMembersLoading.value) {
-        return const OrganizationMembersShimmerView();
-      }
-      if (controller.members.isEmpty) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 58,
-                    height: 58,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.10),
-                      shape: BoxShape.circle,
+    return RefreshIndicator(
+      onRefresh: controller.fetchMembers,
+      child: Obx(() {
+        if (controller.isMembersLoading.value) {
+          return const OrganizationMembersShimmerView();
+        }
+        if (controller.members.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.group_off_rounded,
+                        color: AppColors.primary,
+                        size: 28,
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.group_off_rounded,
-                      color: AppColors.primary,
-                      size: 28,
+                    const SizedBox(height: 12),
+                    Text(
+                      'No members found',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No members found',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    controller.membersErrorText.value ??
-                        'Members will appear here once users join this event.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.ink.withValues(alpha: 0.60),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
-        itemCount: controller.members.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final m = controller.members[index];
-          final canDelete =
-              (m.joinedAt != null && m.joinedAt!.trim().isNotEmpty);
-          return MemberTile(
-            title: m.fullName,
-            subtitle1: m.email,
-            subtitle2: m.role,
-            avatarUrl: m.avatarUrl,
-            status: m.status,
-            allowActions: controller.canManageOrganization,
-            onAdd: () {
-              // controller.resendInviteForMember(m);
-            },
-            onUpdate: () {
-              final memberRole = m.role.toLowerCase();
-              String selected =
-                  memberRole.contains('admin')
-                      ? 'Admin'
-                      : memberRole.contains('editor')
-                      ? 'Editor'
-                      : 'Viewer';
-
-              final nameController = TextEditingController(text: m.fullName);
-              final emailController = TextEditingController(text: m.email);
-
-              Get.dialog<void>(
-                AlertDialog(
-                  title: const Text('Update Member'),
-                  content: StatefulBuilder(
-                    builder: (context, setState) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Name',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: nameController,
-                            hint: 'Name',
-                            readOnly: true,
-                            enabled: false,
-                            borderRadius: 12,
-                            filled: true,
-                            fillColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Email',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: emailController,
-                            hint: 'Email',
-                            readOnly: true,
-                            enabled: false,
-                            borderRadius: 12,
-                            filled: true,
-                            fillColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Assign Role',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelLarge?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          CustomSearchDropdown<String>(
-                            items: controller.roles,
-                            selectedItem: selected,
-                            hintText: 'Select role',
-                            showSearchBox: false,
-                            itemAsString: (s) => s,
-                            onChanged: (v) {
-                              if (v == null) return;
-                              setState(() => selected = v);
-                            },
-                            bgColor: AppColors.white,
-                            borderColor: AppColors.ink.withValues(alpha: 0.10),
-                            borderRadius: 12,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 4,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        controller.updateMemberRole(index, selected);
-                        Get.back();
-                      },
-                      child: const Text('Update'),
+                    const SizedBox(height: 6),
+                    Text(
+                      controller.membersErrorText.value ??
+                          'Members will appear here once users join this event.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.60),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
-              ).whenComplete(() {
-                nameController.dispose();
-                emailController.dispose();
-              });
-            },
-            onDelete:
-                canDelete
-                    ? () {
-                      ConfirmDialog.show(
-                        title: 'Delete member?',
-                        message: 'Remove ${m.email} from event members?',
-                        confirmText: 'Delete',
-                        destructive: true,
-                      ).then((ok) {
-                        if (ok) controller.deleteMember(index);
-                      });
-                    }
-                    : null,
+              ),
+            ],
           );
-        },
-      );
-    });
+        }
+        return ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
+          itemCount: controller.members.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final m = controller.members[index];
+            final canDelete =
+                (m.joinedAt != null && m.joinedAt!.trim().isNotEmpty);
+            return MemberTile(
+              title: m.fullName,
+              subtitle1: m.email,
+              subtitle2: m.role,
+              avatarUrl: m.avatarUrl,
+              status: m.status,
+              allowActions: controller.canManageOrganization,
+              onAdd: () {
+                // controller.resendInviteForMember(m);
+              },
+              onUpdate: () {
+                final memberRole = m.role.toLowerCase();
+                String selected =
+                    memberRole.contains('admin')
+                        ? 'Admin'
+                        : memberRole.contains('editor')
+                        ? 'Editor'
+                        : 'Viewer';
+
+                final nameController = TextEditingController(text: m.fullName);
+                final emailController = TextEditingController(text: m.email);
+
+                Get.dialog<void>(
+                  AlertDialog(
+                    title: const Text('Update Member'),
+                    content: StatefulBuilder(
+                      builder: (context, setState) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Name',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.70),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomTextField(
+                              controller: nameController,
+                              hint: 'Name',
+                              readOnly: true,
+                              enabled: false,
+                              borderRadius: 12,
+                              filled: true,
+                              fillColor: AppColors.white,
+                              borderColor: AppColors.ink.withValues(alpha: 0.10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Email',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.70),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomTextField(
+                              controller: emailController,
+                              hint: 'Email',
+                              readOnly: true,
+                              enabled: false,
+                              borderRadius: 12,
+                              filled: true,
+                              fillColor: AppColors.white,
+                              borderColor: AppColors.ink.withValues(alpha: 0.10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Assign Role',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge?.copyWith(
+                                color: AppColors.ink.withValues(alpha: 0.70),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomSearchDropdown<String>(
+                              items: controller.roles,
+                              selectedItem: selected,
+                              hintText: 'Select role',
+                              showSearchBox: false,
+                              itemAsString: (s) => s,
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setState(() => selected = v);
+                              },
+                              bgColor: AppColors.white,
+                              borderColor: AppColors.ink.withValues(alpha: 0.10),
+                              borderRadius: 12,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 4,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Get.back(),
+                        child: const Text('Cancel'),
+                      ),
+                      Obx(
+                        () => FilledButton(
+                          onPressed:
+                              controller.isUpdatingMemberRole.value
+                                  ? null
+                                  : () async {
+                                    final didUpdate =
+                                        await controller.updateMemberRole(
+                                          m,
+                                          selected,
+                                        );
+                                    if (didUpdate) {
+                                      Get.back();
+                                    }
+                                  },
+                          child: Text(
+                            controller.isUpdatingMemberRole.value
+                                ? 'Updating...'
+                                : 'Update',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).whenComplete(() {
+                  nameController.dispose();
+                  emailController.dispose();
+                });
+              },
+              onDelete:
+                  canDelete
+                      ? () {
+                        ConfirmDialog.show(
+                          title: 'Delete member?',
+                          message: 'Remove ${m.email} from organization members?',
+                          confirmText: 'Delete',
+                          destructive: true,
+                        ).then((ok) {
+                          if (ok) controller.deleteMember(index);
+                        });
+                      }
+                      : null,
+            );
+          },
+        );
+      }),
+    );
   }
 }
 

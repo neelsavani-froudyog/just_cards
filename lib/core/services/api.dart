@@ -7,6 +7,8 @@ class ApiUrl {
   /// Change this for different environments.
   static String baseUrl = 'https://just-card-backend.vercel.app';
   // static String baseUrl = 'http://localhost:3000';
+  static String supabaseRestBaseUrl = '';
+  static String supabaseApiKey = '';
 
   /// Auth
   static const String sendOtp = '/auth/otp/send';
@@ -24,6 +26,10 @@ class ApiUrl {
   static const String profileDeleteOrganization = '/profile/organizations';
   static const String profileOrganizationsMembers =
       '/profile/organizations/members';
+  static const String profileOrganizationsMembersRole =
+      '/profile/organizations/members/role';
+  static const String softDeleteOrganizationMemberRpc =
+      '/rest/v1/rpc/soft_delete_organization_member';
   static const String organizationsInvites = '/organizations/invites';
   static const String organizationsInvitesRole = '/organizations/invites/role';
   static const String organizationsInvitesMember =
@@ -46,6 +52,8 @@ class ApiUrl {
   static const String scanQuotaStatus = '/scan-quota/status';
   static const String parseCard = '/scan-quota/parse-card';
   static const String eventsInvites = '/events/invites';
+  static const String eventsInvitesRole = '/events/invites/role';
+  static const String eventsInvitesMember = '/events/invites/member';
   /// Recall / notify for a pending event invite batch (body: `invite_batch_id`).
   static const String eventInvitesNotify = '/events/invites/notify';
   static const String eventsMembers = '/events/members';
@@ -75,5 +83,14 @@ class ApiUrl {
   static void configure({required String baseUrl}) {
     // Remove trailing slash so endpoint joins are consistent.
     ApiUrl.baseUrl = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Optional Supabase REST RPC config for direct RPC calls.
+  static void configureSupabase({
+    required String restBaseUrl,
+    required String apiKey,
+  }) {
+    supabaseRestBaseUrl = restBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    supabaseApiKey = apiKey.trim();
   }
 }

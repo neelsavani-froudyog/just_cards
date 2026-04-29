@@ -41,98 +41,97 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
         }
 
         final error = controller.errorText.value;
-        if (error != null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    error,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.danger,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: controller.fetchOrganizations,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (controller.organizations.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.apartment_rounded,
-                    size: 52,
-                    color: AppColors.ink.withValues(alpha: 0.35),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'No organizations yet',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Tap the button below to create your first organization.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.ink.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        final ownedOrganizations = controller.organizations
-            .where((org) => _normalizedRole(org) == _OrgRole.owner)
-            .toList(growable: false);
-        final memberOrganizations = controller.organizations
-            .where((org) => _normalizedRole(org) != _OrgRole.owner)
-            .toList(growable: false);
-
         return RefreshIndicator(
           onRefresh: controller.fetchOrganizations,
-          child: ListView(
-            controller: controller.scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            children: [
-              if (ownedOrganizations.isNotEmpty) ...[
-                for (final org in ownedOrganizations) ...[
-                  _OrganizationCard(org: org),
-                  const SizedBox(height: 12),
-                ],
-              ],
-              if (memberOrganizations.isNotEmpty) ...[
-                for (final org in memberOrganizations) ...[
-                  _OrganizationCard(org: org),
-                  const SizedBox(height: 12),
-                ],
-              ],
-              if (controller.isFetchingMore.value)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-            ],
-          ),
+          child:
+              error != null
+                  ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      const SizedBox(height: 140),
+                      Text(
+                        error,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Center(
+                        child: FilledButton(
+                          onPressed: controller.fetchOrganizations,
+                          child: const Text('Retry'),
+                        ),
+                      ),
+                    ],
+                  )
+                  : controller.organizations.isEmpty
+                  ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 20,
+                    ),
+                    children: [
+                      const SizedBox(height: 120),
+                      Icon(
+                        Icons.apartment_rounded,
+                        size: 52,
+                        color: AppColors.ink.withValues(alpha: 0.35),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No organizations yet',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tap the button below to create your first organization.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.ink.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  )
+                  : ListView(
+                    controller: controller.scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    children: [
+                      ...controller.organizations
+                          .where(
+                            (org) => _normalizedRole(org) == _OrgRole.owner,
+                          )
+                          .expand(
+                            (org) => <Widget>[
+                              _OrganizationCard(org: org),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
+                      ...controller.organizations
+                          .where(
+                            (org) => _normalizedRole(org) != _OrgRole.owner,
+                          )
+                          .expand(
+                            (org) => <Widget>[
+                              _OrganizationCard(org: org),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
+                      if (controller.isFetchingMore.value)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                    ],
+                  ),
         );
       }),
     );

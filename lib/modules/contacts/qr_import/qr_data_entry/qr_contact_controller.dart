@@ -33,8 +33,7 @@ class QrContactController extends GetxController {
   final salutations = <String>['Mr.', 'Ms.', 'Mrs.', 'Dr.'];
   final salutation = 'Mr.'.obs;
 
-  final firstNameCtrl = TextEditingController();
-  final lastNameCtrl = TextEditingController();
+  final fullNameCtrl = TextEditingController();
   final jobTitleCtrl = TextEditingController();
   final companyCtrl = TextEditingController();
   final mobileCtrl = TextEditingController();
@@ -134,18 +133,11 @@ class QrContactController extends GetxController {
     final qrLast = _qrPrefill!['lastName']?.toString().trim() ?? '';
     final qrFullName = _qrPrefill!['fullName']?.toString().trim() ?? '';
 
-    if (qrFirst.isNotEmpty) firstNameCtrl.text = qrFirst;
-    if (qrLast.isNotEmpty) lastNameCtrl.text = qrLast;
-
-    if (firstNameCtrl.text.trim().isEmpty &&
-        lastNameCtrl.text.trim().isEmpty &&
-        qrFullName.isNotEmpty) {
-      final parts = qrFullName
-          .split(RegExp(r'\s+'))
-          .where((p) => p.trim().isNotEmpty)
-          .toList();
-      if (parts.isNotEmpty) firstNameCtrl.text = parts.first.trim();
-      if (parts.length > 1) lastNameCtrl.text = parts.sublist(1).join(' ').trim();
+    final combinedName = qrFullName.isNotEmpty
+        ? qrFullName
+        : '$qrFirst $qrLast'.trim();
+    if (combinedName.isNotEmpty) {
+      fullNameCtrl.text = combinedName;
     }
 
     final qrOrganization = _qrPrefill!['organization']?.toString().trim() ?? '';
@@ -389,11 +381,15 @@ class QrContactController extends GetxController {
   Future<void> saveContact() async {
     if (isSaving.value) return;
 
-
-
     // Trim & validate required fields before doing any network calls.
-    final first = firstNameCtrl.text.trim();
-    final last = lastNameCtrl.text.trim();
+    final fullNameRaw = fullNameCtrl.text.trim();
+    final nameParts = fullNameRaw
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    final first = nameParts.isNotEmpty ? nameParts.first : '';
+    final last =
+        nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
     final designation = jobTitleCtrl.text.trim();
     final companyName = companyCtrl.text.trim();
     final website = websiteCtrl.text.trim();
@@ -411,11 +407,7 @@ class QrContactController extends GetxController {
     final address = addressCtrl.text.trim();
 
     if (first.isEmpty) {
-      ToastService.error('First name is required');
-      return;
-    }
-    if (last.isEmpty) {
-      ToastService.error('Last name is required');
+      ToastService.error('Full name is required');
       return;
     }
     if (companyName.isEmpty) {
@@ -494,8 +486,7 @@ class QrContactController extends GetxController {
 
   @override
   void onClose() {
-    firstNameCtrl.dispose();
-    lastNameCtrl.dispose();
+    fullNameCtrl.dispose();
     jobTitleCtrl.dispose();
     companyCtrl.dispose();
     mobileCtrl.dispose();

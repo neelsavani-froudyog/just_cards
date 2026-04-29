@@ -50,6 +50,7 @@ class ManageEventController extends GetxController {
   final members = <EventMember>[
   ].obs;
   final isMembersLoading = false.obs;
+  final isUpdatingMemberRole = false.obs;
   final membersErrorText = RxnString();
 
   final sentInvites = <SentInvite>[
@@ -64,6 +65,14 @@ class ManageEventController extends GetxController {
   final eventOrganizationId = RxnString();
 
   final isDeletingEvent = false.obs;
+
+  int get joinedMembersCount {
+    return members.where((member) {
+      final status = (member.status ?? '').trim().toLowerCase();
+      final joinedAt = member.joinedAt?.trim() ?? '';
+      return status == 'accepted' || joinedAt.isNotEmpty;
+    }).length;
+  }
 
   /// From `GET /profile/me` (`data.user_id`), for creator check.
   final currentUserId = RxnString();
@@ -439,26 +448,71 @@ class ManageEventController extends GetxController {
     }
   }
 
-  void updateMemberRole(int index, String inviteRole) {
-    if (index < 0 || index >= members.length) return;
-    final existing = members[index];
+  Future<bool> updateMemberRole(EventMember member, String inviteRole) async {
+    if (isUpdatingMemberRole.value) return false;
+
+    final inviteId = member.inviteId?.trim() ?? '';
+    if (inviteId.isEmpty) {
+      await ToastService.error('Invite ID is missing');
+      return false;
+    }
+
     final nextRole = _memberRoleFromInviteRole(inviteRole);
-    members[index] = EventMember(
-      id: existing.id,
-      name: existing.name,
-      email: existing.email,
-      avatarUrl: existing.avatarUrl,
-      role: nextRole,
-      status: existing.status,
-      inviteId: existing.inviteId,
-      inviteBatchId: existing.inviteBatchId,
-      joinedAt: existing.joinedAt,
-    );
+    if (member.role.trim().toLowerCase() == nextRole.trim().toLowerCase()) {
+      await ToastService.info('Role is already updated');
+      return true;
+    }
+
+    isUpdatingMemberRole.value = true;
+    var didUpdate = false;
+    try {
+      await _apiService.patchRequest(
+        url: ApiUrl.eventsInvitesRole,
+        data: <String, dynamic>{
+          'p_invite_id': inviteId,
+          'p_new_role': _apiRoleFromUiRole(inviteRole),
+        },
+        showSuccessToast: true,
+        successToastMessage: 'Role updated',
+        showErrorToast: true,
+        onSuccess: (_) async {
+          didUpdate = true;
+          await fetchMembers();
+        },
+        onError: (_) {},
+      );
+    } finally {
+      isUpdatingMemberRole.value = false;
+    }
+    return didUpdate;
   }
 
-  void deleteMember(int index) {
+  Future<void> deleteMember(int index) async {
     if (index < 0 || index >= members.length) return;
-    members.removeAt(index);
+    if (isInviting.value) return;
+
+    final member = members[index];
+    final inviteId = member.inviteId?.trim() ?? '';
+    if (inviteId.isEmpty) {
+      await ToastService.error('Invite ID is missing');
+      return;
+    }
+
+    isInviting.value = true;
+    try {
+      await _apiService.deleteRequest(
+        url: ApiUrl.eventsInvitesMember,
+        queryParameters: <String, dynamic>{'id': inviteId},
+        data: null,
+        showSuccessToast: true,
+        successToastMessage: 'Member removed',
+        showErrorToast: true,
+        onSuccess: (_) => fetchMembers(),
+        onError: (_) {},
+      );
+    } finally {
+      isInviting.value = false;
+    }
   }
 
   Future<void> fetchMembers() async {
@@ -694,4 +748,3 @@ class SentInvite {
   final String role;
   final String status;
 }
-

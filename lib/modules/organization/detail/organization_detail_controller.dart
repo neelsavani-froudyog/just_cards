@@ -93,6 +93,7 @@ class OrganizationDetailController extends GetxController {
 
   final members = <OrganizationMemberItem>[].obs;
   final isMembersLoading = false.obs;
+  final isUpdatingMemberRole = false.obs;
   final membersErrorText = RxnString();
 
   // Invite list is dynamic: items are added/removed by the user.
@@ -100,9 +101,19 @@ class OrganizationDetailController extends GetxController {
 
   final roles = const <String>['Admin', 'Editor', 'Viewer'];
 
-  int get membersCount => members.length;
-  int get pendingInvitesCount =>
-      sentInvites.where((i) => i.status.toLowerCase() != 'accepted').length;
+  int get membersCount {
+    return members.where((member) {
+      final status = member.status.trim().toLowerCase();
+      final joinedAt = member.joinedAt?.trim() ?? '';
+      return status == 'accepted' || joinedAt.isNotEmpty;
+    }).length;
+  }
+  int get pendingInvitesCount {
+    return members.where((member) {
+      final status = member.status.trim().toLowerCase();
+      return status == 'pending';
+    }).length;
+  }
   int get eventsCount => orgEvents.length;
 
   @override
@@ -151,6 +162,14 @@ class OrganizationDetailController extends GetxController {
     }
     // For the Invites tab (index 2) we currently work with local state
     // (`sentInvites`) and dedicated send/remove methods, so no extra fetch.
+  }
+
+  String _apiRoleFromUiRole(String uiRole) {
+    final v = uiRole.trim().toLowerCase();
+    if (v.contains('admin') || v.contains('owner')) return 'admin';
+    if (v.contains('editor')) return 'editor';
+    if (v.contains('viewer')) return 'viewer';
+    return v;
   }
 
   void applyOrganizationEditResult(dynamic result) {
@@ -526,20 +545,36 @@ class OrganizationDetailController extends GetxController {
   Future<void> removeInviteForMember(OrganizationMemberItem member) async {
     if (isInviting.value) return;
 
-    final inviteId = member.inviteId?.toString().trim();
-    if (inviteId == null || inviteId.isEmpty) {
-      ToastService.error('Invite ID is missing');
+    final organizationId = args.organizationId.trim();
+    if (organizationId.isEmpty) {
+      await ToastService.error('Organization ID is missing');
       return;
     }
 
+    final rpcBaseUrl = ApiUrl.supabaseRestBaseUrl.trim();
+    final apiKey = ApiUrl.supabaseApiKey.trim();
+    if (rpcBaseUrl.isEmpty || apiKey.isEmpty) {
+      await ToastService.error('Supabase RPC is not configured');
+      return;
+    }
+
+    final userId = member.userId.trim();
+
     isInviting.value = true;
     try {
-      await _apiService.deleteRequest(
-        url: ApiUrl.organizationsInvitesMember,
-        queryParameters: <String, dynamic>{'id': inviteId},
-        data: null,
+      await _apiService.postRequest(
+        url: '$rpcBaseUrl${ApiUrl.softDeleteOrganizationMemberRpc}',
+        header: <String, dynamic>{
+          'apikey': apiKey,
+          'Authorization': 'Bearer $apiKey',
+        },
+        data: <String, dynamic>{
+          'p_organization_id': organizationId,
+          'p_user_id': userId.isEmpty ? null : userId,
+          'p_email': null,
+        },
         showSuccessToast: true,
-        successToastMessage: 'Invite removed',
+        successToastMessage: 'Member removed',
         showErrorToast: true,
         onSuccess: (_) => fetchMembers(),
         onError: (_) {},
@@ -658,43 +693,61 @@ class OrganizationDetailController extends GetxController {
 
   // Contacts are fetched server-side with `p_search`.
 
-  Future<void> updateMemberRole(int index, String selected) async {
-    if (index < 0 || index >= members.length) return;
+  Future<bool> updateMemberRole(
+    OrganizationMemberItem member,
+    String selected,
+  ) async {
+    if (isUpdatingMemberRole.value) return false;
 
-    final member = members[index];
-    final inviteId = member.inviteId?.toString().trim();
-    if (inviteId == null || inviteId.isEmpty) {
-      ToastService.error('Invite ID is missing');
-      return;
+    final organizationId = args.organizationId.trim();
+    if (organizationId.isEmpty) {
+      await ToastService.error('Organization ID is missing');
+      return false;
     }
 
-    final v = selected.toLowerCase().trim();
-    final apiRole =
-        v.contains('admin')
-            ? 'admin'
-            : v.contains('editor')
-            ? 'editor'
-            : 'viewer';
+    final userId = member.userId.trim();
 
-    await _apiService.patchRequest(
-      url: ApiUrl.organizationsInvitesRole,
-      queryParameters: <String, dynamic>{'id': inviteId},
-      data: <String, dynamic>{'role': apiRole},
-      showSuccessToast: true,
-      successToastMessage: 'Role updated',
-      showErrorToast: true,
-      onSuccess: (_) => fetchMembers(),
-      onError: (_) {},
-    );
+    final email = member.email.trim();
+    if (email.isEmpty) {
+      await ToastService.error('Email is missing');
+      return false;
+    }
+
+    final nextRole = _apiRoleFromUiRole(selected);
+    if (_apiRoleFromUiRole(member.role) == nextRole) {
+      await ToastService.info('Role is already updated');
+      return true;
+    }
+
+    isUpdatingMemberRole.value = true;
+    var didUpdate = false;
+    try {
+      await _apiService.patchRequest(
+        url: ApiUrl.profileOrganizationsMembersRole,
+        data: <String, dynamic>{
+          'p_organization_id': organizationId,
+          'p_user_id': userId.isEmpty ? null : userId,
+          'p_email': email,
+          'p_new_role': nextRole,
+        },
+        showSuccessToast: true,
+        successToastMessage: 'Role updated',
+        showErrorToast: true,
+        onSuccess: (_) async {
+          didUpdate = true;
+          await fetchMembers();
+        },
+        onError: (_) {},
+      );
+    } finally {
+      isUpdatingMemberRole.value = false;
+    }
+    return didUpdate;
   }
 
   Future<void> deleteMember(int index) async {
     if (index < 0 || index >= members.length) return;
     final member = members[index];
-    if (member.inviteId == null || member.inviteId!.toString().trim().isEmpty) {
-      ToastService.error('Invite ID is missing');
-      return;
-    }
     await removeInviteForMember(member);
   }
 }

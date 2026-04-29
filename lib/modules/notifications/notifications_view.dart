@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/custom_text_field.dart';
@@ -308,6 +309,10 @@ class _NotificationCard extends StatelessWidget {
           if (!item.isSeen && item.id.isNotEmpty) {
             await notificationsController.markNotificationSeen(item.id);
           }
+          if (statusText == 'accepted') {
+            await ToastService.info('Invitation already accepted');
+            return;
+          }
           final shouldRefresh = await Get.toNamed(
             isEventInvite ? Routes.joinEvent : Routes.joinOrganization,
             arguments: isEventInvite
@@ -503,4 +508,3 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-

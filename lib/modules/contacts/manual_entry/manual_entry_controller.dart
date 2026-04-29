@@ -26,8 +26,7 @@ class ManualEntryController extends GetxController {
   final salutations = <String>['Mr.', 'Ms.', 'Mrs.', 'Dr.'];
   final salutation = 'Mr.'.obs;
 
-  final firstNameCtrl = TextEditingController();
-  final lastNameCtrl = TextEditingController();
+  final fullNameCtrl = TextEditingController();
   final jobTitleCtrl = TextEditingController();
   final companyCtrl = TextEditingController();
   final mobileCtrl = TextEditingController();
@@ -303,8 +302,14 @@ class ManualEntryController extends GetxController {
     if (isSaving.value) return;
 
     // Trim & validate required fields before any network calls.
-    final first = firstNameCtrl.text.trim();
-    final last = lastNameCtrl.text.trim();
+    final fullNameRaw = fullNameCtrl.text.trim();
+    final nameParts = fullNameRaw
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    final first = nameParts.isNotEmpty ? nameParts.first : '';
+    final last =
+        nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
     final designation = jobTitleCtrl.text.trim();
     final companyName = companyCtrl.text.trim();
     final website = websiteCtrl.text.trim();
@@ -322,11 +327,7 @@ class ManualEntryController extends GetxController {
     final address = addressCtrl.text.trim();
 
     if (first.isEmpty) {
-      ToastService.error('First name is required');
-      return;
-    }
-    if (last.isEmpty) {
-      ToastService.error('Last name is required');
+      ToastService.error('Full name is required');
       return;
     }
     if (companyName.isEmpty) {
@@ -470,8 +471,7 @@ class ManualEntryController extends GetxController {
 
   @override
   void onClose() {
-    firstNameCtrl.dispose();
-    lastNameCtrl.dispose();
+    fullNameCtrl.dispose();
     jobTitleCtrl.dispose();
     companyCtrl.dispose();
     mobileCtrl.dispose();

@@ -184,7 +184,8 @@ class ManageEventView extends GetView<ManageEventController> {
                                         );
                                       }),
                                       Obx(() {
-                                        final membersCount = controller.members.length;
+                                        final membersCount =
+                                            controller.joinedMembersCount;
                                         return _InfoChip(
                                           icon: Icons.group_rounded,
                                           label: '$membersCount Members',
@@ -327,114 +328,126 @@ class _ContactsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final isLoading = controller.isContactsLoading.value;
-      final err = controller.contactsErrorText.value;
-      final items = controller.contacts;
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
-            child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    CustomTextField(
-                      hint: 'Search...',
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        color: AppColors.ink.withValues(alpha: 0.55),
-                      ),
-                      borderRadius: 12,
-                      filled: true,
-                      fillColor: const Color(0xFFF5F7FB),
-                      borderColor: AppColors.ink.withValues(alpha: 0.10),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      onChanged: controller.setSearch,
-                    ),
-                    
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CustomTextField(
+                hint: 'Search...',
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: AppColors.ink.withValues(alpha: 0.55),
                 ),
-          ),
-          if (isLoading)
-            const Expanded(child: ManageEventContactsShimmerView())
-          else if (items.isEmpty)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: AppColors.ink.withValues(alpha: 0.08),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.ink.withValues(alpha: 0.03),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.10),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.person_search_rounded,
-                            color: AppColors.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No contacts found',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleMedium?.copyWith(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          err ??
-                              (controller.searchQuery.value.trim().isNotEmpty
-                                  ? 'Try a different search keyword.'
-                                  : 'Contacts will appear here once cards are added to this event.'),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.ink.withValues(alpha: 0.60),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                borderRadius: 12,
+                filled: true,
+                fillColor: const Color(0xFFF5F7FB),
+                borderColor: AppColors.ink.withValues(alpha: 0.10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
+                onChanged: controller.setSearch,
               ),
-            )
-          else
-            Expanded(
-              child: ListView.separated(
+            ],
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => controller.fetchContacts(reset: true),
+            child: Obx(() {
+              final isLoading = controller.isContactsLoading.value;
+              final err = controller.contactsErrorText.value;
+              final items = controller.contacts;
+
+              if (isLoading) {
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(
+                      height: 500,
+                      child: ManageEventContactsShimmerView(),
+                    ),
+                  ],
+                );
+              }
+
+              if (items.isEmpty) {
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: AppColors.ink.withValues(alpha: 0.08),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.ink.withValues(alpha: 0.03),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.10),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.person_search_rounded,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No contacts found',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            err ??
+                                (controller.searchQuery.value.trim().isNotEmpty
+                                    ? 'Try a different search keyword.'
+                                    : 'Contacts will appear here once cards are added to this event.'),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.60),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -475,11 +488,12 @@ class _ContactsTab extends StatelessWidget {
                     },
                   );
                 },
-              ),
-            ),
-        ],
-      );
-    });
+              );
+            }),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -773,12 +787,27 @@ class _MembersTabState extends State<_MembersTab> {
                               onPressed: () => Get.back(),
                               child: const Text('Cancel'),
                             ),
-                            FilledButton(
-                              onPressed: () {
-                                controller.updateMemberRole(index, selected);
-                                Get.back();
-                              },
-                              child: const Text('Update'),
+                            Obx(
+                              () => FilledButton(
+                                onPressed:
+                                    controller.isUpdatingMemberRole.value
+                                        ? null
+                                        : () async {
+                                          final didUpdate =
+                                              await controller.updateMemberRole(
+                                                m,
+                                                selected,
+                                              );
+                                          if (didUpdate) {
+                                            Get.back();
+                                          }
+                                        },
+                                child: Text(
+                                  controller.isUpdatingMemberRole.value
+                                      ? 'Updating...'
+                                      : 'Update',
+                                ),
+                              ),
                             ),
                           ],
                         ),

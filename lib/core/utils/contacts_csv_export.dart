@@ -45,8 +45,6 @@ String buildEventContactsCsv(Iterable<EventContactItem> items) {
   buf.writeln(
     [
       'Full name',
-      'First name',
-      'Last name',
       'Email 1',
       'Email 2',
       'Phone 1',
@@ -62,8 +60,6 @@ String buildEventContactsCsv(Iterable<EventContactItem> items) {
     buf.writeln(
       [
         _escapeCsvField(c.fullName),
-        _escapeCsvField(c.firstName),
-        _escapeCsvField(c.lastName),
         _escapeCsvField(c.email1),
         _escapeCsvField(c.email2),
         _escapeCsvField(c.phone1),
@@ -84,8 +80,6 @@ Uint8List buildEventContactsXlsxBytes(Iterable<EventContactItem> items) {
   final sheet = excel['Contacts'];
   sheet.appendRow(<CellValue>[
     TextCellValue('Full name'),
-    TextCellValue('First name'),
-    TextCellValue('Last name'),
     TextCellValue('Email 1'),
     TextCellValue('Email 2'),
     TextCellValue('Phone 1'),
@@ -100,8 +94,6 @@ Uint8List buildEventContactsXlsxBytes(Iterable<EventContactItem> items) {
   for (final c in items) {
     sheet.appendRow(<CellValue>[
       TextCellValue(c.fullName),
-      TextCellValue(c.firstName),
-      TextCellValue(c.lastName),
       TextCellValue(c.email1),
       TextCellValue(c.email2),
       TextCellValue(c.phone1),
@@ -123,8 +115,6 @@ String buildOrganizationContactsCsv(Iterable<OrganizationContactItem> items) {
   buf.writeln(
     [
       'Full name',
-      'First name',
-      'Last name',
       'Email',
       'Phone',
       'Company',
@@ -136,8 +126,6 @@ String buildOrganizationContactsCsv(Iterable<OrganizationContactItem> items) {
     buf.writeln(
       [
         _escapeCsvField(c.fullName),
-        _escapeCsvField(c.firstName),
-        _escapeCsvField(c.lastName),
         _escapeCsvField(c.email1),
         _escapeCsvField(c.phone1),
         _escapeCsvField(c.companyName),
@@ -156,8 +144,6 @@ Uint8List buildOrganizationContactsXlsxBytes(
   final sheet = excel['Contacts'];
   sheet.appendRow(<CellValue>[
     TextCellValue('Full name'),
-    TextCellValue('First name'),
-    TextCellValue('Last name'),
     TextCellValue('Email'),
     TextCellValue('Phone'),
     TextCellValue('Company'),
@@ -168,8 +154,6 @@ Uint8List buildOrganizationContactsXlsxBytes(
   for (final c in items) {
     sheet.appendRow(<CellValue>[
       TextCellValue(c.fullName),
-      TextCellValue(c.firstName),
-      TextCellValue(c.lastName),
       TextCellValue(c.email1),
       TextCellValue(c.phone1),
       TextCellValue(c.companyName),
