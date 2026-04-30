@@ -25,6 +25,16 @@ import '../../home/home_events_model.dart';
 import '../manual_entry/add_tag_dialog.dart';
 import '../manual_entry/organization_simple_model.dart';
 
+class _ParsedPhoneData {
+  final String nationalNumber;
+  final String isoCode;
+
+  const _ParsedPhoneData({
+    required this.nationalNumber,
+    required this.isoCode,
+  });
+}
+
 class _DashedPillBorderPainter extends CustomPainter {
   final Color color;
   final double radius;
@@ -102,6 +112,7 @@ class _ScanResultViewState extends State<ScanResultView> {
   String? _lockedEventTitle;
 
   late final ApiService _apiService;
+  late final CountryService _countryService;
 
   final List<String> _salutations = <String>['Mr.', 'Ms.', 'Mrs.', 'Dr.'];
   String _selectedSalutation = 'Mr.';
@@ -140,6 +151,7 @@ class _ScanResultViewState extends State<ScanResultView> {
   void initState() {
     super.initState();
     _apiService = Get.find<ApiService>();
+    _countryService = CountryService();
     final args =
         Get.arguments as Map<String, dynamic>? ?? const <String, dynamic>{};
     final payloadImagePath = _extractScannerImagePath(args);
@@ -312,6 +324,43 @@ class _ScanResultViewState extends State<ScanResultView> {
     return '+$codeDigits$digits';
   }
 
+  String _normalizeParsedPhone(String raw) {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '';
+    if (digits.length <= 10) return digits;
+    return digits.substring(digits.length - 10);
+  }
+
+  _ParsedPhoneData _parsePhoneWithCountry(String raw, String fallbackIso) {
+    final value = raw.trim();
+    if (value.isEmpty) {
+      return _ParsedPhoneData(nationalNumber: '', isoCode: fallbackIso);
+    }
+
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      return _ParsedPhoneData(nationalNumber: '', isoCode: fallbackIso);
+    }
+
+    Country? bestMatch;
+    var bestMatchLength = 0;
+    for (final country in _countryService.getAll()) {
+      final codeDigits = country.phoneCode.replaceAll(RegExp(r'\D'), '');
+      if (codeDigits.isEmpty) continue;
+      if (digits.startsWith(codeDigits) &&
+          codeDigits.length > bestMatchLength) {
+        bestMatch = country;
+        bestMatchLength = codeDigits.length;
+      }
+    }
+
+    final normalizedNumber = _normalizeParsedPhone(value);
+    return _ParsedPhoneData(
+      nationalNumber: normalizedNumber,
+      isoCode: bestMatch?.countryCode ?? fallbackIso,
+    );
+  }
+
   Future<void> _runOcrForCurrentImage() async {
     if (_images.isEmpty) return;
     final result = await _runAutoOcr(_images.first.trim());
@@ -358,8 +407,14 @@ class _ScanResultViewState extends State<ScanResultView> {
     final company = fields.company.trim();
     final email1 = fields.emails.isNotEmpty ? fields.emails.first.trim() : '';
     final email2 = fields.emails.length > 1 ? fields.emails[1].trim() : '';
-    final phone1 = fields.phones.isNotEmpty ? fields.phones.first.trim() : '';
-    final phone2 = fields.phones.length > 1 ? fields.phones[1].trim() : '';
+    final phone1 =
+        fields.phones.isNotEmpty
+            ? _parsePhoneWithCountry(fields.phones.first.trim(), _phone1CountryIso)
+            : _ParsedPhoneData(nationalNumber: '', isoCode: _phone1CountryIso);
+    final phone2 =
+        fields.phones.length > 1
+            ? _parsePhoneWithCountry(fields.phones[1].trim(), _phone2CountryIso)
+            : _ParsedPhoneData(nationalNumber: '', isoCode: _phone2CountryIso);
     final website = (fields.website ?? '').trim();
     final address = (fields.address ?? '').trim();
 
@@ -369,8 +424,10 @@ class _ScanResultViewState extends State<ScanResultView> {
       _companyCtrl.text = company;
       _emailCtrl.text = email1;
       _secondaryEmailCtrl.text = email2;
-      _phoneCtrl.text = phone1;
-      _mobileCtrl.text = phone2;
+      _phone1CountryIso = phone1.isoCode;
+      _phone2CountryIso = phone2.isoCode;
+      _phoneCtrl.text = phone1.nationalNumber;
+      _mobileCtrl.text = phone2.nationalNumber;
       _websiteCtrl.text = website;
       _addressCtrl.text = address;
     });
@@ -1006,9 +1063,8 @@ class _ScanResultViewState extends State<ScanResultView> {
     if (path.isEmpty) {
       return Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
           color: AppColors.ink.withValues(alpha: 0.04),
-          border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
         ),
         alignment: Alignment.center,
         child: Icon(
@@ -1048,7 +1104,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       }
     }
 
-    return ClipRRect(borderRadius: BorderRadius.circular(20), child: child);
+    return ClipRRect(borderRadius: BorderRadius.circular(8), child: child);
   }
 
   Widget _section({
@@ -1155,11 +1211,9 @@ class _ScanResultViewState extends State<ScanResultView> {
     return Container(
       width: width,
       height: height,
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: AppColors.ink.withValues(alpha: 0.04),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: _buildCardPreview(),
     );
@@ -1274,8 +1328,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                     children: [
                       Center(
                         child: _scanPreviewThumbnail(
-                          width: constraints.maxWidth.clamp(0, 280),
-                          height: 132,
+                          width: double.infinity,
+                          height: 145,
                         ),
                       ),
                       const SizedBox(height: 18),
@@ -1287,7 +1341,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                     children: [
                       Expanded(child: heroCopy()),
                       const SizedBox(width: 14),
-                      _scanPreviewThumbnail(width: 132, height: 108),
+                      _scanPreviewThumbnail(width: 130, height: 140),
                     ],
                   ),
         );
@@ -1638,6 +1692,12 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 hint: 'Full name',
                               ),
                               const SizedBox(height: 14),
+                              _field(
+                                label: 'Job Title',
+                                controller: _jobTitleCtrl,
+                                hint: 'Job title',
+                              ),
+                              const SizedBox(height: 14),
                               _phoneFieldWithCountry(
                                 label: 'Mobile',
                                 textController: _phoneCtrl,
@@ -1695,11 +1755,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 controller: _companyCtrl,
                                 hint: 'Company name',
                               );
-                              final job = _field(
-                                label: 'Job Title',
-                                controller: _jobTitleCtrl,
-                                hint: 'Job title',
-                              );
                               if (stack) {
                                 return Column(
                                   crossAxisAlignment:
@@ -1708,8 +1763,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                     org,
                                     const SizedBox(height: 14),
                                     company,
-                                    const SizedBox(height: 14),
-                                    job,
                                   ],
                                 );
                               }
@@ -1727,8 +1780,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: job),
                                 ],
                               );
                             },

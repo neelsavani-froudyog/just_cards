@@ -7,7 +7,8 @@ import '../../core/services/auth_session_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../routes/app_routes.dart';
 
-class SplashController extends GetxController with GetSingleTickerProviderStateMixin {
+class SplashController extends GetxController
+    with GetSingleTickerProviderStateMixin {
   late final AnimationController animationController;
   late final Animation<double> scanLine;
   late final Animation<double> glow;
@@ -43,11 +44,7 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
       if (!isClosed) {
         final hasToken = _session.accessToken.value.trim().isNotEmpty;
         if (hasToken) {
-          Get.offNamed(
-              Routes.completeProfile,
-              arguments: <String, dynamic>{'email': 'neel@gmail.com'},
-            );
-          // Get.offAllNamed(Routes.bottomNavigation);
+          Get.offAllNamed(Routes.bottomNavigation);
         } else {
           Get.offAllNamed(Routes.login);
         }
@@ -61,7 +58,5 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
     super.onClose();
   }
 
-  List<Color> get backgroundGradient => const [
-        ...AppColors.splashGradient,
-      ];
+  List<Color> get backgroundGradient => const [...AppColors.splashGradient];
 }
