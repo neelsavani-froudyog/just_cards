@@ -98,17 +98,22 @@ class CreateOrganizationController extends GetxController {
     }
   }
 
+  void _setError(String message) {
+    errorText.value = message;
+    ToastService.error(message);
+  }
+
   Future<void> submit() async {
     errorText.value = null;
     final name = organizationNameController.text.trim();
     if (name.isEmpty) {
-      errorText.value = 'Organisation name is required';
+      _setError('Organisation name is required');
       return;
     }
     final selected = selectedIndustry.value;
     final customIndustry = otherIndustryController.text.trim();
     if (selected == 'Other' && customIndustry.isEmpty) {
-      errorText.value = 'Please enter industry name';
+      _setError('Please enter industry name');
       return;
     }
     if (isSubmitting.value) return;

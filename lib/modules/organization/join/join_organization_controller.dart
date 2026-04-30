@@ -44,6 +44,25 @@ class JoinOrganizationController extends GetxController {
     args = JoinOrganizationArgs.from(Get.arguments);
   }
 
+  bool _isNestedSuccess(dynamic decodedBody) {
+    if (decodedBody is! Map) return true;
+    final data = decodedBody['data'];
+    if (data is Map && data['success'] is bool) {
+      return data['success'] as bool;
+    }
+    return true;
+  }
+
+  String _nestedMessage(dynamic decodedBody) {
+    if (decodedBody is! Map) return '';
+    final data = decodedBody['data'];
+    if (data is Map) {
+      final message = data['message']?.toString() ?? '';
+      if (message.trim().isNotEmpty) return message.trim();
+    }
+    return (decodedBody['message']?.toString() ?? '').trim();
+  }
+
   Future<void> acceptAndJoin() async {
     if (isWorking.value) return;
     final inviteId = args.inviteId.trim();
@@ -57,10 +76,15 @@ class JoinOrganizationController extends GetxController {
         url: ApiUrl.organizationsInvitesRespond,
         queryParameters: <String, dynamic>{'id': inviteId},
         data: const <String, dynamic>{'action': 'accept'},
-        showSuccessToast: true,
-        successToastMessage: 'Joined ${args.orgName}',
+        showSuccessToast: false,
         showErrorToast: true,
-        onSuccess: (_) {
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (!_isNestedSuccess(raw)) {
+            ToastService.error(_nestedMessage(raw).isNotEmpty ? _nestedMessage(raw) : 'Invite not found');
+            return;
+          }
+          ToastService.success('Joined ${args.orgName}');
           Get.back(result: true);
         },
         onError: (_) {},
@@ -83,10 +107,15 @@ class JoinOrganizationController extends GetxController {
         url: ApiUrl.organizationsInvitesRespond,
         queryParameters: <String, dynamic>{'id': inviteId},
         data: const <String, dynamic>{'action': 'decline'},
-        showSuccessToast: true,
-        successToastMessage: 'Invitation declined',
+        showSuccessToast: false,
         showErrorToast: true,
-        onSuccess: (_) {
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (!_isNestedSuccess(raw)) {
+            ToastService.error(_nestedMessage(raw).isNotEmpty ? _nestedMessage(raw) : 'Invite not found');
+            return;
+          }
+          ToastService.success('Invitation declined');
           Get.back(result: true);
         },
         onError: (_) {},
@@ -96,4 +125,3 @@ class JoinOrganizationController extends GetxController {
     }
   }
 }
-

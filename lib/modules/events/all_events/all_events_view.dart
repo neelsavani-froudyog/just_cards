@@ -11,13 +11,15 @@ class AllEventsView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('All Events'),
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.white,
         foregroundColor: AppColors.ink,
         elevation: 0,
         scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Obx(() {
         if (controller.isEventsLoading.value && controller.events.isEmpty) {
@@ -74,7 +76,12 @@ class AllEventsView extends GetView<HomeController> {
           color: AppColors.primary,
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+            padding: EdgeInsets.fromLTRB(
+              18,
+              12,
+              18,
+              16 + MediaQuery.of(context).padding.bottom,
+            ),
             itemCount: controller.events.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, index) {
@@ -97,9 +104,8 @@ class _AllEventCard extends StatelessWidget {
     const cardsCount = 143;
     final location =
         event.location.isNotEmpty ? event.location : 'Location not specified';
-    final eventDateLabel = _formatEventDate(event.eventDate);
     final roleLabel = _formatRole(event.role);
-    final dateChipLabel = _formatDateChip(event.eventDate);
+    final dateLabel = _formatEventDate(event.eventDate);
 
     return Material(
       color: Colors.transparent,
@@ -122,18 +128,17 @@ class _AllEventCard extends StatelessWidget {
             },
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -158,8 +163,8 @@ class _AllEventCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Icon(
                     Icons.chevron_right_rounded,
-                    size: 18,
-                    color: AppColors.ink.withValues(alpha: 0.40),
+                    size: 22,
+                    color: AppColors.ink.withValues(alpha: 0.30),
                   ),
                 ],
               ),
@@ -179,14 +184,12 @@ class _AllEventCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.ink.withValues(alpha: 0.66),
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Divider(height: 1, color: AppColors.ink.withValues(alpha: 0.06)),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -196,17 +199,22 @@ class _AllEventCard extends StatelessWidget {
                       label: '${event.count} Members',
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: _MetaInfo(
-                      icon: Icons.verified_user_outlined,
-                      label: roleLabel,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _MetaInfo(
+                        icon: Icons.shield_outlined,
+                        label: roleLabel,
+                        alignEnd: true,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
-                eventDateLabel,
+                dateLabel,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -286,22 +294,31 @@ class _AllEventCard extends StatelessWidget {
 }
 
 class _MetaInfo extends StatelessWidget {
-  const _MetaInfo({required this.icon, required this.label});
+  const _MetaInfo({
+    required this.icon,
+    required this.label,
+    this.alignEnd = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment:
+          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         Icon(icon, size: 15, color: AppColors.primary.withValues(alpha: 0.90)),
         const SizedBox(width: 6),
-        Expanded(
+        Flexible(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: AppColors.ink.withValues(alpha: 0.70),
               fontWeight: FontWeight.w700,

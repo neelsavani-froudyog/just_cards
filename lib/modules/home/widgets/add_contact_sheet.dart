@@ -53,10 +53,10 @@ class AddContactSheet extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.ink.withValues(alpha: 0.06),
+                        color: Colors.transparent,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.close_rounded, color: AppColors.ink.withValues(alpha: 0.75)),
+                      child: const Icon(Icons.close_rounded, color: AppColors.ink),
                     ),
                   ),
                 ],
@@ -71,6 +71,8 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.photo_camera_rounded,
                     title: 'Scan business card',
                     subtitle: 'Instant AI data extraction',
+                    iconBg: const Color(0xFFFFE7DB),
+                    iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
                       final homeController = Get.find<HomeController>();
                       
@@ -93,6 +95,8 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.library_add_rounded,
                     title: 'Scan multiple cards',
                     subtitle: 'Batch process stack of cards',
+                    iconBg: const Color(0xFFFFE7DB),
+                    iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
                        final homeController = Get.find<HomeController>();
                       
@@ -115,6 +119,8 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.qr_code_scanner_rounded,
                     title: 'Import from QR',
                     subtitle: 'Open QR scanner camera',
+                    iconBg: const Color(0xFFFFE7DB),
+                    iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
                       if (!Get.isRegistered<HomeController>()) {
                         Get.back();
@@ -141,6 +147,8 @@ class AddContactSheet extends StatelessWidget {
                     icon: Icons.edit_note_rounded,
                     title: 'Add Manually',
                     subtitle: 'Type details yourself',
+                    iconBg: const Color(0xFFFFE7DB),
+                    iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
                       if (!Get.isRegistered<HomeController>()) {
                         Get.back();
@@ -165,8 +173,7 @@ class AddContactSheet extends StatelessWidget {
               ),
             ),
             Container(
-              height: 1,
-              color: AppColors.ink.withValues(alpha: 0.08),
+              height: 0,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
@@ -174,6 +181,8 @@ class AddContactSheet extends StatelessWidget {
                 icon: Icons.calendar_month_rounded,
                 title: 'Create new event',
                 subtitle: 'Add or Scan Cards under segment',
+                iconBg: const Color(0xFFFFE7DB),
+                iconColor: const Color(0xFFFF6B2D),
                 onTap: () async {
                   final created = await CreateEventSheet.open();
                   if (created == true) {
@@ -195,12 +204,16 @@ class _SheetTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.iconBg,
+    this.iconColor,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final Color? iconBg;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -210,12 +223,18 @@ class _SheetTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Ink(
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
             color: AppColors.white,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.07),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -224,9 +243,9 @@ class _SheetTile extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: AppColors.primaryLight.withValues(alpha: 0.35),
+                  color: iconBg ?? AppColors.primaryLight.withValues(alpha: 0.35),
                 ),
-                child: Icon(icon, color: AppColors.ink.withValues(alpha: 0.85)),
+                child: Icon(icon, color: iconColor ?? AppColors.ink.withValues(alpha: 0.85)),
               ),
               const SizedBox(width: 12),
               Expanded(

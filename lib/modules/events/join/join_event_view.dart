@@ -13,12 +13,15 @@ class JoinEventView extends GetView<JoinEventController> {
     final a = controller.args;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Get.back(),
         ),
         title: const Text('Join Event'),
@@ -37,23 +40,20 @@ class JoinEventView extends GetView<JoinEventController> {
                       height: 84,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.primaryLight.withValues(alpha: 0.85),
-                            AppColors.primary.withValues(alpha: 0.25),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.28),
-                        ),
+                        color: AppColors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.ink.withValues(alpha: 0.05),
+                            blurRadius: 14,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.event_rounded,
                         size: 40,
-                        color: AppColors.ink.withValues(alpha: 0.78),
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -62,7 +62,7 @@ class JoinEventView extends GetView<JoinEventController> {
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: AppColors.ink,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -75,15 +75,13 @@ class JoinEventView extends GetView<JoinEventController> {
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.25),
-                        ),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.verified_rounded,
+                            Icons.shield_outlined,
                             size: 18,
                             color: AppColors.primary,
                           ),
@@ -133,7 +131,12 @@ class JoinEventView extends GetView<JoinEventController> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+              padding: EdgeInsets.fromLTRB(
+                18,
+                10,
+                18,
+                16 + MediaQuery.of(context).padding.bottom,
+              ),
               child: Column(
                 children: [
                   SizedBox(
@@ -250,8 +253,14 @@ class _AbilityTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -259,10 +268,10 @@ class _AbilityTile extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryLight.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xFFFFE7DB),
             ),
-            child: Icon(icon, color: AppColors.primaryDark),
+            child: Icon(icon, color: const Color(0xFFFF6B2D)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -292,4 +301,3 @@ class _AbilityTile extends StatelessWidget {
     );
   }
 }
-

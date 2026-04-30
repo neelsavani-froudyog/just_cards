@@ -16,12 +16,15 @@ class NotificationsView extends GetView<NotificationsController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Get.back(),
         ),
         title: const Text('Notifications'),
@@ -38,7 +41,7 @@ class NotificationsView extends GetView<NotificationsController> {
                   'Invitations',
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: AppColors.ink,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -64,10 +67,10 @@ class NotificationsView extends GetView<NotificationsController> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: active ? AppColors.primary.withValues(alpha: 0.16) : AppColors.white,
+                          color: active ? AppColors.primary : AppColors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: active ? AppColors.primary.withValues(alpha: 0.55) : AppColors.ink.withValues(alpha: 0.10),
+                            color: active ? AppColors.primary : AppColors.ink.withValues(alpha: 0.10),
                           ),
                         ),
                         child: Row(
@@ -76,7 +79,7 @@ class NotificationsView extends GetView<NotificationsController> {
                             Text(
                               label,
                               style: theme.textTheme.labelLarge?.copyWith(
-                                color: active ? AppColors.ink : AppColors.ink.withValues(alpha: 0.70),
+                                color: active ? AppColors.white : AppColors.ink.withValues(alpha: 0.70),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -84,7 +87,7 @@ class NotificationsView extends GetView<NotificationsController> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: active ? AppColors.primary : AppColors.ink.withValues(alpha: 0.06),
+                                color: active ? AppColors.white.withValues(alpha: 0.25) : AppColors.ink.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -146,7 +149,12 @@ class NotificationsView extends GetView<NotificationsController> {
                   return false;
                 },
                 child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    18,
+                    14,
+                    18,
+                    16 + MediaQuery.of(context).padding.bottom,
+                  ),
                   itemCount:
                       items.length + (controller.isLoadingMore.value ? 1 : 0),
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -288,7 +296,7 @@ class _NotificationCard extends StatelessWidget {
     final status = item.actionStatus.toLowerCase();
     final statusText = status.isNotEmpty ? status : 'pending';
     final statusColor = switch (statusText) {
-      'accepted' => AppColors.primaryDark,
+      'accepted' => const Color(0xFF15803D),
       'declined' => AppColors.ink.withValues(alpha: 0.55),
       _ => AppColors.primary,
     };
@@ -340,13 +348,12 @@ class _NotificationCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -358,20 +365,11 @@ class _NotificationCard extends StatelessWidget {
                 height: 46,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primaryLight.withValues(alpha: 0.75),
-                      AppColors.primary.withValues(alpha: 0.22),
-                    ],
-                  ),
-                  border:
-                      Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+                  color: const Color(0xFFFFE7DB),
                 ),
                 child: Icon(
-                  Icons.notifications_rounded,
-                  color: AppColors.ink.withValues(alpha: 0.80),
+                  Icons.notifications_none_rounded,
+                  color: const Color(0xFFFF6B2D),
                 ),
               ),
               const SizedBox(width: 12),
@@ -419,9 +417,11 @@ class _NotificationCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.badge_rounded,
-                            size: 16,
-                            color: AppColors.ink.withValues(alpha: 0.55)),
+                        Icon(
+                          Icons.badge_outlined,
+                          size: 16,
+                          color: AppColors.ink.withValues(alpha: 0.55),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           item.role,

@@ -18,7 +18,7 @@ class BottomNavigationView extends GetView<BottomNavigationController> {
     return Obx(() {
       final index = controller.selectedIndex.value;
       return Scaffold(
-        backgroundColor: AppColors.cardFill,
+        backgroundColor: AppColors.white,
         body: IndexedStack(index: index, children: pages),
         bottomNavigationBar: JustBottomNavigationBar(
           index: index,

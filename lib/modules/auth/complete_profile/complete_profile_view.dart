@@ -39,7 +39,7 @@ class _CompleteProfileBody extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Padding(
-              padding: EdgeInsets.only(top: isCompact ? 10 : 20, bottom: 12),
+              padding: EdgeInsets.only(top: isCompact ? 10 : 20, bottom: 12,right: 18,left: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

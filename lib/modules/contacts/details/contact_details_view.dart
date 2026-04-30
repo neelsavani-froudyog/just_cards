@@ -20,13 +20,14 @@ class ContactDetailsView extends GetView<ContactDetailsController> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         foregroundColor: AppColors.ink,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Get.back(),
         ),
         title: const Text('Contact Details'),
@@ -291,14 +292,14 @@ class _Header extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          width: 62,
-          height: 62,
+          width: 88,
+          height: 88,
           child: ClipOval(
             child: photo != null && photo.isNotEmpty
                 ? Image.network(
                     photo,
-                    width: 62,
-                    height: 62,
+                    width: 88,
+                    height: 88,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => _InitialsAvatar(initials: initials),
                     loadingBuilder: (context, child, loadingProgress) {
@@ -324,10 +325,9 @@ class _Header extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.ink.withValues(alpha: 0.55),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.primary,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
             ),
           ),
         ],
@@ -345,25 +345,17 @@ class _InitialsAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 62,
-      height: 62,
+      width: 88,
+      height: 88,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryLight.withValues(alpha: 0.95),
-            AppColors.primary.withValues(alpha: 0.20),
-          ],
-        ),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
+        color: AppColors.contactWhatsApp,
       ),
       alignment: Alignment.center,
       child: Text(
         initials,
         style: theme.textTheme.titleLarge?.copyWith(
-          color: AppColors.ink,
+          color: AppColors.white,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -501,41 +493,56 @@ class _TopTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget chip(ContactDetailsTab t, String label) {
+    Widget tabItem(ContactDetailsTab t, String label) {
       final active = tab == t;
       return Expanded(
         child: InkWell(
           onTap: () => onSelect(t),
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: active ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: active ? AppColors.primary.withValues(alpha: 0.40) : AppColors.ink.withValues(alpha: 0.08),
-              ),
-            ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: active ? AppColors.ink : AppColors.ink.withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w800,
+          child: SizedBox(
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color:
+                            active
+                                ? AppColors.primary
+                                : AppColors.ink.withValues(alpha: 0.45),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                if (active)
+                  Positioned(
+                    bottom: 0,
+                    left: 18,
+                    right: 18,
+                    child: Container(
+                      height: 2.4,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
                   ),
+              ],
             ),
           ),
         ),
       );
     }
 
-    return Row(
+    return Column(
       children: [
-        chip(ContactDetailsTab.details, 'Details'),
-        const SizedBox(width: 10),
-        chip(ContactDetailsTab.notes, 'Notes'),
-        const SizedBox(width: 10),
-        chip(ContactDetailsTab.attachments, 'Attachments'),
+        Container(height: 1, color: AppColors.ink.withValues(alpha: 0.06)),
+        Row(
+          children: [
+            tabItem(ContactDetailsTab.details, 'Details'),
+            tabItem(ContactDetailsTab.notes, 'Notes'),
+            tabItem(ContactDetailsTab.attachments, 'Attachments'),
+          ],
+        ),
       ],
     );
   }
@@ -617,25 +624,13 @@ class _DetailsTab extends StatelessWidget {
     final created = detail.createdAt.trim();
     if (created.isNotEmpty) {
       gap();
-      rows.add(const SizedBox(height: 4));
       rows.add(
         Text(
-          'Created on',
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.ink.withValues(alpha: 0.55),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.6,
-          ),
-        ),
-      );
-      rows.add(const SizedBox(height: 6));
-      rows.add(
-        Text(
-          _formatDetailDate(created),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.ink.withValues(alpha: 0.78),
-            fontWeight: FontWeight.w700,
-          ),
+          'Created on ${_formatDetailDate(created)}',
+          style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.ink.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w700,
+              ),
         ),
       );
     }
@@ -679,14 +674,30 @@ class _CardImagePreview extends StatelessWidget {
           url,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
-            color: AppColors.ink.withValues(alpha: 0.06),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+              ),
+            ),
             alignment: Alignment.center,
-            child: Icon(Icons.broken_image_outlined, color: AppColors.ink.withValues(alpha: 0.35)),
+            child: Icon(
+              Icons.credit_card_rounded,
+              color: AppColors.white.withValues(alpha: 0.40),
+              size: 54,
+            ),
           ),
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
             return Container(
-              color: AppColors.ink.withValues(alpha: 0.06),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                ),
+              ),
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 28,
@@ -715,8 +726,14 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -724,10 +741,10 @@ class _InfoRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryLight.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFFFE7DB),
             ),
-            child: Icon(icon, color: AppColors.primaryDark, size: 20),
+            child: Icon(icon, color: const Color(0xFFFF6B2D), size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -737,7 +754,7 @@ class _InfoRow extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.55),
+                    color: AppColors.ink.withValues(alpha: 0.50),
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.9,
                   ),

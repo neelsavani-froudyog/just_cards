@@ -21,11 +21,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
     final theme = Theme.of(context);
     final a = controller.args;
 
-    return SafeArea(
-      top: false,
-      left: false,
-      right: false,
-      child: Obx(() {
+    return Obx(() {
         final canManageOrganization = controller.canManageOrganization;
         final canShowDownloadContactsAction =
             controller.canShowDownloadContactsAction;
@@ -40,19 +36,22 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
             builder: (context) {
               final tabController = DefaultTabController.of(context);
               return Scaffold(
-                backgroundColor: AppColors.lightHubBg,
+                backgroundColor: AppColors.background,
                 appBar: AppBar(
-                  backgroundColor: AppColors.lightHubSurface,
+                  backgroundColor: AppColors.white,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 0,
-                  foregroundColor: AppColors.lightHubInk,
+                  scrolledUnderElevation: 0,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: AppColors.ink,
                   leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     onPressed: () => Get.back(),
                   ),
                   title: Text(
                     'Organization Detail',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppColors.lightHubInk,
+                      color: AppColors.ink,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -62,11 +61,9 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                             PopupMenuButton<String>(
                               icon: Icon(
                                 Icons.more_vert_rounded,
-                                color: AppColors.lightHubInk.withValues(
-                                  alpha: 0.92,
-                                ),
+                                color: AppColors.ink.withValues(alpha: 0.92),
                               ),
-                              color: AppColors.lightHubSurface,
+                              color: AppColors.white,
                               onSelected: (value) {
                                 if (value == 'download_contacts') {
                                   controller.exportOrganizationContactsCsv();
@@ -108,7 +105,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                                           'Download Contacts',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -119,7 +116,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                                           'Edit Organization',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -130,7 +127,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                                           'Delete Organization',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -145,14 +142,29 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                     _OrgHeader(controller: controller),
                     _EventsSection(controller: controller),
                     Container(
-                      color: AppColors.lightHubSurface,
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: AppColors.ink.withValues(alpha: 0.06),
+                          ),
+                        ),
+                      ),
                       child: TabBar(
                         onTap: controller.setSelectedTab,
                         controller: tabController,
-                        labelColor: AppColors.lightHubInk,
-                        unselectedLabelColor: AppColors.lightHubMuted,
-                        indicatorColor: AppColors.lightHubInk,
-                        indicatorWeight: 2.8,
+                        labelColor: AppColors.primary,
+                        unselectedLabelColor: AppColors.ink.withValues(alpha: 0.45),
+                        indicatorColor: AppColors.primary,
+                        indicatorWeight: 2.4,
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        indicator: UnderlineTabIndicator(
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 2.4,
+                          ),
+                          insets: const EdgeInsets.symmetric(horizontal: 22),
+                        ),
                         labelStyle: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -186,7 +198,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                     }
                     return FloatingActionButton(
                       heroTag: 'organization_detail_scan_fab',
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.ink,
                       foregroundColor: AppColors.white,
                       onPressed: () async {
                         final images = await DocumentScannerService.scan(
@@ -207,7 +219,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                           await controller.fetchOrganizationEvents();
                         }
                       },
-                      child: const Icon(Icons.badge_rounded),
+                      child: const Icon(Icons.badge_outlined),
                     );
                   },
                 ),
@@ -215,8 +227,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
             },
           ),
         );
-      }),
-    );
+      });
   }
 }
 
@@ -231,23 +242,23 @@ class _OrgHeader extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.lightHubSurface,
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 14),
+      color: AppColors.white,
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryLight.withValues(alpha: 0.38),
+              borderRadius: BorderRadius.circular(14),
+              color: AppColors.background,
             ),
             alignment: Alignment.center,
             child: Icon(
-              Icons.apartment_rounded,
-              color: AppColors.lightHubInk.withValues(alpha: 0.78),
-              size: 28,
+              Icons.home_outlined,
+              color: AppColors.primary,
+              size: 26,
             ),
           ),
           const SizedBox(width: 14),
@@ -261,13 +272,13 @@ class _OrgHeader extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: AppColors.lightHubInk,
+                      color: AppColors.ink,
                       fontWeight: FontWeight.w800,
                       height: 1.15,
                     ),
                   );
                 }),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Obx(() {
                   return Wrap(
                     spacing: 14,
@@ -306,11 +317,11 @@ class _StatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.lightHubMuted;
+    final color = AppColors.ink.withValues(alpha: 0.55);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: color),
+        Icon(icon, size: 16, color: color),
         const SizedBox(width: 6),
         Text(
           label,
@@ -337,7 +348,13 @@ class _EventsSection extends StatelessWidget {
       final expanded = controller.eventsExpanded.value;
       return Container(
         margin: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-        color: AppColors.lightHubSurface,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border(
+            top: BorderSide(color: AppColors.ink.withValues(alpha: 0.06)),
+            bottom: BorderSide(color: AppColors.ink.withValues(alpha: 0.06)),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -355,7 +372,7 @@ class _EventsSection extends StatelessWidget {
                       Text(
                         'Events',
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: AppColors.lightHubInk,
+                          color: AppColors.ink,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -364,7 +381,7 @@ class _EventsSection extends StatelessWidget {
                         expanded
                             ? Icons.expand_less_rounded
                             : Icons.expand_more_rounded,
-                        color: AppColors.lightHubMuted,
+                        color: AppColors.ink.withValues(alpha: 0.45),
                       ),
                     ],
                   ),
@@ -433,7 +450,7 @@ class _EventsSection extends StatelessWidget {
                               'No events found',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.titleSmall?.copyWith(
-                                color: AppColors.lightHubInk,
+                                color: AppColors.ink,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -445,9 +462,7 @@ class _EventsSection extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.lightHubInk.withValues(
-                                  alpha: 0.60,
-                                ),
+                                color: AppColors.ink.withValues(alpha: 0.60),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -458,11 +473,13 @@ class _EventsSection extends StatelessWidget {
                   );
                 }
 
-                return SizedBox(
+                return Container(
+                  color: AppColors.background,
                   height: 120,
+                  padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                     itemCount: events.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
@@ -492,7 +509,7 @@ class _EventCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () {
           // Navigate to Manage Event when an event card is tapped.
           Get.toNamed(
@@ -521,9 +538,15 @@ class _EventCard extends StatelessWidget {
           width: 210,
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
           decoration: BoxDecoration(
-            color: AppColors.lightHubSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.lightHubBorder),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,7 +556,7 @@ class _EventCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  color: AppColors.lightHubInk,
+                  color: AppColors.ink,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -543,7 +566,7 @@ class _EventCard extends StatelessWidget {
                   Icon(
                     Icons.location_on_rounded,
                     size: 16,
-                    color: AppColors.lightHubMuted,
+                    color: AppColors.ink.withValues(alpha: 0.45),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -552,7 +575,7 @@ class _EventCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.lightHubMuted,
+                        color: AppColors.ink.withValues(alpha: 0.55),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -568,13 +591,13 @@ class _EventCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.lightHubAvatarFill,
+                      color: AppColors.background,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       '${event.contactCount} Contacts',
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.lightHubInk,
+                        color: AppColors.ink,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -597,7 +620,7 @@ class _ContactsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.lightHubBg,
+      color: AppColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -611,21 +634,21 @@ class _ContactsTab extends StatelessWidget {
                       hint: 'Search...',
                       prefixIcon: Icon(
                         Icons.search_rounded,
-                        color: AppColors.lightHubMuted,
+                        color: AppColors.ink.withValues(alpha: 0.45),
                       ),
                       borderRadius: 12,
                       filled: true,
-                      fillColor: AppColors.lightHubBg,
-                      borderColor: AppColors.lightHubBorder,
+                      fillColor: AppColors.white,
+                      borderColor: AppColors.ink.withValues(alpha: 0.10),
                       textStyle: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: AppColors.lightHubInk),
+                          ?.copyWith(color: AppColors.ink),
                       hintStyle: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: AppColors.lightHubHint),
+                          ?.copyWith(color: AppColors.ink.withValues(alpha: 0.35)),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      cursorColor: AppColors.lightHubBlue,
+                      cursorColor: AppColors.primary,
                       onChanged: controller.setSearch,
                     ),
                   ],
@@ -654,9 +677,11 @@ class _ContactsTab extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                         decoration: BoxDecoration(
-                          color: AppColors.lightHubSurface,
+                          color: AppColors.white,
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.lightHubBorder),
+                          border: Border.all(
+                            color: AppColors.ink.withValues(alpha: 0.06),
+                          ),
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -681,8 +706,8 @@ class _ContactsTab extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: Theme.of(
                                 context,
-                              ).textTheme.titleMedium?.copyWith(
-                                color: AppColors.lightHubInk,
+                            ).textTheme.titleMedium?.copyWith(
+                                color: AppColors.ink,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -696,7 +721,7 @@ class _ContactsTab extends StatelessWidget {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.lightHubMuted,
+                                color: AppColors.ink.withValues(alpha: 0.60),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -769,23 +794,23 @@ class _PersonTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final initials = _initials(person.name);
+    final avatarColor = _avatarColorFor('${person.name}|${person.email}|$initials');
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap ?? () {},
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.040),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -796,17 +821,14 @@ class _PersonTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accentTeal.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: AppColors.accentTeal.withValues(alpha: 0.60),
-                    width: 2,
-                  ),
+                  color: avatarColor,
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   initials,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.70),
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -838,8 +860,8 @@ class _PersonTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.62),
-                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -855,6 +877,28 @@ class _PersonTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _avatarColorFor(String seed) {
+    const palette = <Color>[
+      Color(0xFF0A66C2),
+      Color(0xFF7B2FC7),
+      Color(0xFF0D8A4E),
+      Color(0xFFC47A00),
+      Color(0xFF0D6C8A),
+      Color(0xFFB00020),
+    ];
+    if (seed.trim().isEmpty) return palette.first;
+    var hash = 0;
+    for (final c in seed.codeUnits) {
+      hash = 0x1fffffff & (hash + c);
+      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+      hash ^= (hash >> 6);
+    }
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash ^= (hash >> 11);
+    hash = 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+    return palette[hash.abs() % palette.length];
   }
 
   String _initials(String name) {
@@ -875,9 +919,11 @@ class _MembersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: controller.fetchMembers,
-      child: Obx(() {
+    return Container(
+      color: AppColors.background,
+      child: RefreshIndicator(
+        onRefresh: controller.fetchMembers,
+        child: Obx(() {
         if (controller.isMembersLoading.value) {
           return const OrganizationMembersShimmerView();
         }
@@ -889,6 +935,11 @@ class _MembersTab extends StatelessWidget {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -911,9 +962,9 @@ class _MembersTab extends StatelessWidget {
                       'No members found',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w800,
-                      ),
+                            color: AppColors.ink,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -921,9 +972,9 @@ class _MembersTab extends StatelessWidget {
                           'Members will appear here once users join this event.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.60),
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: AppColors.ink.withValues(alpha: 0.60),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ],
                 ),
@@ -933,13 +984,20 @@ class _MembersTab extends StatelessWidget {
         }
         return ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
+          padding: EdgeInsets.fromLTRB(
+            18,
+            14,
+            18,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
           itemCount: controller.members.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final m = controller.members[index];
             final canDelete =
                 (m.joinedAt != null && m.joinedAt!.trim().isNotEmpty);
+            final status = (m.status ?? '').toLowerCase().trim();
+            final isActive = status == 'accepted' || status == 'active';
             return MemberTile(
               title: m.fullName,
               subtitle1: m.email,
@@ -947,9 +1005,10 @@ class _MembersTab extends StatelessWidget {
               avatarUrl: m.avatarUrl,
               status: m.status,
               allowActions: controller.canManageOrganization,
-              onAdd: () {
-                // controller.resendInviteForMember(m);
-              },
+              onAdd:
+                  (m.status ?? '').toLowerCase().trim().contains('pending')
+                      ? () => controller.resendInviteForMember(m)
+                      : null,
               onUpdate: () {
                 final memberRole = m.role.toLowerCase();
                 String selected =
@@ -1088,7 +1147,7 @@ class _MembersTab extends StatelessWidget {
                 });
               },
               onDelete:
-                  canDelete
+                  (canDelete && isActive)
                       ? () {
                         ConfirmDialog.show(
                           title: 'Delete member?',
@@ -1104,6 +1163,7 @@ class _MembersTab extends StatelessWidget {
           },
         );
       }),
+      ),
     );
   }
 }
@@ -1136,6 +1196,7 @@ class MemberTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final initials = _initials(title);
+    final avatarColor = _avatarColorFor('$title|$subtitle1|$initials');
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
     final canShowActions =
         allowActions &&
@@ -1144,19 +1205,18 @@ class MemberTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () {},
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.040),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -1167,11 +1227,7 @@ class MemberTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accentTeal.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: AppColors.accentTeal.withValues(alpha: 0.60),
-                    width: 2,
-                  ),
+                  color: avatarColor,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child:
@@ -1187,9 +1243,8 @@ class MemberTile extends StatelessWidget {
                                     initials,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(
-                                          color: AppColors.ink.withValues(
-                                            alpha: 0.70,
-                                          ),
+                                          color: AppColors.white,
+                                          fontWeight: FontWeight.w800,
                                         ),
                                   ),
                                 ),
@@ -1199,7 +1254,8 @@ class MemberTile extends StatelessWidget {
                           child: Text(
                             initials,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -1232,34 +1288,17 @@ class MemberTile extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 0,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 0,
-                            vertical: 2,
-                          ),
-                          child: Text(
-                            capitalizeWords(subtitle2),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _roleColor(subtitle2),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                        _Pill(
+                          text: capitalizeWords(subtitle2),
+                          bg: _rolePillBg(subtitle2),
+                          fg: _rolePillFg(subtitle2),
                         ),
-                        if (status != null && status != 'accepted') ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            child: Text(
-                              capitalizeWords(status!),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.ink.withValues(alpha: 0.60),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        if (status != null)
+                          _Pill(
+                            text: _statusLabel(status!),
+                            bg: _statusPillBg(status!),
+                            fg: _statusPillFg(status!),
                           ),
-                        ],
                       ],
                     ),
                   ],
@@ -1270,9 +1309,18 @@ class MemberTile extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (onAdd != null) ...[
+                      _ActionButton(
+                        icon: Icons.undo_rounded,
+                        color: AppColors.ink.withValues(alpha: 0.68),
+                        tooltip: 'Rollback',
+                        onTap: onAdd!,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     if (onUpdate != null)
                       _ActionButton(
-                        icon: Icons.edit_rounded,
+                        icon: Icons.edit_outlined,
                         color: AppColors.ink.withValues(alpha: 0.68),
                         tooltip: 'Update',
                         onTap: onUpdate!,
@@ -1280,18 +1328,13 @@ class MemberTile extends StatelessWidget {
                     if (onDelete != null) ...[
                       const SizedBox(width: 6),
                       _ActionButton(
-                        icon: Icons.delete_outline_rounded,
+                        icon: Icons.delete_outline,
                         color: AppColors.danger,
                         tooltip: 'Delete',
                         onTap: onDelete!,
                       ),
                     ],
                   ],
-                )
-              else
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.ink.withValues(alpha: 0.35),
                 ),
             ],
           ),
@@ -1333,6 +1376,82 @@ class MemberTile extends StatelessWidget {
     final v = role.toLowerCase();
     return v.contains('owner');
   }
+
+  Color _avatarColorFor(String seed) {
+    const palette = <Color>[
+      Color(0xFF0A66C2),
+      Color(0xFF7B2FC7),
+      Color(0xFF0D8A4E),
+      Color(0xFFC47A00),
+      Color(0xFF0D6C8A),
+      Color(0xFFB00020),
+    ];
+    if (seed.trim().isEmpty) return palette.first;
+    final idx = seed.codeUnits.fold<int>(0, (a, b) => (a + b) % palette.length);
+    return palette[idx];
+  }
+
+  Color _rolePillBg(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('owner')) return const Color(0xFFF59E0B).withValues(alpha: 0.16);
+    if (r.contains('admin')) return const Color(0xFFF59E0B).withValues(alpha: 0.16);
+    if (r.contains('editor')) return const Color(0xFF2563EB).withValues(alpha: 0.12);
+    return AppColors.ink.withValues(alpha: 0.06);
+  }
+
+  Color _rolePillFg(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('owner')) return const Color(0xFFB45309);
+    if (r.contains('admin')) return const Color(0xFFB45309);
+    if (r.contains('editor')) return const Color(0xFF1D4ED8);
+    return AppColors.ink.withValues(alpha: 0.60);
+  }
+
+  String _statusLabel(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'accepted') return 'Active';
+    return capitalizeWords(status);
+  }
+
+  Color _statusPillBg(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'accepted') return const Color(0xFF22C55E).withValues(alpha: 0.14);
+    if (s.contains('pending')) return const Color(0xFFF59E0B).withValues(alpha: 0.16);
+    return AppColors.ink.withValues(alpha: 0.06);
+  }
+
+  Color _statusPillFg(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'accepted') return const Color(0xFF15803D);
+    if (s.contains('pending')) return const Color(0xFFB45309);
+    return AppColors.ink.withValues(alpha: 0.60);
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.bg, required this.fg});
+
+  final String text;
+  final Color bg;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
 }
 
 class _InvitesTab extends StatelessWidget {
@@ -1344,7 +1463,7 @@ class _InvitesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      color: AppColors.lightHubBg,
+      color: AppColors.background,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
         child: Column(
@@ -1379,8 +1498,8 @@ class _InvitesTab extends StatelessWidget {
             Text(
               'Add Members email *',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.lightHubMuted,
-                fontWeight: FontWeight.w600,
+                color: AppColors.ink.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
@@ -1390,23 +1509,23 @@ class _InvitesTab extends StatelessWidget {
               inputType: TextInputType.emailAddress,
               borderRadius: 12,
               filled: true,
-              fillColor: AppColors.lightHubSurface,
-              borderColor: AppColors.lightHubBorder,
+              fillColor: AppColors.white,
+              borderColor: AppColors.ink.withValues(alpha: 0.10),
               textStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.lightHubInk,
+                color: AppColors.ink,
               ),
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.lightHubHint,
+                color: AppColors.ink.withValues(alpha: 0.35),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              cursorColor: AppColors.lightHubBlue,
+              cursorColor: AppColors.primary,
             ),
             const SizedBox(height: 14),
             Text(
               'Assign Role',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.lightHubMuted,
-                fontWeight: FontWeight.w600,
+                color: AppColors.ink.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
@@ -1418,8 +1537,8 @@ class _InvitesTab extends StatelessWidget {
                 showSearchBox: false,
                 itemAsString: (s) => s,
                 onChanged: controller.setInviteRole,
-                bgColor: AppColors.lightHubSurface,
-                borderColor: AppColors.lightHubBorder,
+                bgColor: AppColors.white,
+                borderColor: AppColors.ink.withValues(alpha: 0.10),
                 borderRadius: 12,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -1435,7 +1554,7 @@ class _InvitesTab extends StatelessWidget {
                 return FilledButton(
                   onPressed: busy ? null : controller.sendInvite,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.lightHubFab,
+                    backgroundColor: AppColors.ink,
                     foregroundColor: AppColors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1465,8 +1584,8 @@ class _InvitesTab extends StatelessWidget {
             Text(
               'Message (Optional)',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.lightHubMuted,
-                fontWeight: FontWeight.w600,
+                color: AppColors.ink.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
@@ -1477,15 +1596,15 @@ class _InvitesTab extends StatelessWidget {
               maxLines: 5,
               borderRadius: 12,
               filled: true,
-              fillColor: AppColors.lightHubSurface,
-              borderColor: AppColors.lightHubBorder,
+              fillColor: AppColors.white,
+              borderColor: AppColors.ink.withValues(alpha: 0.10),
               textStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.lightHubInk,
+                color: AppColors.ink,
               ),
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.lightHubHint,
+                color: AppColors.ink.withValues(alpha: 0.35),
               ),
-              cursorColor: AppColors.lightHubBlue,
+              cursorColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
             const SizedBox(height: 16),
@@ -1571,7 +1690,7 @@ class _SentInvitePill extends StatelessWidget {
                 Text(
                   invite.email,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.lightHubInk,
+                    color: AppColors.ink,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1593,10 +1712,13 @@ class _SentInvitePill extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.lightHubInk.withValues(alpha: 0.08),
+                color: AppColors.ink.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.close_rounded, color: AppColors.lightHubMuted),
+              child: Icon(
+                Icons.close_rounded,
+                color: AppColors.ink.withValues(alpha: 0.55),
+              ),
             ),
           ),
         ],
@@ -1624,15 +1746,16 @@ class _ActionButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Ink(
-          width: 28,
-          height: 28,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
           ),
-          child: Icon(icon, size: 17, color: color),
+          child: Icon(icon, size: 18, color: color),
         ),
       ),
     );

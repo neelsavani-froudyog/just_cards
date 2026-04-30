@@ -451,9 +451,15 @@ class ManageEventController extends GetxController {
   Future<bool> updateMemberRole(EventMember member, String inviteRole) async {
     if (isUpdatingMemberRole.value) return false;
 
-    final inviteId = member.inviteId?.trim() ?? '';
-    if (inviteId.isEmpty) {
-      await ToastService.error('Invite ID is missing');
+    final eventId = args.eventId.trim();
+    if (eventId.isEmpty) {
+      await ToastService.error('Event ID is missing');
+      return false;
+    }
+
+    final userId = member.id.trim();
+    if (userId.isEmpty) {
+      await ToastService.error('User ID is missing');
       return false;
     }
 
@@ -469,8 +475,10 @@ class ManageEventController extends GetxController {
       await _apiService.patchRequest(
         url: ApiUrl.eventsInvitesRole,
         data: <String, dynamic>{
-          'p_invite_id': inviteId,
+          'p_event_id': eventId,
+          'p_user_id': userId,
           'p_new_role': _apiRoleFromUiRole(inviteRole),
+          'p_email': member.email.trim(),
         },
         showSuccessToast: true,
         successToastMessage: 'Role updated',

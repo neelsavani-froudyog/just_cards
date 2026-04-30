@@ -35,12 +35,15 @@ class ManageEventView extends GetView<ManageEventController> {
           builder: (context) {
             final tabController = DefaultTabController.of(context);
             return Scaffold(
-              backgroundColor: const Color(0xFFF5F7FB),
+              backgroundColor: AppColors.background,
               appBar: AppBar(
                 backgroundColor: AppColors.white,
+                surfaceTintColor: Colors.transparent,
                 elevation: 0,
+                scrolledUnderElevation: 0,
+                shadowColor: Colors.transparent,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   onPressed: () => Get.back(),
                 ),
                 title: const Text('Manage Event'),
@@ -50,11 +53,9 @@ class ManageEventView extends GetView<ManageEventController> {
                             PopupMenuButton<String>(
                               icon: Icon(
                                 Icons.more_vert_rounded,
-                                color: AppColors.lightHubInk.withValues(
-                                  alpha: 0.92,
-                                ),
+                                color: AppColors.ink.withValues(alpha: 0.92),
                               ),
-                              color: AppColors.lightHubSurface,
+                              color: AppColors.white,
                               onSelected: (value) {
                                 if (value == 'download_contacts') {
                                   controller.exportEventContactsCsvGuarded();
@@ -96,7 +97,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                           'Download Contacts',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -107,7 +108,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                           'Edit Event',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -118,7 +119,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                           'Delete Event',
                                           style: theme.textTheme.bodyLarge
                                               ?.copyWith(
-                                                color: AppColors.lightHubInk,
+                                                color: AppColors.ink,
                                               ),
                                         ),
                                       ),
@@ -141,15 +142,13 @@ class ManageEventView extends GetView<ManageEventController> {
                               width: 58,
                               height: 58,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.primaryLight.withValues(
-                                  alpha: 0.35,
-                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                color: AppColors.background,
                               ),
                               alignment: Alignment.center,
                               child: Icon(
                                 Icons.event_rounded,
-                                color: AppColors.ink.withValues(alpha: 0.75),
+                                color: AppColors.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -165,7 +164,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                       style: theme.textTheme.titleLarge
                                           ?.copyWith(
                                         color: AppColors.ink,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     );
                                   }),
@@ -180,7 +179,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                           label: capitalizeWords(
                                             controller.eventLocation.value,
                                           ),
-                                          tint: AppColors.primary,
+                                          tint: AppColors.ink.withValues(alpha: 0.55),
                                         );
                                       }),
                                       Obx(() {
@@ -189,7 +188,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                         return _InfoChip(
                                           icon: Icons.group_rounded,
                                           label: '$membersCount Members',
-                                          tint: AppColors.primary,
+                                          tint: AppColors.ink.withValues(alpha: 0.55),
                                         );
                                       }),
                                       Obx(() {
@@ -204,7 +203,7 @@ class ManageEventView extends GetView<ManageEventController> {
                                         return _InfoChip(
                                           icon: Icons.credit_card_rounded,
                                           label: '$text Cards',
-                                          tint: AppColors.primary,
+                                          tint: AppColors.ink.withValues(alpha: 0.55),
                                         );
                                       }),
                                     ],
@@ -221,12 +220,15 @@ class ManageEventView extends GetView<ManageEventController> {
                     color: AppColors.white,
                     child: TabBar(
                       onTap: controller.setSelectedTab,
-                      labelColor: AppColors.ink,
-                      unselectedLabelColor: AppColors.ink.withValues(
-                        alpha: 0.55,
-                      ),
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: AppColors.ink.withValues(alpha: 0.45),
                       indicatorColor: AppColors.primary,
                       indicatorWeight: 2.4,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicator: const UnderlineTabIndicator(
+                        borderSide: BorderSide(color: AppColors.primary, width: 2.4),
+                        insets: EdgeInsets.symmetric(horizontal: 22),
+                      ),
                       tabs: [
                         const Tab(text: 'Contacts'),
                         const Tab(text: 'Members'),
@@ -254,7 +256,7 @@ class ManageEventView extends GetView<ManageEventController> {
                   }
                   return FloatingActionButton(
                     heroTag: 'manage_event_scan_fab',
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.ink,
                     foregroundColor: AppColors.white,
                     onPressed: () async {
                       final images = await DocumentScannerService.scan(
@@ -279,7 +281,7 @@ class ManageEventView extends GetView<ManageEventController> {
                         await controller.fetchContacts(reset: true);
                       }
                     },
-                    child: const Icon(Icons.badge_rounded),
+                    child: const Icon(Icons.badge_outlined),
                   );
                 },
               ),
@@ -307,7 +309,7 @@ class _InfoChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: tint),
+        Icon(icon, size: 16, color: tint),
         const SizedBox(width: 6),
         Text(
           label,
@@ -340,11 +342,11 @@ class _ContactsTab extends StatelessWidget {
                 hint: 'Search...',
                 prefixIcon: Icon(
                   Icons.search_rounded,
-                  color: AppColors.ink.withValues(alpha: 0.55),
+                  color: AppColors.ink.withValues(alpha: 0.45),
                 ),
                 borderRadius: 12,
                 filled: true,
-                fillColor: const Color(0xFFF5F7FB),
+                fillColor: AppColors.white,
                 borderColor: AppColors.ink.withValues(alpha: 0.10),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -641,7 +643,12 @@ class _MembersTabState extends State<_MembersTab> {
               onRefresh: onRefresh,
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                padding: EdgeInsets.fromLTRB(
+                  18,
+                  0,
+                  18,
+                  16 + MediaQuery.of(context).padding.bottom,
+                ),
                 itemCount: controller.members.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
@@ -650,6 +657,7 @@ class _MembersTabState extends State<_MembersTab> {
                   final isPendingInvite =
                       status == 'pending' ||
                       (m.joinedAt == null && status != 'accepted');
+                  final isActive = status == 'accepted' || status == 'active';
                   return _PersonTile(
                     title: m.name,
                     subtitle1: m.email,
@@ -658,13 +666,10 @@ class _MembersTabState extends State<_MembersTab> {
                     status: m.status,
                     isMember: true,
                     allowActions: controller.canShowInvitesTab,
-                    deleteIcon: isPendingInvite
-                        ? Icons.undo_rounded
-                        : Icons.delete_outline_rounded,
-                    deleteTooltip: isPendingInvite ? 'Recall invite' : 'Delete',
-                    onAdd: () {
-                      controller.resendInviteForMember(m);
-                    },
+                    onAdd:
+                        isPendingInvite
+                            ? () => controller.resendInviteForMember(m)
+                            : null,
                     onUpdate: () {
                       final memberRole = m.role.toLowerCase();
                       String selected =
@@ -816,29 +821,20 @@ class _MembersTabState extends State<_MembersTab> {
                         emailController.dispose();
                       });
                     },
-                    onDelete: () {
-                      if (isPendingInvite) {
-                        ConfirmDialog.show(
-                          title: 'Recall invite?',
-                          message: 'Remove pending invite for ${m.email}?',
-                          confirmText: 'Recall',
-                          destructive: true,
-                          icon: Icons.undo_rounded,
-                        ).then((ok) {
-                          if (ok) controller.recallInviteForMember(m);
-                        });
-                        return;
-                      }
-
-                      ConfirmDialog.show(
-                        title: 'Delete member?',
-                        message: 'Remove ${m.email} from event members?',
-                        confirmText: 'Delete',
-                        destructive: true,
-                      ).then((ok) {
-                        if (ok) controller.deleteMember(index);
-                      });
-                    },
+                    onDelete:
+                        isActive
+                            ? () {
+                              ConfirmDialog.show(
+                                title: 'Delete member?',
+                                message:
+                                    'Remove ${m.email} from event members?',
+                                confirmText: 'Delete',
+                                destructive: true,
+                              ).then((ok) {
+                                if (ok) controller.deleteMember(index);
+                              });
+                            }
+                            : null,
                   );
                 },
               ),
@@ -1137,10 +1133,75 @@ class _PersonTile extends StatelessWidget {
   final String deleteTooltip;
   final VoidCallback? onTap;
 
+  Color _avatarColorFor(String seed) {
+    const palette = <Color>[
+      Color(0xFF0A66C2),
+      Color(0xFF7B2FC7),
+      Color(0xFF0D8A4E),
+      Color(0xFFC47A00),
+      Color(0xFF0D6C8A),
+      Color(0xFFB00020),
+    ];
+    if (seed.trim().isEmpty) return palette.first;
+    var hash = 0;
+    for (final c in seed.codeUnits) {
+      hash = 0x1fffffff & (hash + c);
+      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+      hash ^= (hash >> 6);
+    }
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash ^= (hash >> 11);
+    hash = 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+    return palette[hash.abs() % palette.length];
+  }
+
+  String _statusLabel(String? status) {
+    final s = (status ?? '').toLowerCase().trim();
+    if (s == 'accepted') return 'Active';
+    return capitalizeWords(status ?? '');
+  }
+
+  Color _rolePillBg(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('owner') || r.contains('admin')) {
+      return const Color(0xFFF59E0B).withValues(alpha: 0.16);
+    }
+    if (r.contains('editor')) {
+      return const Color(0xFF2563EB).withValues(alpha: 0.12);
+    }
+    return AppColors.ink.withValues(alpha: 0.06);
+  }
+
+  Color _rolePillFg(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('owner') || r.contains('admin')) return const Color(0xFFB45309);
+    if (r.contains('editor')) return const Color(0xFF1D4ED8);
+    return AppColors.ink.withValues(alpha: 0.60);
+  }
+
+  Color _statusPillBg(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'accepted' || s == 'active') {
+      return const Color(0xFF22C55E).withValues(alpha: 0.14);
+    }
+    if (s.contains('pending')) {
+      return const Color(0xFFF59E0B).withValues(alpha: 0.16);
+    }
+    return AppColors.ink.withValues(alpha: 0.06);
+  }
+
+  Color _statusPillFg(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'accepted' || s == 'active') return const Color(0xFF15803D);
+    if (s.contains('pending')) return const Color(0xFFB45309);
+    return AppColors.ink.withValues(alpha: 0.60);
+  }
+
   @override
   Widget build(BuildContext context) {
     final initials = _initials(title);
     final theme = Theme.of(context);
+    final avatarColor = _avatarColorFor('$title|$subtitle1|$initials');
 
     // Keep actions support for Members tab, but style card like Home contact tile.
     final isProtectedRole = _isOwnerOrAdmin(subtitle2);
@@ -1152,19 +1213,18 @@ class _PersonTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap ?? () {},
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.07)),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.040),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: AppColors.ink.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -1175,11 +1235,7 @@ class _PersonTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accentTeal.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: AppColors.accentTeal.withValues(alpha: 0.60),
-                    width: 2,
-                  ),
+                  color: avatarColor,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: (avatarUrl?.trim().isNotEmpty ?? false)
@@ -1192,7 +1248,8 @@ class _PersonTile extends StatelessWidget {
                           child: Text(
                             initials,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.ink.withValues(alpha: 0.70),
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -1202,7 +1259,8 @@ class _PersonTile extends StatelessWidget {
                       child: Text(
                         initials,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppColors.ink.withValues(alpha: 0.70),
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -1230,48 +1288,32 @@ class _PersonTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (isMember) Wrap(
-                      spacing: 8,
-                      runSpacing: 0,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 0,
-                            vertical: 2,
+                    if (isMember)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 0,
+                        children: [
+                          _Pill(
+                            text: capitalizeWords(subtitle2),
+                            bg: _rolePillBg(subtitle2),
+                            fg: _rolePillFg(subtitle2),
                           ),
-                          child: Text(
-                            capitalizeWords(subtitle2),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _roleColor(subtitle2),
-                              fontWeight: FontWeight.w700,
+                          if (status != null)
+                            _Pill(
+                              text: _statusLabel(status),
+                              bg: _statusPillBg(status!),
+                              fg: _statusPillFg(status!),
                             ),
-                          ),
-                        ),
-                        if (status != null && status != 'accepted') ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            child: Text(
-                              capitalizeWords(status!),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.ink.withValues(alpha: 0.60),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
                         ],
-                      ],
-                    ) 
-                    else 
-                    Text(
-                      capitalizeWords(subtitle2),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _roleColor(subtitle2),
-                        fontWeight: FontWeight.w700,
+                      )
+                    else
+                      Text(
+                        capitalizeWords(subtitle2),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1280,9 +1322,18 @@ class _PersonTile extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (onAdd != null) ...[
+                      _ActionButton(
+                        icon: Icons.undo_rounded,
+                        color: AppColors.ink.withValues(alpha: 0.68),
+                        tooltip: 'Rollback',
+                        onTap: onAdd!,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     if (onUpdate != null)
                       _ActionButton(
-                        icon: Icons.edit_rounded,
+                        icon: Icons.edit_outlined,
                         color: AppColors.ink.withValues(alpha: 0.68),
                         tooltip: 'Update',
                         onTap: onUpdate!,
@@ -1290,7 +1341,7 @@ class _PersonTile extends StatelessWidget {
                     if (onDelete != null) ...[
                       const SizedBox(width: 6),
                       _ActionButton(
-                        icon: deleteIcon,
+                        icon: Icons.delete_outline,
                         color: AppColors.danger,
                         tooltip: deleteTooltip,
                         onTap: onDelete!,
@@ -1302,7 +1353,7 @@ class _PersonTile extends StatelessWidget {
               if (!isMember)
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.ink.withValues(alpha: 0.35),
+                  color: AppColors.ink.withValues(alpha: 0.30),
                 ),
             ],
           ),
@@ -1337,6 +1388,32 @@ class _PersonTile extends StatelessWidget {
 
 }
 
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.bg, required this.fg});
+
+  final String text;
+  final Color bg;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
+}
+
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
@@ -1356,15 +1433,16 @@ class _ActionButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Ink(
-          width: 28,
-          height: 28,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
           ),
-          child: Icon(icon, size: 17, color: color),
+          child: Icon(icon, size: 18, color: color),
         ),
       ),
     );

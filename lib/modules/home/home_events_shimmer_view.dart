@@ -37,7 +37,6 @@ class _HomeEventsShimmerViewState extends State<HomeEventsShimmerView>
         builder: (context, _) {
           final t = _controller.value;
           return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
             scrollDirection: Axis.horizontal,
             itemCount: 3,
             separatorBuilder: (_, __) => const SizedBox(width: 14),

@@ -24,9 +24,7 @@ class AuthShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final width = media.size.width;
-    final isCompact = width < 420;
     final maxWidth = width > 720 ? 520.0 : width;
-    final side = isCompact ? 18.0 : 26.0;
 
     return Scaffold(
       body: Container(
@@ -38,42 +36,39 @@ class AuthShell extends StatelessWidget {
           ),
         ),
         child: SafeArea(
+          bottom: false,
           child: Stack(
             children: [
               const _SoftBlobs(),
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: side),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 14),
-                        if (showBack)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: IconButton(
-                              onPressed: onBack,
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              color: AppColors.ink,
-                              tooltip: 'Back',
-                            ),
-                          )
-                        else
-                          const SizedBox(height: 48),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: useCard ? _GlassCard(child: child) : child,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 14),
+                      if (showBack)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            onPressed: onBack,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            color: AppColors.ink,
+                            tooltip: 'Back',
                           ),
+                        )
+                      else
+                        const SizedBox(height: 48),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: useCard ? _GlassCard(child: child) : child,
                         ),
-                        if (footer != null) ...[
-                          const SizedBox(height: 14),
-                          footer!,
-                        ],
+                      ),
+                      if (footer != null) ...[
                         const SizedBox(height: 14),
+                        footer!,
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),

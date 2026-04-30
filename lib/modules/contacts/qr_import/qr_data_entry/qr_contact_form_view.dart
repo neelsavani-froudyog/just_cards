@@ -10,11 +10,64 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../widgets/custom_search_dropdown.dart';
 import '../../../../widgets/custom_text_field.dart';
 
+class _DashedPillBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+  final double dashLength;
+  final double dashGap;
+
+  const _DashedPillBorderPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1.4,
+    this.dashLength = 6,
+    this.dashGap = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(strokeWidth / 2),
+      Radius.circular(radius),
+    );
+
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashLength;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedPillBorderPainter oldDelegate) {
+    return color != oldDelegate.color ||
+        radius != oldDelegate.radius ||
+        strokeWidth != oldDelegate.strokeWidth ||
+        dashLength != oldDelegate.dashLength ||
+        dashGap != oldDelegate.dashGap;
+  }
+}
+
 class QrContactFormView extends GetView<QrContactController> {
   const QrContactFormView({super.key});
 
   Widget _cardHeader() {
-    final radius = BorderRadius.circular(8);
+    final radius = BorderRadius.circular(16);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -44,15 +97,25 @@ class QrContactFormView extends GetView<QrContactController> {
               Positioned(
                 right: 12,
                 bottom: 12,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.darkGrey,
-                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.ink,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.ink.withValues(alpha: 0.16),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.photo_camera_rounded,
-                    color: AppColors.white,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.photo_camera_rounded,
+                      color: AppColors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
               ),
@@ -65,24 +128,18 @@ class QrContactFormView extends GetView<QrContactController> {
 
   Widget _manualCardPlaceholder(BorderRadius radius) {
     return Container(
-      height: 150,
+      height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: radius,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.darkGrey.withValues(alpha: 0.50),
-            AppColors.darkGrey.withValues(alpha: 0.25),
-          ],
-        ),
+        color: AppColors.ink.withValues(alpha: 0.04),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
       ),
       alignment: Alignment.center,
       child: Icon(
         Icons.credit_card_rounded,
         size: 56,
-        color: AppColors.white.withValues(alpha: 0.92),
+        color: AppColors.ink.withValues(alpha: 0.22),
       ),
     );
   }
@@ -98,13 +155,13 @@ class QrContactFormView extends GetView<QrContactController> {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.darkGrey.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkGrey.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: AppColors.ink.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -117,18 +174,18 @@ class QrContactFormView extends GetView<QrContactController> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.darkGrey.withValues(alpha: 0.10),
+                  color: AppColors.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, color: AppColors.darkGrey, size: 18),
+                child: Icon(icon, color: AppColors.primary, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.darkGrey,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -161,25 +218,26 @@ class QrContactFormView extends GetView<QrContactController> {
       readOnly: readOnly,
       inputType: inputType,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      cursorColor: AppColors.darkGrey.withValues(alpha: 0.65),
+      cursorColor: AppColors.ink.withValues(alpha: 0.65),
       fillColor: const Color(0xFFF5F7FB),
-      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderColor: AppColors.ink.withValues(alpha: 0.10),
       labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.72),
-            fontWeight: FontWeight.w800,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.72),
+        fontWeight: FontWeight.w800,
+      ),
       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.40),
-            fontWeight: FontWeight.w600,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.40),
+        fontWeight: FontWeight.w600,
+      ),
       textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.92),
-            fontWeight: FontWeight.w700,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.92),
+        fontWeight: FontWeight.w700,
+      ),
       onTap: onTap,
-      suffixIcon: suffixIcon == null
-          ? null
-          : Icon(suffixIcon, color: AppColors.darkGrey.withValues(alpha: 0.55)),
+      suffixIcon:
+          suffixIcon == null
+              ? null
+              : Icon(suffixIcon, color: AppColors.ink.withValues(alpha: 0.55)),
     );
   }
 
@@ -219,15 +277,16 @@ class QrContactFormView extends GetView<QrContactController> {
         Text(
           label,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.72),
+            color: AppColors.ink.withValues(alpha: 0.72),
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 8),
         Obx(() {
-          final iso = isPhone1
-              ? controller.phone1CountryIso.value
-              : controller.phone2CountryIso.value;
+          final iso =
+              isPhone1
+                  ? controller.phone1CountryIso.value
+                  : controller.phone2CountryIso.value;
           final country = Country.tryParse(iso) ?? Country.parse('IN');
           final isIndiaCode = country.phoneCode == '91';
           return Row(
@@ -247,7 +306,7 @@ class QrContactFormView extends GetView<QrContactController> {
                       color: const Color(0xFFF5F7FB),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.darkGrey.withValues(alpha: 0.10),
+                        color: AppColors.ink.withValues(alpha: 0.10),
                       ),
                     ),
                     child: Row(
@@ -261,13 +320,13 @@ class QrContactFormView extends GetView<QrContactController> {
                         Text(
                           '+${country.phoneCode}',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.darkGrey.withValues(alpha: 0.92),
+                            color: AppColors.ink.withValues(alpha: 0.92),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         Icon(
                           Icons.arrow_drop_down_rounded,
-                          color: AppColors.darkGrey.withValues(alpha: 0.55),
+                          color: AppColors.ink.withValues(alpha: 0.55),
                         ),
                       ],
                     ),
@@ -285,15 +344,15 @@ class QrContactFormView extends GetView<QrContactController> {
                     horizontal: 14,
                     vertical: 12,
                   ),
-                  cursorColor: AppColors.darkGrey.withValues(alpha: 0.65),
+                  cursorColor: AppColors.ink.withValues(alpha: 0.65),
                   fillColor: const Color(0xFFF5F7FB),
-                  borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+                  borderColor: AppColors.ink.withValues(alpha: 0.10),
                   hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.40),
+                    color: AppColors.ink.withValues(alpha: 0.40),
                     fontWeight: FontWeight.w600,
                   ),
                   textStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.92),
+                    color: AppColors.ink.withValues(alpha: 0.92),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -317,14 +376,16 @@ class QrContactFormView extends GetView<QrContactController> {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.darkGrey.withValues(alpha: 0.12)
-                  : AppColors.white,
+              color:
+                  selected
+                      ? AppColors.primary.withValues(alpha: 0.12)
+                      : AppColors.white,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: selected
-                    ? AppColors.darkGrey.withValues(alpha: 0.22)
-                    : AppColors.darkGrey.withValues(alpha: 0.12),
+                color:
+                    selected
+                        ? AppColors.primary.withValues(alpha: 0.26)
+                        : AppColors.ink.withValues(alpha: 0.10),
               ),
             ),
             child: Row(
@@ -333,9 +394,10 @@ class QrContactFormView extends GetView<QrContactController> {
                 Text(
                   text,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.darkGrey.withValues(
-                      alpha: selected ? 0.92 : 0.72,
-                    ),
+                    color:
+                        selected
+                            ? AppColors.primary
+                            : AppColors.ink.withValues(alpha: 0.68),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -344,7 +406,7 @@ class QrContactFormView extends GetView<QrContactController> {
                   Icon(
                     Icons.close_rounded,
                     size: 16,
-                    color: AppColors.darkGrey.withValues(alpha: 0.60),
+                    color: AppColors.primary.withValues(alpha: 0.70),
                   ),
                 ],
               ],
@@ -363,20 +425,22 @@ class QrContactFormView extends GetView<QrContactController> {
             child: InkWell(
               onTap: controller.openAddTagDialog,
               borderRadius: BorderRadius.circular(999),
-              child: Ink(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: AppColors.darkGrey.withValues(alpha: 0.14),
-                  ),
+              child: CustomPaint(
+                painter: _DashedPillBorderPainter(
+                  color: AppColors.primary.withValues(alpha: 0.40),
+                  radius: 999,
                 ),
-                child: Text(
-                  '+ Add Tag',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w800,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    '+ Add Tag',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: AppColors.primary.withValues(alpha: 0.92),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
@@ -400,7 +464,7 @@ class QrContactFormView extends GetView<QrContactController> {
           if (v != null) controller.salutation.value = v;
         },
         bgColor: const Color(0xFFF5F7FB),
-        borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+        borderColor: AppColors.ink.withValues(alpha: 0.10),
         borderRadius: 12,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       ),
@@ -418,7 +482,7 @@ class QrContactFormView extends GetView<QrContactController> {
         itemAsString: (s) => s,
         onChanged: controller.setOrganization,
         bgColor: const Color(0xFFF5F7FB),
-        borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+        borderColor: AppColors.ink.withValues(alpha: 0.10),
         borderRadius: 12,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       ),
@@ -436,7 +500,7 @@ class QrContactFormView extends GetView<QrContactController> {
         itemAsString: (s) => s,
         onChanged: controller.setEvent,
         bgColor: const Color(0xFFF5F7FB),
-        borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+        borderColor: AppColors.ink.withValues(alpha: 0.10),
         borderRadius: 12,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       ),
@@ -445,14 +509,13 @@ class QrContactFormView extends GetView<QrContactController> {
 
   Widget _shareToggle(BuildContext context) {
     final theme = Theme.of(context);
-    const activeGreen = Color(0xFF22C55E);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F7FB),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.darkGrey.withValues(alpha: 0.10)),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.10)),
       ),
       child: Row(
         children: [
@@ -463,7 +526,7 @@ class QrContactFormView extends GetView<QrContactController> {
                 Text(
                   'Share with my organisation',
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.darkGrey,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -471,7 +534,7 @@ class QrContactFormView extends GetView<QrContactController> {
                 Text(
                   'Allow team members to view this contact',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.55),
+                    color: AppColors.ink.withValues(alpha: 0.55),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -481,8 +544,9 @@ class QrContactFormView extends GetView<QrContactController> {
           Obx(
             () => CupertinoSwitch(
               value: controller.shareWithOrganization.value,
-              activeTrackColor: activeGreen,
-              onChanged: (value) => controller.shareWithOrganization.value = value,
+              activeTrackColor: AppColors.primary,
+              onChanged:
+                  (value) => controller.shareWithOrganization.value = value,
             ),
           ),
         ],
@@ -498,7 +562,7 @@ class QrContactFormView extends GetView<QrContactController> {
         decoration: BoxDecoration(
           color: AppColors.white,
           border: Border(
-            top: BorderSide(color: AppColors.darkGrey.withValues(alpha: 0.08)),
+            top: BorderSide(color: AppColors.ink.withValues(alpha: 0.08)),
           ),
         ),
         child: Row(
@@ -506,13 +570,14 @@ class QrContactFormView extends GetView<QrContactController> {
             Expanded(
               child: Obx(
                 () => OutlinedButton.icon(
-                  onPressed: controller.isSaving.value ? null : () => Get.back(),
+                  onPressed:
+                      controller.isSaving.value ? null : () => Get.back(),
                   icon: const Icon(Icons.close_rounded),
                   label: const Text('Cancel'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.darkGrey,
+                    foregroundColor: AppColors.ink,
                     side: BorderSide(
-                      color: AppColors.darkGrey.withValues(alpha: 0.18),
+                      color: AppColors.ink.withValues(alpha: 0.14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -526,13 +591,14 @@ class QrContactFormView extends GetView<QrContactController> {
             Expanded(
               child: Obx(
                 () => ElevatedButton.icon(
-                  onPressed: controller.isSaving.value ? null : controller.saveContact,
+                  onPressed:
+                      controller.isSaving.value ? null : controller.saveContact,
                   icon: const Icon(Icons.check_rounded),
                   label: Text(
                     controller.isSaving.value ? 'Saving...' : 'Save Contact',
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkGrey,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -552,21 +618,22 @@ class QrContactFormView extends GetView<QrContactController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF5F7FB),
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.darkGrey,
+          icon: const Icon(CupertinoIcons.back),
+          color: AppColors.ink,
           onPressed: () => Get.back(),
         ),
         title: Text(controller.qrImportTitle),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.darkGrey,
-              fontWeight: FontWeight.w800,
-            ),
+          color: AppColors.ink,
+          fontWeight: FontWeight.w800,
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -578,6 +645,16 @@ class QrContactFormView extends GetView<QrContactController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _cardHeader(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Business card image (optional)',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.55),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     _section(
                       context: context,
                       icon: Icons.person_rounded,
@@ -675,10 +752,12 @@ class QrContactFormView extends GetView<QrContactController> {
                           const SizedBox(height: 14),
                           Text(
                             'Tags',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.darkGrey.withValues(alpha: 0.72),
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(
+                              color: AppColors.ink.withValues(alpha: 0.72),
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           _tags(context),

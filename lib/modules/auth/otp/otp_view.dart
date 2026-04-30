@@ -32,6 +32,10 @@ class _OtpBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Get.find<OtpController>();
+    final media = MediaQuery.of(context);
+    final width = media.size.width;
+     final isCompact = width < 420;
+    final side = isCompact ? 18.0 : 26.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -40,12 +44,12 @@ class _OtpBody extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Padding(
-              padding: EdgeInsets.only(top: isCompact ? 12 : 18),
+              padding: EdgeInsets.only(top: isCompact ? 8 : 14,left: side,right: side),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _OtpHeader(),
-                  SizedBox(height: isCompact ? 18 : 26),
+                  SizedBox(height: isCompact ? 22 : 30),
                   Text(
                     'Enter OTP',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -99,11 +103,20 @@ class _OtpBody extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Obx(() {
-                          final enabled = c.secondsRemaining.value == 0 &&
-                              !c.isResending.value;
-                          return TextButton(
-                            onPressed: enabled ? c.resend : null,
-                            child: Text(c.resendButtonText),
+                          final enabled =
+                              c.secondsRemaining.value == 0 && !c.isResending.value;
+                          final text = c.resendButtonText;
+                          return GestureDetector(
+                            onTap: enabled ? c.resend : null,
+                            child: Text(
+                              text,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: enabled
+                                        ? AppColors.primary
+                                        : AppColors.ink.withValues(alpha: 0.45),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
                           );
                         }),
                       ],
@@ -131,9 +144,9 @@ class _OtpHeader extends StatelessWidget {
           height: 44,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            color: AppColors.primary,
+            color: AppColors.ink,
           ),
-          child: const Icon(Icons.shield_moon_rounded, color: AppColors.white),
+          child: const Icon(Icons.shield_outlined, color: AppColors.white),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -172,34 +185,44 @@ class _VerifyButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: 52,
-      child: Obx(() {
-        final busy = c.isVerifying.value;
-        return FilledButton(
-          onPressed: busy ? null : onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          ),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 160),
-            child: busy
-                ? const SizedBox(
-                    key: ValueKey('loading'),
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.white,
-                    ),
-                  )
-                : const Text(
-                    'Verify OTP',
-                    key: ValueKey('label'),
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-          ),
-        );
-      }),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: c.codeController,
+        builder: (context, value, _) {
+          final digits = value.text.replaceAll(RegExp(r'\\D'), '');
+          return Obx(() {
+            final busy = c.isVerifying.value;
+            final enabled = digits.length == 6 && !busy;
+            return FilledButton(
+              onPressed: enabled ? onPressed : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                child: busy
+                    ? const SizedBox(
+                        key: ValueKey('loading'),
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Verify OTP',
+                        key: ValueKey('label'),
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+              ),
+            );
+          });
+        },
+      ),
     );
   }
 }
@@ -215,7 +238,6 @@ class _OtpCodeField extends StatefulWidget {
 
 class _OtpCodeFieldState extends State<_OtpCodeField> {
   final focusNode = FocusNode();
-  int _lastDigitsLen = 0;
 
   @override
   void initState() {
@@ -262,12 +284,6 @@ class _OtpCodeFieldState extends State<_OtpCodeField> {
               final digits = value.text.replaceAll(RegExp(r'\\D'), '');
               final shown = digits.padRight(6);
               final activeIndex = digits.length.clamp(0, 5);
-              if (digits.length == 6 && _lastDigitsLen != 6) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) c.verify();
-                });
-              }
-              _lastDigitsLen = digits.length;
 
               return Stack(
                 alignment: Alignment.center,
@@ -347,19 +363,12 @@ class _OtpBox extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.94),
+        color: AppColors.primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: selected ? AppColors.accentTeal : AppColors.ink.withValues(alpha: 0.10),
-          width: selected ? 1.8 : 1,
+          color: selected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.10),
+          width: selected ? 1.6 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: selected ? 0.08 : 0.06),
-            blurRadius: selected ? 22 : 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -380,7 +389,7 @@ class _OtpBox extends StatelessWidget {
                 width: indicatorWidth,
                 height: 2,
                 decoration: BoxDecoration(
-                  color: AppColors.accentTeal,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),

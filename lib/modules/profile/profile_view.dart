@@ -14,15 +14,22 @@ class ProfileView extends GetView<ProfileController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Profile'),
         centerTitle: false,
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         shadowColor: Colors.transparent,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: AppColors.ink.withValues(alpha: 0.06),
+          ),
+        ),
       ),
       body: SafeArea(
         child: CustomScrollView(
@@ -36,10 +43,11 @@ class ProfileView extends GetView<ProfileController> {
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  'Account',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.55),
-                        fontWeight: FontWeight.w800,
+                  'ACCOUNT',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.42),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.9,
                       ),
                 ),
               ),
@@ -75,16 +83,22 @@ class ProfileView extends GetView<ProfileController> {
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  'General',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.55),
-                        fontWeight: FontWeight.w800,
+                  'GENERAL',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.42),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.9,
                       ),
                 ),
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+              padding: EdgeInsets.fromLTRB(
+                18,
+                0,
+                18,
+                16 + MediaQuery.of(context).padding.bottom,
+              ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate.fixed([
                   _SettingTile(
@@ -153,6 +167,20 @@ class _HeaderCard extends StatelessWidget {
 
   final ProfileController controller;
 
+  Color _avatarColorFor(String seed) {
+    const palette = <Color>[
+      Color(0xFF0D8A4E),
+      Color(0xFF0A66C2),
+      Color(0xFF7B2FC7),
+      Color(0xFFC47A00),
+      Color(0xFF0D6C8A),
+      Color(0xFFB00020),
+    ];
+    if (seed.trim().isEmpty) return palette.first;
+    final idx = seed.codeUnits.fold<int>(0, (a, b) => (a + b) % palette.length);
+    return palette[idx];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -160,57 +188,58 @@ class _HeaderCard extends StatelessWidget {
         return const ProfileHeaderShimmerCard();
       }
       final avatarUrl = controller.profileMe.value?.data?.avatarUrl?.trim() ?? '';
+      final name = controller.displayName.value.trim();
+      final email = controller.email.value.trim();
+      final initials = name.isEmpty ? 'U' : name.characters.first.toUpperCase();
+      final avatarBg = _avatarColorFor('$name|$email');
 
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.04)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.020),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: AppColors.ink.withValues(alpha: 0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 76,
-              height: 76,
-              padding: const EdgeInsets.all(3),
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.75),
-                  width: 3,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.18),
-                    AppColors.primaryLight.withValues(alpha: 0.24),
-                  ],
-                ),
+                color: avatarBg,
+                border: Border.all(color: AppColors.primary,width: 2)
               ),
               child: ClipOval(
                 child: avatarUrl.isNotEmpty
                     ? Image.network(
                         avatarUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person_rounded,
-                          color: AppColors.ink,
-                          size: 34,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            initials,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
                         ),
                       )
-                    : const Icon(
-                        Icons.person_rounded,
-                        color: AppColors.ink,
-                        size: 34,
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
                       ),
               ),
             ),
@@ -221,17 +250,18 @@ class _HeaderCard extends StatelessWidget {
                 children: [
                   Text(
                     controller.displayName.value,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           letterSpacing: -0.2,
                           color: AppColors.ink,
+                          fontWeight: FontWeight.w700,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     controller.email.value,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: AppColors.ink.withValues(alpha: 0.62),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
                 ],
@@ -264,17 +294,17 @@ class _SettingTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             color: AppColors.white,
-            border: Border.all(color: AppColors.ink.withValues(alpha: 0.05)),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.04)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.ink.withValues(alpha: 0.020),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+                color: AppColors.ink.withValues(alpha: 0.04),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -286,10 +316,15 @@ class _SettingTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: AppColors.accentTeal.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.background,
                   ),
-                  child: Icon(icon, color: AppColors.ink.withValues(alpha: 0.80)),
+                  child: Icon(
+                    icon,
+                    color: danger
+                        ? const Color(0xFFB42318)
+                        : AppColors.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -297,10 +332,14 @@ class _SettingTile extends StatelessWidget {
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: titleColor,
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: AppColors.ink.withValues(alpha: 0.35)),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.ink.withValues(alpha: 0.28),
+                ),
               ],
             ),
           ),

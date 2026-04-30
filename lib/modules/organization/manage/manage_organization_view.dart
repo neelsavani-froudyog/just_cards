@@ -13,10 +13,18 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Get.back(),
+          tooltip: 'Back',
+        ),
         title: const Text('My Organizations'),
         actions: [
           IconButton(
@@ -31,9 +39,9 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
           await Get.toNamed(Routes.createOrganization);
           controller.fetchOrganizations();
         },
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.ink,
         foregroundColor: AppColors.white,
-        child: const Icon(Icons.add_business_rounded),
+        child: const Icon(Icons.home_outlined),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -103,7 +111,12 @@ class ManageOrganizationView extends GetView<ManageOrganizationController> {
                   )
                   : ListView(
                     controller: controller.scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      16 + MediaQuery.of(context).padding.bottom,
+                    ),
                     children: [
                       ...controller.organizations
                           .where(
@@ -160,18 +173,18 @@ class _OrganizationCard extends StatelessWidget {
               'isActive': org.isActive,
             },
           ),
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       child: Ink(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.04)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: AppColors.ink.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -181,11 +194,11 @@ class _OrganizationCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: AppColors.background,
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.apartment_rounded, color: AppColors.ink),
+              child: const Icon(Icons.home_outlined, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -299,8 +312,6 @@ class _RoleBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(style.icon, size: 14, color: style.foregroundColor),
-          const SizedBox(width: 6),
           Text(
             style.label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -317,13 +328,11 @@ class _RoleBadge extends StatelessWidget {
 class _BadgeStyle {
   const _BadgeStyle({
     required this.label,
-    required this.icon,
     required this.backgroundColor,
     required this.foregroundColor,
   });
 
   final String label;
-  final IconData icon;
   final Color backgroundColor;
   final Color foregroundColor;
 }
@@ -333,28 +342,24 @@ _BadgeStyle _badgeStyle(_OrgRole role) {
     case _OrgRole.owner:
       return _BadgeStyle(
         label: 'Owner',
-        icon: Icons.workspace_premium_rounded,
         backgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.16),
         foregroundColor: const Color(0xFFB45309),
       );
     case _OrgRole.editor:
       return _BadgeStyle(
         label: 'Editor',
-        icon: Icons.person_rounded,
         backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
         foregroundColor: const Color(0xFF1D4ED8),
       );
     case _OrgRole.viewer:
       return _BadgeStyle(
         label: 'Viewer',
-        icon: Icons.person_rounded,
-        backgroundColor: AppColors.ink.withValues(alpha: 0.08),
-        foregroundColor: AppColors.ink.withValues(alpha: 0.75),
+        backgroundColor: const Color(0xFF22C55E).withValues(alpha: 0.14),
+        foregroundColor: const Color(0xFF15803D),
       );
     case _OrgRole.member:
       return _BadgeStyle(
         label: 'Member',
-        icon: Icons.person_rounded,
         backgroundColor: AppColors.primary.withValues(alpha: 0.10),
         foregroundColor: AppColors.primary,
       );

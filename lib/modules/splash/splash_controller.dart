@@ -43,7 +43,11 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
       if (!isClosed) {
         final hasToken = _session.accessToken.value.trim().isNotEmpty;
         if (hasToken) {
-          Get.offAllNamed(Routes.bottomNavigation);
+          Get.offNamed(
+              Routes.completeProfile,
+              arguments: <String, dynamic>{'email': 'neel@gmail.com'},
+            );
+          // Get.offAllNamed(Routes.bottomNavigation);
         } else {
           Get.offAllNamed(Routes.login);
         }

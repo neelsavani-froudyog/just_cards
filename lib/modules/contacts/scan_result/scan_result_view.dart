@@ -25,6 +25,59 @@ import '../../home/home_events_model.dart';
 import '../manual_entry/add_tag_dialog.dart';
 import '../manual_entry/organization_simple_model.dart';
 
+class _DashedPillBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+  final double dashLength;
+  final double dashGap;
+
+  const _DashedPillBorderPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1.4,
+    this.dashLength = 6,
+    this.dashGap = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(strokeWidth / 2),
+      Radius.circular(radius),
+    );
+
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashLength;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedPillBorderPainter oldDelegate) {
+    return color != oldDelegate.color ||
+        radius != oldDelegate.radius ||
+        strokeWidth != oldDelegate.strokeWidth ||
+        dashLength != oldDelegate.dashLength ||
+        dashGap != oldDelegate.dashGap;
+  }
+}
+
 class ScanResultView extends StatefulWidget {
   const ScanResultView({super.key});
 
@@ -91,9 +144,12 @@ class _ScanResultViewState extends State<ScanResultView> {
         Get.arguments as Map<String, dynamic>? ?? const <String, dynamic>{};
     final payloadImagePath = _extractScannerImagePath(args);
     final imagesArg = args['images'];
-    _images = (imagesArg is List)
-        ? imagesArg.cast<String>()
-        : (payloadImagePath.isNotEmpty ? <String>[payloadImagePath] : const <String>[]);
+    _images =
+        (imagesArg is List)
+            ? imagesArg.cast<String>()
+            : (payloadImagePath.isNotEmpty
+                ? <String>[payloadImagePath]
+                : const <String>[]);
     _lockedOrganizationId = args['organizationId']?.toString().trim();
     _lockedOrganizationName = args['organizationName']?.toString().trim();
     _lockedEventId = args['eventId']?.toString().trim();
@@ -129,7 +185,8 @@ class _ScanResultViewState extends State<ScanResultView> {
   }
 
   String _extractScannerImagePath(Map<String, dynamic> args) {
-    dynamic raw = args['resultJson'] ?? args['scan_result_json'] ?? args['scanResult'];
+    dynamic raw =
+        args['resultJson'] ?? args['scan_result_json'] ?? args['scanResult'];
     if (raw == null) return '';
     try {
       if (raw is String) {
@@ -198,10 +255,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       // Always prefer Latin output when available.
       // Fallback to other scripts only when Latin OCR is empty.
 
-      return {
-        'text': bestText,
-        'script': bestScript,
-      };
+      return {'text': bestText, 'script': bestScript};
     } catch (_) {
       return {'text': '', 'script': 'error'};
     }
@@ -248,10 +302,7 @@ class _ScanResultViewState extends State<ScanResultView> {
     );
   }
 
-  String _composeInternationalPhone(
-    String iso3166alpha2,
-    String nationalRaw,
-  ) {
+  String _composeInternationalPhone(String iso3166alpha2, String nationalRaw) {
     final c = Country.tryParse(iso3166alpha2);
     final pc = (c?.phoneCode ?? '91').trim();
     final codeDigits = pc.replaceAll(RegExp(r'\D'), '');
@@ -280,7 +331,10 @@ class _ScanResultViewState extends State<ScanResultView> {
     try {
       parseService = Get.find<ParseCardService>();
     } catch (_) {
-      parseService = Get.put<ParseCardService>(ParseCardService(), permanent: true);
+      parseService = Get.put<ParseCardService>(
+        ParseCardService(),
+        permanent: true,
+      );
     }
 
     final outcome = await parseService.parseCard(_rawOcrText);
@@ -350,7 +404,7 @@ class _ScanResultViewState extends State<ScanResultView> {
         if (mounted) setState(() => _selectedSalutation = v);
       },
       bgColor: const Color(0xFFF5F7FB),
-      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderColor: AppColors.ink.withValues(alpha: 0.10),
       borderRadius: 16,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       showShadow: false,
@@ -455,7 +509,8 @@ class _ScanResultViewState extends State<ScanResultView> {
             if (_lockOrganization) {
               final lockedId = _lockedOrganizationId?.trim() ?? '';
               final lockedName = _lockedOrganizationName?.trim() ?? '';
-              final match = lockedId.isEmpty ? null : _findOrganizationById(lockedId);
+              final match =
+                  lockedId.isEmpty ? null : _findOrganizationById(lockedId);
               if (match != null) {
                 _selectedOrganization = match.name;
                 _selectedOrganizationId = match.id;
@@ -526,14 +581,16 @@ class _ScanResultViewState extends State<ScanResultView> {
                 _lockedEventId!.isNotEmpty) {
               final match = _findEventById(_lockedEventId!);
               if (match != null) {
-                _selectedEvent = match.title.trim().isEmpty
-                    ? (_lockedEventTitle ?? _noneEvent)
-                    : match.title.trim();
+                _selectedEvent =
+                    match.title.trim().isEmpty
+                        ? (_lockedEventTitle ?? _noneEvent)
+                        : match.title.trim();
                 _selectedEventId = match.id.trim();
               } else {
-                _selectedEvent = _lockedEventTitle?.trim().isNotEmpty == true
-                    ? _lockedEventTitle!.trim()
-                    : _noneEvent;
+                _selectedEvent =
+                    _lockedEventTitle?.trim().isNotEmpty == true
+                        ? _lockedEventTitle!.trim()
+                        : _noneEvent;
                 _selectedEventId = _lockedEventId;
               }
             } else {
@@ -561,9 +618,7 @@ class _ScanResultViewState extends State<ScanResultView> {
     try {
       await _apiService.postRequest(
         url: ApiUrl.eventsByOrganization,
-        data: <String, dynamic>{
-          'p_organization_id': orgId,
-        },
+        data: <String, dynamic>{'p_organization_id': orgId},
         showSuccessToast: false,
         showErrorToast: false,
         onSuccess: (payload) {
@@ -594,14 +649,16 @@ class _ScanResultViewState extends State<ScanResultView> {
                 _lockedEventId!.isNotEmpty) {
               final match = _findEventById(_lockedEventId!);
               if (match != null) {
-                _selectedEvent = match.title.trim().isEmpty
-                    ? (_lockedEventTitle ?? _noneEvent)
-                    : match.title.trim();
+                _selectedEvent =
+                    match.title.trim().isEmpty
+                        ? (_lockedEventTitle ?? _noneEvent)
+                        : match.title.trim();
                 _selectedEventId = match.id.trim();
               } else {
-                _selectedEvent = _lockedEventTitle?.trim().isNotEmpty == true
-                    ? _lockedEventTitle!.trim()
-                    : _noneEvent;
+                _selectedEvent =
+                    _lockedEventTitle?.trim().isNotEmpty == true
+                        ? _lockedEventTitle!.trim()
+                        : _noneEvent;
                 _selectedEventId = _lockedEventId;
               }
             } else {
@@ -628,7 +685,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       itemAsString: (s) => s,
       onChanged: _setOrganization,
       bgColor: const Color(0xFFF5F7FB),
-      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderColor: AppColors.ink.withValues(alpha: 0.10),
       borderRadius: 16,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       showShadow: false,
@@ -646,7 +703,7 @@ class _ScanResultViewState extends State<ScanResultView> {
       itemAsString: (s) => s,
       onChanged: _setEvent,
       bgColor: const Color(0xFFF5F7FB),
-      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderColor: AppColors.ink.withValues(alpha: 0.10),
       borderRadius: 16,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       showShadow: false,
@@ -671,13 +728,13 @@ class _ScanResultViewState extends State<ScanResultView> {
 
     // Trim & validate required fields before doing any network calls (same as manual entry).
     final fullNameRaw = _fullNameCtrl.text.trim();
-    final nameParts = fullNameRaw
-        .split(RegExp(r'\s+'))
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
+    final nameParts =
+        fullNameRaw
+            .split(RegExp(r'\s+'))
+            .where((p) => p.trim().isNotEmpty)
+            .toList();
     final first = nameParts.isNotEmpty ? nameParts.first : '';
-    final last =
-        nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+    final last = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
     final designation = _jobTitleCtrl.text.trim();
     final companyName = _companyCtrl.text.trim();
@@ -687,9 +744,10 @@ class _ScanResultViewState extends State<ScanResultView> {
     final national1 = _phoneCtrl.text.trim();
     final national2 = _mobileCtrl.text.trim();
     final phone1 = _composeInternationalPhone(_phone1CountryIso, national1);
-    final phone2 = national2.isEmpty
-        ? ''
-        : _composeInternationalPhone(_phone2CountryIso, national2);
+    final phone2 =
+        national2.isEmpty
+            ? ''
+            : _composeInternationalPhone(_phone2CountryIso, national2);
     final address = _addressCtrl.text.trim();
 
     if (first.isEmpty) {
@@ -760,12 +818,13 @@ class _ScanResultViewState extends State<ScanResultView> {
         return;
       }
 
-      final publicUrl = decoded is Map
-          ? (decoded['data'] is Map
-                  ? (decoded['data']['cdnUrl']?.toString() ?? '')
-                  : decoded['cdnUrl']?.toString() ?? '')
-              .trim()
-          : '';
+      final publicUrl =
+          decoded is Map
+              ? (decoded['data'] is Map
+                      ? (decoded['data']['cdnUrl']?.toString() ?? '')
+                      : decoded['cdnUrl']?.toString() ?? '')
+                  .trim()
+              : '';
 
       if (publicUrl.isEmpty) {
         ToastService.error('No `public_url` returned from server');
@@ -779,9 +838,10 @@ class _ScanResultViewState extends State<ScanResultView> {
         return;
       }
 
-      final fullName = '$first $last'.trim().isEmpty
-          ? 'Unnamed contact'
-          : '$first $last'.trim();
+      final fullName =
+          '$first $last'.trim().isEmpty
+              ? 'Unnamed contact'
+              : '$first $last'.trim();
 
       final lockedOrgId = _lockedOrganizationId?.trim();
       final orgId = _selectedOrganizationId?.trim();
@@ -789,10 +849,10 @@ class _ScanResultViewState extends State<ScanResultView> {
           (_lockOrganization && lockedOrgId != null && lockedOrgId.isNotEmpty)
               ? lockedOrgId
               : (_selectedOrganization == _noneOrganization ||
-                      orgId == null ||
-                      orgId.isEmpty)
-                  ? null
-                  : orgId;
+                  orgId == null ||
+                  orgId.isEmpty)
+              ? null
+              : orgId;
 
       final lockedEventId = _lockedEventId?.trim();
       final eid = _selectedEventId?.trim();
@@ -800,8 +860,8 @@ class _ScanResultViewState extends State<ScanResultView> {
           (_lockEvent && lockedEventId != null && lockedEventId.isNotEmpty)
               ? lockedEventId
               : (_selectedEvent == _noneEvent || eid == null || eid.isEmpty)
-                  ? null
-                  : eid;
+              ? null
+              : eid;
 
       final createResult = await contactService.createContact(
         ownerUserId: userId,
@@ -849,44 +909,49 @@ class _ScanResultViewState extends State<ScanResultView> {
   Future<void> _showLoadingDialog(String message) async {
     if (!mounted || _isLoadingDialogVisible) return;
     _isLoadingDialogVisible = true;
-    unawaited(showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        contentPadding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.6),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Our AI Magic Capturing!',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.darkGrey,
-                    fontWeight: FontWeight.w800,
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 2.6),
                   ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.60),
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: 14),
+                  Text(
+                    'Our AI Magic Capturing!',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.ink.withValues(alpha: 0.60),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
-    ).then((_) {
-      _isLoadingDialogVisible = false;
-    }));
+      ).then((_) {
+        _isLoadingDialogVisible = false;
+      }),
+    );
   }
 
   Future<void> _hideLoadingDialog() async {
@@ -942,20 +1007,14 @@ class _ScanResultViewState extends State<ScanResultView> {
       return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primaryLight.withValues(alpha: 0.95),
-              const Color(0xFFFFD8C3),
-            ],
-          ),
+          color: AppColors.ink.withValues(alpha: 0.04),
+          border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
         ),
         alignment: Alignment.center,
         child: Icon(
           Icons.credit_card_rounded,
           size: 44,
-          color: AppColors.darkGrey.withValues(alpha: 0.80),
+          color: AppColors.ink.withValues(alpha: 0.22),
         ),
       );
     }
@@ -1003,13 +1062,13 @@ class _ScanResultViewState extends State<ScanResultView> {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.darkGrey.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkGrey.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: AppColors.ink.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1022,18 +1081,18 @@ class _ScanResultViewState extends State<ScanResultView> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.darkGrey.withValues(alpha: 0.10),
+                  color: AppColors.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: AppColors.darkGrey),
+                child: Icon(icon, size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.darkGrey,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1066,53 +1125,41 @@ class _ScanResultViewState extends State<ScanResultView> {
       readOnly: readOnly || !_isEditing,
       filled: true,
       fillColor: const Color(0xFFF5F7FB),
-      borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+      borderColor: AppColors.ink.withValues(alpha: 0.10),
       borderRadius: 16,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      cursorColor: AppColors.darkGrey.withValues(alpha: 0.65),
+      cursorColor: AppColors.ink.withValues(alpha: 0.65),
       labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.72),
-            fontWeight: FontWeight.w800,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.72),
+        fontWeight: FontWeight.w800,
+      ),
       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.40),
-            fontWeight: FontWeight.w600,
-          ),
+        color: AppColors.ink.withValues(alpha: 0.40),
+        fontWeight: FontWeight.w600,
+      ),
       textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.92),
-            fontWeight: FontWeight.w700,
-          ),
-      suffixIcon: suffixIcon == null
-          ? null
-          : Icon(
-              suffixIcon,
-              color: AppColors.darkGrey.withValues(alpha: 0.55),
-            ),
+        color: AppColors.ink.withValues(alpha: 0.92),
+        fontWeight: FontWeight.w700,
+      ),
+      suffixIcon:
+          suffixIcon == null
+              ? null
+              : Icon(suffixIcon, color: AppColors.ink.withValues(alpha: 0.55)),
     );
   }
 
-  Widget _scanPreviewThumbnail({required double width, required double height}) {
+  Widget _scanPreviewThumbnail({
+    required double width,
+    required double height,
+  }) {
     return Container(
       width: width,
       height: height,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryLight.withValues(alpha: 0.95),
-            const Color(0xFFFFD8C3),
-          ],
-        ),
+        color: AppColors.ink.withValues(alpha: 0.04),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryLight.withValues(alpha: 0.28),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: _buildCardPreview(),
     );
@@ -1128,22 +1175,22 @@ class _ScanResultViewState extends State<ScanResultView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: AppColors.darkGrey.withValues(alpha: 0.08),
+              color: AppColors.ink.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.verified_rounded,
                   size: 16,
-                  color: AppColors.darkGrey,
+                  color: AppColors.primary.withValues(alpha: 0.92),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'REVIEW SCAN',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.darkGrey,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.6,
                   ),
@@ -1165,8 +1212,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                 ),
                 label: Text(_isRescanning ? 'Retaking...' : 'Retake'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.darkGrey.withValues(alpha: 0.08),
-                  foregroundColor: AppColors.darkGrey,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+                  foregroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -1179,15 +1226,13 @@ class _ScanResultViewState extends State<ScanResultView> {
               OutlinedButton.icon(
                 onPressed: () => setState(() => _isEditing = !_isEditing),
                 icon: Icon(
-                  _isEditing
-                      ? Icons.check_circle_outline
-                      : Icons.edit_outlined,
+                  _isEditing ? Icons.check_circle_outline : Icons.edit_outlined,
                 ),
                 label: Text(_isEditing ? 'Done' : 'Edit fields'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.darkGrey,
+                  foregroundColor: AppColors.ink,
                   side: BorderSide(
-                    color: AppColors.darkGrey.withValues(alpha: 0.16),
+                    color: AppColors.ink.withValues(alpha: 0.14),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -1213,39 +1258,38 @@ class _ScanResultViewState extends State<ScanResultView> {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.darkGrey.withValues(alpha: 0.08),
-            ),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.darkGrey.withValues(alpha: 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
+                color: AppColors.ink.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: narrow
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: _scanPreviewThumbnail(
-                        width: constraints.maxWidth.clamp(0, 280),
-                        height: 132,
+          child:
+              narrow
+                  ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: _scanPreviewThumbnail(
+                          width: constraints.maxWidth.clamp(0, 280),
+                          height: 132,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    heroCopy(),
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: heroCopy()),
-                    const SizedBox(width: 14),
-                    _scanPreviewThumbnail(width: 132, height: 108),
-                  ],
-                ),
+                      const SizedBox(height: 18),
+                      heroCopy(),
+                    ],
+                  )
+                  : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: heroCopy()),
+                      const SizedBox(width: 14),
+                      _scanPreviewThumbnail(width: 132, height: 108),
+                    ],
+                  ),
         );
       },
     );
@@ -1263,14 +1307,16 @@ class _ScanResultViewState extends State<ScanResultView> {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.darkGrey.withValues(alpha: 0.12)
-                  : AppColors.white,
+              color:
+                  selected
+                      ? AppColors.primary.withValues(alpha: 0.12)
+                      : AppColors.white,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: selected
-                    ? AppColors.darkGrey.withValues(alpha: 0.22)
-                    : AppColors.darkGrey.withValues(alpha: 0.12),
+                color:
+                    selected
+                        ? AppColors.primary.withValues(alpha: 0.26)
+                        : AppColors.ink.withValues(alpha: 0.10),
               ),
             ),
             child: Row(
@@ -1279,9 +1325,10 @@ class _ScanResultViewState extends State<ScanResultView> {
                 Text(
                   text,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.darkGrey.withValues(
-                      alpha: selected ? 0.92 : 0.72,
-                    ),
+                    color:
+                        selected
+                            ? AppColors.primary
+                            : AppColors.ink.withValues(alpha: 0.68),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1290,7 +1337,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                   Icon(
                     Icons.close_rounded,
                     size: 16,
-                    color: AppColors.darkGrey.withValues(alpha: 0.60),
+                    color: AppColors.primary.withValues(alpha: 0.70),
                   ),
                 ],
               ],
@@ -1308,20 +1355,22 @@ class _ScanResultViewState extends State<ScanResultView> {
           child: InkWell(
             onTap: _openAddTagDialog,
             borderRadius: BorderRadius.circular(999),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: AppColors.darkGrey.withValues(alpha: 0.14),
-                ),
+            child: CustomPaint(
+              painter: _DashedPillBorderPainter(
+                color: AppColors.primary.withValues(alpha: 0.40),
+                radius: 999,
               ),
-              child: Text(
-                '+ Add Tag',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.darkGrey.withValues(alpha: 0.70),
-                  fontWeight: FontWeight.w800,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Text(
+                  '+ Add Tag',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
@@ -1333,14 +1382,13 @@ class _ScanResultViewState extends State<ScanResultView> {
 
   Widget _shareWithOrganisationRow() {
     final theme = Theme.of(context);
-    const activeGreen = Color(0xFF22C55E);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F7FB),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.darkGrey.withValues(alpha: 0.10)),
+        border: Border.all(color: AppColors.ink.withValues(alpha: 0.10)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1352,7 +1400,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                 Text(
                   'Share with my organisation',
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.darkGrey,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1360,7 +1408,7 @@ class _ScanResultViewState extends State<ScanResultView> {
                 Text(
                   'Allow team members to view this contact',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.darkGrey.withValues(alpha: 0.55),
+                    color: AppColors.ink.withValues(alpha: 0.55),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1369,7 +1417,7 @@ class _ScanResultViewState extends State<ScanResultView> {
           ),
           CupertinoSwitch(
             value: _shareWithOrganization,
-            activeTrackColor: activeGreen,
+            activeTrackColor: AppColors.primary,
             onChanged: (value) {
               setState(() => _shareWithOrganization = value);
             },
@@ -1396,7 +1444,7 @@ class _ScanResultViewState extends State<ScanResultView> {
         Text(
           label,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.darkGrey.withValues(alpha: 0.72),
+            color: AppColors.ink.withValues(alpha: 0.72),
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -1407,32 +1455,41 @@ class _ScanResultViewState extends State<ScanResultView> {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _isEditing ? () => _openCountryPicker(isPhone1: isPhone1) : null,
+                onTap:
+                    _isEditing
+                        ? () => _openCountryPicker(isPhone1: isPhone1)
+                        : null,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F7FB),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.darkGrey.withValues(alpha: 0.10),
+                      color: AppColors.ink.withValues(alpha: 0.10),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(country.flagEmoji, style: const TextStyle(fontSize: 20)),
+                      Text(
+                        country.flagEmoji,
+                        style: const TextStyle(fontSize: 20),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         '+${country.phoneCode}',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.darkGrey.withValues(alpha: 0.92),
+                          color: AppColors.ink.withValues(alpha: 0.92),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Icon(
                         Icons.arrow_drop_down_rounded,
-                        color: AppColors.darkGrey.withValues(alpha: 0.55),
+                        color: AppColors.ink.withValues(alpha: 0.55),
                       ),
                     ],
                   ),
@@ -1448,16 +1505,19 @@ class _ScanResultViewState extends State<ScanResultView> {
                 maxLength: isIndiaCode ? 10 : null,
                 enabled: _isEditing,
                 readOnly: !_isEditing,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                cursorColor: AppColors.darkGrey.withValues(alpha: 0.65),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                cursorColor: AppColors.ink.withValues(alpha: 0.65),
                 fillColor: const Color(0xFFF5F7FB),
-                borderColor: AppColors.darkGrey.withValues(alpha: 0.10),
+                borderColor: AppColors.ink.withValues(alpha: 0.10),
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.darkGrey.withValues(alpha: 0.40),
+                  color: AppColors.ink.withValues(alpha: 0.40),
                   fontWeight: FontWeight.w600,
                 ),
                 textStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.darkGrey.withValues(alpha: 0.92),
+                  color: AppColors.ink.withValues(alpha: 0.92),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1476,40 +1536,56 @@ class _ScanResultViewState extends State<ScanResultView> {
         decoration: BoxDecoration(
           color: AppColors.white,
           border: Border(
-            top: BorderSide(color: AppColors.darkGrey.withValues(alpha: 0.08)),
+            top: BorderSide(color: AppColors.ink.withValues(alpha: 0.08)),
           ),
         ),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isSaving ? null : _saveContact,
-            icon: _isSaving
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.white.withValues(alpha: 0.9),
-                    ),
-                  )
-                : const Icon(Icons.check_rounded),
-            label: Text(
-              _isSaving ? 'Saving...' : 'Save Contact',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w800,
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isSaving ? null : () => Get.back(),
+                icon: const Icon(Icons.close_rounded),
+                label: const Text('Cancel'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.ink,
+                  side: BorderSide(
+                    color: AppColors.ink.withValues(alpha: 0.14),
                   ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.darkGrey,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
               ),
-              elevation: 0,
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isSaving ? null : _saveContact,
+                icon:
+                    _isSaving
+                        ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.white.withValues(alpha: 0.9),
+                          ),
+                        )
+                        : const Icon(Icons.check_rounded),
+                label: Text(_isSaving ? 'Saving...' : 'Save Contact'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1518,22 +1594,22 @@ class _ScanResultViewState extends State<ScanResultView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF5F7FB),
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.darkGrey,
+          icon: const Icon(CupertinoIcons.back),
+          color: AppColors.ink,
           onPressed: () => Get.back(),
         ),
         title: const Text('Review Scan'),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.darkGrey,
-              fontWeight: FontWeight.w800,
-            ),
+          color: AppColors.ink,
+          fontWeight: FontWeight.w800,
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -1626,7 +1702,8 @@ class _ScanResultViewState extends State<ScanResultView> {
                               );
                               if (stack) {
                                 return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     org,
                                     const SizedBox(height: 14),
@@ -1668,15 +1745,12 @@ class _ScanResultViewState extends State<ScanResultView> {
                               const SizedBox(height: 14),
                               Text(
                                 'Tags',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(
-                                      color: AppColors.darkGrey.withValues(
-                                        alpha: 0.72,
-                                      ),
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge?.copyWith(
+                                  color: AppColors.ink.withValues(alpha: 0.72),
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               _tagChips(),

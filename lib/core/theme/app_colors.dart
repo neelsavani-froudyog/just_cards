@@ -4,10 +4,11 @@ class AppColors {
   const AppColors._();
 
   /// Brand / Theme color: #FFA25F
-  static const Color seed = Color.fromARGB(255, 55, 55, 55);
+  static const Color seed = Color(0xFFF0A66C2);
 
   /// Primary brand color (same as seed)
   static const Color primary = seed;
+  static const Color background = Color(0xFFf2f5f7);
 
   /// Darker brand shade for gradients/buttons
   static const Color primaryDark = Color.fromARGB(255, 55, 55, 55);
