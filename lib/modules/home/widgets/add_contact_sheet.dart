@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/document_scanner_service.dart';
 import '../../../core/services/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/document_scanner_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../events/create/create_event_sheet.dart';
 import '../home_controller.dart';
@@ -56,7 +56,10 @@ class AddContactSheet extends StatelessWidget {
                         color: Colors.transparent,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close_rounded, color: AppColors.ink),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: AppColors.ink,
+                      ),
                     ),
                   ),
                 ],
@@ -75,13 +78,15 @@ class AddContactSheet extends StatelessWidget {
                     iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
                       final homeController = Get.find<HomeController>();
-                      
+
                       if (!homeController.canProceedManualEntry) {
                         await ToastService.error('Your scan quota is full.');
                         return;
                       }
                       Get.back();
-                      final images = await DocumentScannerService.scan(allowMultiple: false);
+                      final images = await DocumentScannerService.scan(
+                        allowMultiple: false,
+                      );
                       if (images.isNotEmpty) {
                         await Get.toNamed(
                           Routes.scanResult,
@@ -98,20 +103,14 @@ class AddContactSheet extends StatelessWidget {
                     iconBg: const Color(0xFFFFE7DB),
                     iconColor: const Color(0xFFFF6B2D),
                     onTap: () async {
-                       final homeController = Get.find<HomeController>();
-                      
+                      final homeController = Get.find<HomeController>();
+
                       if (!homeController.canProceedManualEntry) {
                         await ToastService.error('Your scan quota is full.');
                         return;
                       }
                       Get.back();
-                      final images = await DocumentScannerService.scan(allowMultiple: true);
-                      if (images.isNotEmpty) {
-                        await Get.toNamed(
-                          Routes.scanResult,
-                          arguments: <String, dynamic>{'images': images},
-                        );
-                      }
+                      await Get.toNamed(Routes.multiCardScanner);
                     },
                   ),
                   const SizedBox(height: 10),
@@ -129,7 +128,7 @@ class AddContactSheet extends StatelessWidget {
                       }
 
                       final homeController = Get.find<HomeController>();
-                      
+
                       if (!homeController.canProceedManualEntry) {
                         await ToastService.error('Your scan quota is full.');
                         return;
@@ -172,9 +171,7 @@ class AddContactSheet extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              height: 0,
-            ),
+            Container(height: 0),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
               child: _SheetTile(
@@ -243,9 +240,13 @@ class _SheetTile extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: iconBg ?? AppColors.primaryLight.withValues(alpha: 0.35),
+                  color:
+                      iconBg ?? AppColors.primaryLight.withValues(alpha: 0.35),
                 ),
-                child: Icon(icon, color: iconColor ?? AppColors.ink.withValues(alpha: 0.85)),
+                child: Icon(
+                  icon,
+                  color: iconColor ?? AppColors.ink.withValues(alpha: 0.85),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -273,7 +274,10 @@ class _SheetTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Icon(Icons.chevron_right_rounded, color: AppColors.ink.withValues(alpha: 0.35)),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.ink.withValues(alpha: 0.35),
+              ),
             ],
           ),
         ),

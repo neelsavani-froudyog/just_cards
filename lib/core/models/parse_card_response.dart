@@ -1,10 +1,6 @@
 /// Response from `POST /scan-quota/parse-card`.
 class ParseCardResponse {
-  const ParseCardResponse({
-    required this.ok,
-    required this.message,
-    this.data,
-  });
+  const ParseCardResponse({required this.ok, required this.message, this.data});
 
   final bool ok;
   final String message;
@@ -15,18 +11,16 @@ class ParseCardResponse {
     return ParseCardResponse(
       ok: json['ok'] == true,
       message: json['message']?.toString() ?? '',
-      data: rawData is Map<String, dynamic>
-          ? ParseCardData.fromJson(rawData)
-          : null,
+      data:
+          rawData is Map<String, dynamic>
+              ? ParseCardData.fromJson(rawData)
+              : null,
     );
   }
 }
 
 class ParseCardData {
-  const ParseCardData({
-    required this.fields,
-    this.meta,
-  });
+  const ParseCardData({required this.fields, this.meta});
 
   final ParseCardFields fields;
   final ParseCardMeta? meta;
@@ -35,12 +29,14 @@ class ParseCardData {
     final dynamic rawFields = json['fields'];
     final dynamic rawMeta = json['meta'];
     return ParseCardData(
-      fields: rawFields is Map<String, dynamic>
-          ? ParseCardFields.fromJson(rawFields)
-          : ParseCardFields.empty(),
-      meta: rawMeta is Map<String, dynamic>
-          ? ParseCardMeta.fromJson(rawMeta)
-          : null,
+      fields:
+          rawFields is Map<String, dynamic>
+              ? ParseCardFields.fromJson(rawFields)
+              : ParseCardFields.empty(),
+      meta:
+          rawMeta is Map<String, dynamic>
+              ? ParseCardMeta.fromJson(rawMeta)
+              : null,
     );
   }
 }
@@ -57,14 +53,14 @@ class ParseCardFields {
   });
 
   factory ParseCardFields.empty() => const ParseCardFields(
-        name: '',
-        designation: '',
-        company: '',
-        emails: <String>[],
-        phones: <String>[],
-        website: null,
-        address: null,
-      );
+    name: '',
+    designation: '',
+    company: '',
+    emails: <String>[],
+    phones: <String>[],
+    website: null,
+    address: null,
+  );
 
   final String name;
   final String designation;
@@ -74,10 +70,33 @@ class ParseCardFields {
   final String? website;
   final String? address;
 
+  ParseCardFields copyWith({
+    String? name,
+    String? designation,
+    String? company,
+    List<String>? emails,
+    List<String>? phones,
+    String? website,
+    String? address,
+  }) {
+    return ParseCardFields(
+      name: name ?? this.name,
+      designation: designation ?? this.designation,
+      company: company ?? this.company,
+      emails: emails ?? this.emails,
+      phones: phones ?? this.phones,
+      website: website ?? this.website,
+      address: address ?? this.address,
+    );
+  }
+
   factory ParseCardFields.fromJson(Map<String, dynamic> json) {
     List<String> listOfString(dynamic v) {
       if (v is! List) return <String>[];
-      return v.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).toList();
+      return v
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
     }
 
     return ParseCardFields(

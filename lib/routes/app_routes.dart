@@ -27,6 +27,9 @@ abstract class Routes {
   static const aboutUs = _Paths.aboutUs;
   static const editProfile = _Paths.editProfile;
   static const scanResult = _Paths.scanResult;
+  static const multiCardScanner = _Paths.multiCardScanner;
+  static const multiCardScanResult = _Paths.multiCardScanResult;
+  static const multiCardScanSummary = _Paths.multiCardScanSummary;
   static const qrScanner = _Paths.qrScanner;
   static const manualEntry = _Paths.manualEntry;
   static const editContact = _Paths.editContact;
@@ -60,6 +63,9 @@ abstract class _Paths {
   static const aboutUs = '/aboutUs';
   static const editProfile = '/editProfile';
   static const scanResult = '/scanResult';
+  static const multiCardScanner = '/multiCardScanner';
+  static const multiCardScanResult = '/multiCardScanResult';
+  static const multiCardScanSummary = '/multiCardScanSummary';
   static const qrScanner = '/qrScanner';
   static const manualEntry = '/manualEntry';
   static const editContact = '/editContact';

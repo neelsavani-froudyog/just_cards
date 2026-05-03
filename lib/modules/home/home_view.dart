@@ -434,13 +434,11 @@ class _HomeViewState extends State<HomeView> {
 
                             return SizedBox(
                               height: 118,
-                              child: ListView.separated(
+                              child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 itemBuilder: (context, index) => _EventCard(
                                   event: controller.events[index],
                                 ),
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 14),
                                 itemCount: controller.events.length,
                               ),
                             );
@@ -862,7 +860,8 @@ class _EventCard extends StatelessWidget {
             ),
         splashColor: AppColors.primary.withValues(alpha: 0.12),
         highlightColor: AppColors.primary.withValues(alpha: 0.06),
-        child: Ink(
+        child: Container(
+          margin: EdgeInsets.fromLTRB(0, 0, 14, 0),
           width: 192,
           height: 112,
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),

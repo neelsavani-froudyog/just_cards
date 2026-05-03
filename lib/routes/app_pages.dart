@@ -36,6 +36,10 @@ import '../modules/organization/manage/manage_organization_binding.dart';
 import '../modules/organization/manage/manage_organization_view.dart';
 import '../modules/legal/legal_markdown_view.dart';
 import '../modules/contacts/scan_result/scan_result_view.dart';
+import '../modules/contacts/multi_scan/multi_card_scan_binding.dart';
+import '../modules/contacts/multi_scan/screens/multi_card_scan_result_screen.dart';
+import '../modules/contacts/multi_scan/screens/multi_card_scan_summary_screen.dart';
+import '../modules/contacts/multi_scan/screens/multi_card_scanner_screen.dart';
 import '../modules/contacts/qr_import/qr_scanner_view.dart';
 import '../modules/contacts/edit_contact/edit_contact_binding.dart';
 import '../modules/contacts/edit_contact/edit_contact_view.dart';
@@ -133,6 +137,19 @@ class AppPages {
       binding: EditProfileBinding(),
     ),
     GetPage(name: Routes.scanResult, page: ScanResultView.new),
+    GetPage(
+      name: Routes.multiCardScanner,
+      page: MultiCardScannerScreen.new,
+      binding: MultiCardScanBinding(),
+    ),
+    GetPage(
+      name: Routes.multiCardScanResult,
+      page: MultiCardScanResultScreen.new,
+    ),
+    GetPage(
+      name: Routes.multiCardScanSummary,
+      page: MultiCardScanSummaryScreen.new,
+    ),
     GetPage(name: Routes.qrScanner, page: QrScannerView.new),
     GetPage(
       name: Routes.manualEntry,

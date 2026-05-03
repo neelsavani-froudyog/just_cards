@@ -1692,10 +1692,16 @@ class _ScanResultViewState extends State<ScanResultView> {
                                 hint: 'Full name',
                               ),
                               const SizedBox(height: 14),
+                               _field(
+                                label: 'Company',
+                                controller: _companyCtrl,
+                                hint: 'Company name',
+                              ),
+                              const SizedBox(height: 14),
                               _field(
-                                label: 'Job Title',
+                                label: 'Designation',
                                 controller: _jobTitleCtrl,
-                                hint: 'Job title',
+                                hint: 'Designation',
                               ),
                               const SizedBox(height: 14),
                               _phoneFieldWithCountry(
@@ -1761,8 +1767,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     org,
-                                    const SizedBox(height: 14),
-                                    company,
                                   ],
                                 );
                               }
@@ -1775,8 +1779,6 @@ class _ScanResultViewState extends State<ScanResultView> {
                                           CrossAxisAlignment.stretch,
                                       children: [
                                         org,
-                                        const SizedBox(height: 14),
-                                        company,
                                       ],
                                     ),
                                   ),
