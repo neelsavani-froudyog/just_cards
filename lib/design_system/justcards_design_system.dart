@@ -215,7 +215,7 @@ class JCStatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: JCTypography.labelXS),
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               Text(value, style: JCTypography.displayLarge),
             ],
           ),

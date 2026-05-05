@@ -6,6 +6,7 @@ import '../notifications/notifications_model.dart';
 import 'home_contacts_model.dart';
 import 'home_events_model.dart';
 import 'scan_quota_status_model.dart';
+import '../organization/manage/my_organizations_model.dart';
 
 class HomeController extends GetxController {
   late final ApiService _apiService;
@@ -51,6 +52,10 @@ class HomeController extends GetxController {
   int _contactsRequestVersion = 0;
   Worker? _contactsSearchWorker;
 
+  final organizations = <OrganizationSummary>[].obs;
+  final isOrganizationsLoading = false.obs;
+  final organizationsErrorText = RxnString();
+
   @override
   void onInit() {
     super.onInit();
@@ -77,6 +82,7 @@ class HomeController extends GetxController {
     await Future.wait(<Future<void>>[
       fetchEvents(force: force),
       fetchContacts(reset: true, force: force),
+      fetchOrganizations(force: force),
       fetchScanQuotaStatus(force: force),
       fetchMyContactsTotalCount(),
       fetchUnreadNotificationsCount(),
@@ -89,6 +95,51 @@ class HomeController extends GetxController {
       fetchMyContactsTotalCount(),
       fetchScanQuotaStatus(force: true),
     ]);
+  }
+
+  Future<void> fetchOrganizations({bool force = false}) async {
+    if (isOrganizationsLoading.value) return;
+    if (!force && organizations.isNotEmpty) return;
+
+    isOrganizationsLoading.value = true;
+    organizationsErrorText.value = null;
+    try {
+      await _apiService.getRequest(
+        url: ApiUrl.profileOrganizations,
+        queryParameters: const <String, dynamic>{'limit': 10, 'offset': 0},
+        showSuccessToast: false,
+        showErrorToast: false,
+        onSuccess: (payload) {
+          final raw = payload['response'];
+          if (raw is! Map<String, dynamic>) {
+            organizationsErrorText.value = 'Invalid organizations response';
+            organizations.clear();
+            return;
+          }
+
+          final parsed = MyOrganizationsResponse.fromJson(raw);
+          if (!parsed.ok) {
+            organizationsErrorText.value =
+                parsed.message.isNotEmpty
+                    ? parsed.message
+                    : 'Failed to load organizations';
+            organizations.clear();
+            return;
+          }
+
+          organizations.assignAll(parsed.data);
+        },
+        onError: (message) {
+          organizationsErrorText.value =
+              (message?.isNotEmpty ?? false)
+                  ? message
+                  : 'Failed to load organizations';
+          organizations.clear();
+        },
+      );
+    } finally {
+      isOrganizationsLoading.value = false;
+    }
   }
 
   /// Badge count = notifications with `is_seen == false` (not invite "pending" totals).
@@ -205,12 +256,10 @@ class HomeController extends GetxController {
     final requestVersion = ++_contactsRequestVersion;
     contactsErrorText.value = null;
 
-    if(force) {
-    isContactsLoading.value = true;
-    contacts.clear();
+    if (force) {
+      isContactsLoading.value = true;
+      contacts.clear();
     }
-
-    
 
     final selectedFilterIndex = selectedFilter.value;
     final requestOffset = contactsOffset.value;
@@ -296,8 +345,8 @@ class HomeController extends GetxController {
   Future<void> fetchEvents({bool force = false}) async {
     if (isEventsLoading.value) return;
 
-    if(force){
-        isEventsLoading.value = true;
+    if (force) {
+      isEventsLoading.value = true;
     }
     eventsErrorText.value = null;
     try {
@@ -403,7 +452,7 @@ class HomeController extends GetxController {
 
   void setFilter(int index) {
     selectedFilter.value = index;
-    fetchContacts(reset: true,force: true);
+    fetchContacts(reset: true, force: true);
   }
 
   void setSearch(String v) {

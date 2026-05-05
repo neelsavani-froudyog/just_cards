@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:toastification/toastification.dart';
 
 import 'core/services/api.dart';
 import 'core/services/api_service.dart';
@@ -53,7 +54,9 @@ class JustCardsApp extends StatelessWidget {
       initialRoute: Routes.splash,
       getPages: AppPages.pages,
       builder: (context, child) {
-        return NoInternetOverlay(child: child ?? const SizedBox.shrink());
+        return ToastificationWrapper(
+          child: NoInternetOverlay(child: child ?? const SizedBox.shrink()),
+        );
       },
     );
   }

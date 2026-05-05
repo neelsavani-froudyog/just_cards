@@ -1552,7 +1552,13 @@ class _InvitesTab extends StatelessWidget {
               child: Obx(() {
                 final busy = controller.isInviting.value;
                 return FilledButton(
-                  onPressed: busy ? null : controller.sendInvite,
+                  onPressed:
+                      busy
+                          ? null
+                          : () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            controller.sendInvite();
+                          },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.ink,
                     foregroundColor: AppColors.white,
@@ -1616,7 +1622,13 @@ class _InvitesTab extends StatelessWidget {
                 height: 48,
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: busy ? null : controller.sendInvites,
+                  onPressed:
+                      busy
+                          ? null
+                          : () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            controller.sendInvites();
+                          },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,

@@ -1,41 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:get/get.dart';
+import 'package:toastification/toastification.dart';
 
 class ToastService {
   static Future<void> success(String message) {
     return _show(
       message: message,
-      backgroundColor: Colors.green.shade700,
+      type: ToastificationType.success,
     );
   }
 
   static Future<void> info(String message) {
     return _show(
       message: message,
-      backgroundColor: Colors.blueGrey.shade700,
+      type: ToastificationType.info,
     );
   }
 
   static Future<void> error(String message) {
     return _show(
       message: message,
-      backgroundColor: Colors.red.shade700,
+      type: ToastificationType.error,
     );
   }
 
   static Future<void> _show({
     required String message,
-    required Color backgroundColor,
+    required ToastificationType type,
   }) async {
-    await Fluttertoast.cancel();
-    await Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: backgroundColor,
-      textColor: Colors.white,
-      fontSize: 14,
+    final context = Get.context;
+    if (context == null) return;
+
+    toastification.show(
+      context: context,
+      type: type,
+      style: ToastificationStyle.minimal,
+      alignment: Alignment.bottomCenter,
+      autoCloseDuration: const Duration(seconds: 3),
+      showProgressBar: false,
+      title: Text(
+        message,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: Colors.black,
+        ),
+      ),
     );
   }
 }
-

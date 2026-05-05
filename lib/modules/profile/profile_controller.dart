@@ -14,6 +14,9 @@ class ProfileController extends GetxController {
   final isDeletingAccount = false.obs;
   final profileError = RxnString();
   final profileMe = Rxn<ProfileMeResponse>();
+  DateTime? _lastProfileFetchAt;
+
+  static const Duration profileCacheTtl = Duration(minutes: 2);
 
   RxString get displayName => _session.displayName;
   RxString get email => _session.email;
@@ -27,10 +30,21 @@ class ProfileController extends GetxController {
     fetchProfile();
   }
 
-  Future<void> fetchProfile() async {
-    if (isLoading.value) return;
-    isLoading.value = true;
-    profileError.value = null;
+  bool get hasFreshProfileCache {
+    if (_lastProfileFetchAt == null) return false;
+    return DateTime.now().difference(_lastProfileFetchAt!) <= profileCacheTtl;
+  }
+
+  Future<void> fetchProfile({bool silent = false, bool force = false}) async {
+    if (!force && hasFreshProfileCache && profileMe.value?.data != null) {
+      return;
+    }
+    if (!silent) {
+      if (isLoading.value) return;
+      isLoading.value = true;
+      profileError.value = null;
+      update();
+    }
 
     try {
       await _apiService.getRequest(
@@ -46,10 +60,13 @@ class ProfileController extends GetxController {
 
           final parsed = ProfileMeResponse.fromJson(response);
           profileMe.value = parsed;
+          _lastProfileFetchAt = DateTime.now();
+          update();
 
           if (!parsed.ok || parsed.data == null) {
             profileError.value =
                 parsed.message.isNotEmpty ? parsed.message : 'Invalid profile response';
+            update();
             return;
           }
 
@@ -59,14 +76,19 @@ class ProfileController extends GetxController {
                 : AuthSessionService.defaultDisplayName,
             emailAddress: parsed.data!.email,
           );
+          update();
         },
         onError: (message) {
           profileError.value =
               (message?.isNotEmpty ?? false) ? message : 'Failed to load profile';
+          update();
         },
       );
     } finally {
-      isLoading.value = false;
+      if (!silent) {
+        isLoading.value = false;
+        update();
+      }
     }
   }
 
@@ -99,5 +121,48 @@ class ProfileController extends GetxController {
     } finally {
       isDeletingAccount.value = false;
     }
+  }
+
+  Future<bool> updateProfileVcfDetails({
+    required String fullName,
+    required String phone,
+    required String avatarUrl,
+    required String companyName,
+    required String designation,
+    required String address,
+    required String website,
+    required String secondaryEmail,
+    required String secondaryPhone,
+  }) async {
+    var ok = false;
+
+    await _apiService.patchRequest(
+      url: ApiUrl.createProfile,
+      data: <String, dynamic>{
+        'p_full_name': fullName.trim(),
+        'p_phone': phone.trim(),
+        'p_avatar_url': avatarUrl.trim(),
+        'p_company_name': companyName.trim(),
+        'p_designation': designation.trim(),
+        'p_address': address.trim(),
+        'p_website': website.trim(),
+        'p_secondary_email': secondaryEmail.trim(),
+        'p_secondary_phone': secondaryPhone.trim(),
+      },
+      showSuccessToast: false,
+      showErrorToast: true,
+      onSuccess: (_) {
+        ok = true;
+      },
+      onError: (_) {
+        ok = false;
+      },
+    );
+
+    if (ok) {
+      await fetchProfile(silent: true);
+      update();
+    }
+    return ok;
   }
 }

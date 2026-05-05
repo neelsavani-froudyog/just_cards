@@ -17,10 +17,16 @@ import '../profile_model.dart';
 class EditProfileController extends GetxController {
   final fullNameController = TextEditingController();
   final companyNameController = TextEditingController();
+  final designationController = TextEditingController();
+  final websiteController = TextEditingController();
+  final addressController = TextEditingController();
   final phoneController = TextEditingController();
+  final secondaryPhoneController = TextEditingController();
   final emailController = TextEditingController();
+  final secondaryEmailController = TextEditingController();
   final avatarUrl = ''.obs;
   final phoneCountryIso = 'IN'.obs;
+  final secondaryPhoneCountryIso = 'IN'.obs;
 
   final isLoading = false.obs;
   final isSaving = false.obs;
@@ -41,8 +47,13 @@ class EditProfileController extends GetxController {
   void onClose() {
     fullNameController.dispose();
     companyNameController.dispose();
+    designationController.dispose();
+    websiteController.dispose();
+    addressController.dispose();
     phoneController.dispose();
+    secondaryPhoneController.dispose();
     emailController.dispose();
+    secondaryEmailController.dispose();
     super.onClose();
   }
 
@@ -50,14 +61,18 @@ class EditProfileController extends GetxController {
     phoneCountryIso.value = country.countryCode;
   }
 
+  void setSecondaryPhoneCountry(Country country) {
+    secondaryPhoneCountryIso.value = country.countryCode;
+  }
+
   static String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
 
   /// Splits E.164 into (country, national). Defaults to IN if unknown.
-  void _applyPhoneFromProfile(String raw) {
+  void _applyPhoneFromProfile(String raw, {required bool secondary}) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return;
     if (!trimmed.startsWith('+')) {
-      phoneController.text = trimmed;
+      (secondary ? secondaryPhoneController : phoneController).text = trimmed;
       return;
     }
     final digits = _digitsOnly(trimmed);
@@ -74,10 +89,15 @@ class EditProfileController extends GetxController {
       }
     }
     if (match != null) {
-      phoneCountryIso.value = match.countryCode;
-      phoneController.text = digits.substring(bestLen);
+      if (secondary) {
+        secondaryPhoneCountryIso.value = match.countryCode;
+        secondaryPhoneController.text = digits.substring(bestLen);
+      } else {
+        phoneCountryIso.value = match.countryCode;
+        phoneController.text = digits.substring(bestLen);
+      }
     } else {
-      phoneController.text = digits;
+      (secondary ? secondaryPhoneController : phoneController).text = digits;
     }
   }
 
@@ -86,7 +106,8 @@ class EditProfileController extends GetxController {
     String iso3166alpha2,
     String nationalRaw,
   ) {
-    final c = CountryService().findByCode(iso3166alpha2) ??
+    final c =
+        CountryService().findByCode(iso3166alpha2) ??
         CountryService().findByCode('IN');
     final pc = (c?.phoneCode ?? '91').trim();
     final codeDigits = _digitsOnly(pc);
@@ -112,12 +133,24 @@ class EditProfileController extends GetxController {
 
           fullNameController.text = data.fullName;
           companyNameController.text = (data.companyName ?? '').trim();
-          _applyPhoneFromProfile((data.phone ?? '').trim());
+          designationController.text = (data.designation ?? '').trim();
+          websiteController.text = (data.website ?? '').trim();
+          addressController.text = (data.address ?? '').trim();
+          _applyPhoneFromProfile((data.phone ?? '').trim(), secondary: false);
+          _applyPhoneFromProfile(
+            (data.secondaryPhone ?? '').trim(),
+            secondary: true,
+          );
           emailController.text = (data.email).trim();
+          secondaryEmailController.text = (data.secondaryEmail ?? '').trim();
           avatarUrl.value = (data.avatarUrl ?? '').trim();
         },
         onError: (message) {
-          ToastService.error((message?.isNotEmpty ?? false) ? message! : 'Failed to load profile');
+          ToastService.error(
+            (message?.isNotEmpty ?? false)
+                ? message!
+                : 'Failed to load profile',
+          );
         },
       );
     } finally {
@@ -147,14 +180,32 @@ class EditProfileController extends GetxController {
   Future<void> save() async {
     if (isSaving.value) return;
 
-    final fullName =
-        fullNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
-    final companyName =
-        companyNameController.text.trim().replaceAll(RegExp(r'\\s+'), ' ');
+    final fullName = fullNameController.text.trim().replaceAll(
+      RegExp(r'\\s+'),
+      ' ',
+    );
+    final companyName = companyNameController.text.trim().replaceAll(
+      RegExp(r'\\s+'),
+      ' ',
+    );
     final phone = composeInternationalPhone(
       phoneCountryIso.value,
       phoneController.text.trim(),
     );
+    final secondaryPhone = composeInternationalPhone(
+      secondaryPhoneCountryIso.value,
+      secondaryPhoneController.text.trim(),
+    );
+    final designation = designationController.text.trim().replaceAll(
+      RegExp(r'\\s+'),
+      ' ',
+    );
+    final website = websiteController.text.trim();
+    final address = addressController.text.trim().replaceAll(
+      RegExp(r'\\s+'),
+      ' ',
+    );
+    final secondaryEmail = secondaryEmailController.text.trim();
 
     if (fullName.length < 2) {
       ToastService.error('Please enter your full name');
@@ -173,14 +224,23 @@ class EditProfileController extends GetxController {
           'p_phone': phone.trim().isEmpty ? null : phone,
           'p_avatar_url': avatarForSave.trim().isEmpty ? null : avatarForSave,
           'p_company_name': companyName.trim().isEmpty ? null : companyName,
+          'p_designation': designation.isEmpty ? null : designation,
+          'p_website': website.isEmpty ? null : website,
+          'p_address': address.isEmpty ? null : address,
+          'p_secondary_email': secondaryEmail.isEmpty ? null : secondaryEmail,
+          'p_secondary_phone':
+              secondaryPhone.trim().isEmpty ? null : secondaryPhone,
         },
         showSuccessToast: true,
         successToastMessage: 'Profile updated',
         showErrorToast: true,
         onSuccess: (_) {
-          _session.completeProfile(name: fullName, emailAddress: _session.email.value);
+          _session.completeProfile(
+            name: fullName,
+            emailAddress: _session.email.value,
+          );
           try {
-            Get.find<ProfileController>().fetchProfile();
+            Get.find<ProfileController>().fetchProfile(force: true);
           } catch (_) {}
           Get.back();
         },
@@ -197,7 +257,8 @@ class EditProfileController extends GetxController {
   Future<String?> _uploadProfilePhotoIfNeeded() async {
     final current = avatarUrl.value.trim();
     if (current.isEmpty) return current;
-    final isRemote = current.startsWith('http://') || current.startsWith('https://');
+    final isRemote =
+        current.startsWith('http://') || current.startsWith('https://');
     if (isRemote) return current;
 
     final token = _session.accessToken.value.trim();
@@ -228,7 +289,9 @@ class EditProfileController extends GetxController {
       );
 
       if (uploadResp.statusCode < 200 || uploadResp.statusCode >= 300) {
-        await ToastService.error('Photo upload failed (HTTP ${uploadResp.statusCode})');
+        await ToastService.error(
+          'Photo upload failed (HTTP ${uploadResp.statusCode})',
+        );
         return null;
       }
 
@@ -254,7 +317,8 @@ class EditProfileController extends GetxController {
 
   String _readPhotoUrlFromResponse(dynamic decoded) {
     if (decoded is! Map) return '';
-    final direct = decoded['public_url']?.toString().trim() ??
+    final direct =
+        decoded['public_url']?.toString().trim() ??
         decoded['publicUrl']?.toString().trim() ??
         decoded['cdnUrl']?.toString().trim() ??
         '';

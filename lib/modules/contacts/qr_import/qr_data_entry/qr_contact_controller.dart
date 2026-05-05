@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../../../../core/services/auth_session_service.dart';
 import '../../../../core/services/create_contact_service.dart';
@@ -160,11 +161,73 @@ class QrContactController extends GetxController {
         ? qrEmailsRaw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList()
         : <String>[];
 
-    if (qrPhones.isNotEmpty) mobileCtrl.text = qrPhones.first;
-    if (qrPhones.length > 1) phoneCtrl.text = qrPhones[1];
+    if (qrPhones.isNotEmpty) {
+      _applyPhoneToField(
+        qrPhones.first,
+        isoRx: phone1CountryIso,
+        controller: mobileCtrl,
+      );
+    }
+    if (qrPhones.length > 1) {
+      _applyPhoneToField(
+        qrPhones[1],
+        isoRx: phone2CountryIso,
+        controller: phoneCtrl,
+      );
+    }
 
     if (qrEmails.isNotEmpty) primaryEmailCtrl.text = qrEmails.first;
     if (qrEmails.length > 1) secondaryEmailCtrl.text = qrEmails[1];
+  }
+
+  static String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\\D'), '');
+
+  /// Best-effort: parse a phone and split into (country iso, national number).
+  /// Falls back to digits-only if parsing fails.
+  void _applyPhoneToField(
+    String raw, {
+    required RxString isoRx,
+    required TextEditingController controller,
+  }) {
+    final input = raw.trim();
+    if (input.isEmpty) return;
+
+    try {
+      final parsed = PhoneNumber.parse(input);
+      // Normalize ISO (package provides an IsoCode enum).
+      isoRx.value = parsed.isoCode.name;
+      controller.text = parsed.nsn;
+      return;
+    } catch (_) {
+      // Fallback below
+    }
+
+    // Fallback: if starts with +, try to infer country by dialing code using country_picker.
+    if (input.startsWith('+')) {
+      final digits = _digitsOnly(input);
+      if (digits.isNotEmpty) {
+        final service = CountryService();
+        Country? match;
+        var bestLen = 0;
+        for (final c in service.getAll()) {
+          final code = c.phoneCode;
+          if (code.isEmpty) continue;
+          final cd = _digitsOnly(code);
+          if (cd.isEmpty) continue;
+          if (digits.startsWith(cd) && cd.length > bestLen) {
+            match = c;
+            bestLen = cd.length;
+          }
+        }
+        if (match != null) {
+          isoRx.value = match.countryCode;
+          controller.text = digits.substring(bestLen);
+          return;
+        }
+      }
+    }
+
+    controller.text = _digitsOnly(input);
   }
 
   void setOrganization(String? v) {

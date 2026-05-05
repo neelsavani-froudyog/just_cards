@@ -78,18 +78,18 @@ class _HeaderCard extends StatelessWidget {
                 Text(
                   'Profile Photo',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                      ),
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Tap to change your photo',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.65),
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppColors.ink.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -112,42 +112,50 @@ class _AvatarPicker extends StatelessWidget {
       final uploading = controller.isUploadingAvatar.value;
 
       return InkWell(
-        onTap: uploading
-            ? null
-            : () => showModalBottomSheet<void>(
+        onTap:
+            uploading
+                ? null
+                : () => showModalBottomSheet<void>(
                   context: context,
                   showDragHandle: true,
                   backgroundColor: AppColors.white,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-                  ),
-                  builder: (_) => SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _SheetTile(
-                            icon: Icons.photo_library_outlined,
-                            title: 'Choose from gallery',
-                            onTap: () {
-                              Get.back();
-                              controller.pickAndUploadAvatar(source: ImageSource.gallery);
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          _SheetTile(
-                            icon: Icons.photo_camera_outlined,
-                            title: 'Take a photo',
-                            onTap: () {
-                              Get.back();
-                              controller.pickAndUploadAvatar(source: ImageSource.camera);
-                            },
-                          ),
-                        ],
-                      ),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(22),
                     ),
                   ),
+                  builder:
+                      (_) => SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _SheetTile(
+                                icon: Icons.photo_library_outlined,
+                                title: 'Choose from gallery',
+                                onTap: () {
+                                  Get.back();
+                                  controller.pickAndUploadAvatar(
+                                    source: ImageSource.gallery,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 10),
+                              _SheetTile(
+                                icon: Icons.photo_camera_outlined,
+                                title: 'Take a photo',
+                                onTap: () {
+                                  Get.back();
+                                  controller.pickAndUploadAvatar(
+                                    source: ImageSource.camera,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                 ),
         borderRadius: BorderRadius.circular(999),
         child: Stack(
@@ -158,7 +166,10 @@ class _AvatarPicker extends StatelessWidget {
               height: 74,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.75), width: 3),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.75),
+                  width: 3,
+                ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -169,41 +180,63 @@ class _AvatarPicker extends StatelessWidget {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: url.isEmpty
-                  ? const Icon(Icons.person_rounded, color: AppColors.ink, size: 34)
-                  : (url.startsWith('http://') || url.startsWith('https://'))
+              child:
+                  url.isEmpty
+                      ? const Icon(
+                        Icons.person_rounded,
+                        color: AppColors.ink,
+                        size: 34,
+                      )
+                      : (url.startsWith('http://') ||
+                          url.startsWith('https://'))
                       ? Image.network(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.person_rounded, color: AppColors.ink, size: 34),
-                        )
+                        url,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, __, ___) => const Icon(
+                              Icons.person_rounded,
+                              color: AppColors.ink,
+                              size: 34,
+                            ),
+                      )
                       : Image.file(
-                          File(url),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.person_rounded, color: AppColors.ink, size: 34),
-                        ),
+                        File(url),
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, __, ___) => const Icon(
+                              Icons.person_rounded,
+                              color: AppColors.ink,
+                              size: 34,
+                            ),
+                      ),
             ),
             Container(
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: uploading ? AppColors.ink.withValues(alpha: 0.15) : AppColors.ink,
+                color:
+                    uploading
+                        ? AppColors.ink.withValues(alpha: 0.15)
+                        : AppColors.ink,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.white, width: 3),
               ),
-              child: uploading
-                  ? Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.white.withValues(alpha: 0.95),
+              child:
+                  uploading
+                      ? Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.white.withValues(alpha: 0.95),
+                          ),
                         ),
+                      )
+                      : const Icon(
+                        Icons.camera_alt_rounded,
+                        size: 14,
+                        color: AppColors.white,
                       ),
-                    )
-                  : const Icon(Icons.camera_alt_rounded, size: 14, color: AppColors.white),
             ),
           ],
         ),
@@ -217,7 +250,10 @@ class _FormCard extends StatelessWidget {
 
   final EditProfileController controller;
 
-  void _openCountryPicker(BuildContext context) {
+  void _openCountryPicker(
+    BuildContext context, {
+    required void Function(Country) onSelect,
+  }) {
     showCountryPicker(
       context: context,
       showPhoneCode: true,
@@ -229,17 +265,25 @@ class _FormCard extends StatelessWidget {
           topRight: Radius.circular(16),
         ),
       ),
-      onSelect: controller.setPhoneCountry,
+      onSelect: onSelect,
     );
   }
 
-  Widget _phoneFieldWithCountry(BuildContext context, {required bool enabled}) {
+  Widget _phoneFieldWithCountry(
+    BuildContext context, {
+    required bool enabled,
+    required String label,
+    required RxString isoRx,
+    required TextEditingController textController,
+    required void Function(Country) onCountrySelect,
+    required String hintText,
+  }) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Phone',
+          label,
           style: theme.textTheme.labelLarge?.copyWith(
             color: AppColors.ink.withValues(alpha: 0.70),
             fontWeight: FontWeight.w800,
@@ -247,9 +291,10 @@ class _FormCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Obx(() {
-          final iso = controller.phoneCountryIso.value;
+          final iso = isoRx.value;
           final country =
-              CountryService().findByCode(iso) ?? CountryService().findByCode('IN');
+              CountryService().findByCode(iso) ??
+              CountryService().findByCode('IN');
           final phoneCode = country?.phoneCode ?? '91';
           final flag = country?.flagEmoji ?? '🇮🇳';
           return Row(
@@ -257,10 +302,19 @@ class _FormCard extends StatelessWidget {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: enabled ? () => _openCountryPicker(context) : null,
+                  onTap:
+                      enabled
+                          ? () => _openCountryPicker(
+                            context,
+                            onSelect: onCountrySelect,
+                          )
+                          : null,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.fieldFill.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(12),
@@ -292,11 +346,11 @@ class _FormCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  controller: controller.phoneController,
+                  controller: textController,
                   enabled: enabled,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration(hintText: 'Enter phone number'),
+                  decoration: _inputDecoration(hintText: hintText),
                 ),
               ),
             ],
@@ -330,10 +384,10 @@ class _FormCard extends StatelessWidget {
             Text(
               'Details',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.2,
-                  ),
+                color: AppColors.ink,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
             ),
             const SizedBox(height: 12),
             _LabeledField(
@@ -352,11 +406,43 @@ class _FormCard extends StatelessWidget {
                 controller: controller.companyNameController,
                 enabled: !loading,
                 textInputAction: TextInputAction.next,
-                decoration: _inputDecoration(hintText: 'Enter company name (optional)'),
+                decoration: _inputDecoration(
+                  hintText: 'Enter company name (optional)',
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            _phoneFieldWithCountry(context, enabled: !loading),
+            _LabeledField(
+              label: 'Designation',
+              child: TextField(
+                controller: controller.designationController,
+                enabled: !loading,
+                textInputAction: TextInputAction.next,
+                decoration: _inputDecoration(
+                  hintText: 'Enter designation (optional)',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _phoneFieldWithCountry(
+              context,
+              enabled: !loading,
+              label: 'Phone',
+              isoRx: controller.phoneCountryIso,
+              textController: controller.phoneController,
+              onCountrySelect: controller.setPhoneCountry,
+              hintText: 'Enter phone number',
+            ),
+            const SizedBox(height: 12),
+            _phoneFieldWithCountry(
+              context,
+              enabled: !loading,
+              label: 'Secondary phone (optional)',
+              isoRx: controller.secondaryPhoneCountryIso,
+              textController: controller.secondaryPhoneController,
+              onCountrySelect: controller.setSecondaryPhoneCountry,
+              hintText: 'Enter secondary phone number',
+            ),
             const SizedBox(height: 12),
             _LabeledField(
               label: 'Email',
@@ -364,6 +450,43 @@ class _FormCard extends StatelessWidget {
                 controller: controller.emailController,
                 enabled: false,
                 decoration: _inputDecoration(hintText: '—'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _LabeledField(
+              label: 'Secondary email (optional)',
+              child: TextField(
+                controller: controller.secondaryEmailController,
+                enabled: !loading,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: _inputDecoration(hintText: 'Enter secondary email'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _LabeledField(
+              label: 'Website (optional)',
+              child: TextField(
+                controller: controller.websiteController,
+                enabled: !loading,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+                decoration: _inputDecoration(
+                  hintText: 'https://example.com',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _LabeledField(
+              label: 'Address (optional)',
+              child: TextField(
+                controller: controller.addressController,
+                enabled: !loading,
+                maxLines: 2,
+                textInputAction: TextInputAction.newline,
+                decoration: _inputDecoration(
+                  hintText: 'Enter address (optional)',
+                ),
               ),
             ),
           ],
@@ -388,7 +511,10 @@ class _FormCard extends StatelessWidget {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.60), width: 1.2),
+        borderSide: BorderSide(
+          color: AppColors.primary.withValues(alpha: 0.60),
+          width: 1.2,
+        ),
       ),
     );
   }
@@ -408,9 +534,9 @@ class _LabeledField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.ink.withValues(alpha: 0.70),
-                fontWeight: FontWeight.w800,
-              ),
+            color: AppColors.ink.withValues(alpha: 0.70),
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 8),
         child,
@@ -430,7 +556,9 @@ class _BottomBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.ink.withValues(alpha: 0.06))),
+        border: Border(
+          top: BorderSide(color: AppColors.ink.withValues(alpha: 0.06)),
+        ),
       ),
       child: Obx(() {
         final saving = controller.isSaving.value;
@@ -445,18 +573,24 @@ class _BottomBar extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
-            child: saving
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                  )
-                : const Text(
-                    'Save Changes',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
+            child:
+                saving
+                    ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
+                    : const Text(
+                      'Save Changes',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
           ),
         );
       }),
@@ -495,7 +629,9 @@ class _SheetTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 color: AppColors.white,
-                border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+                border: Border.all(
+                  color: AppColors.ink.withValues(alpha: 0.06),
+                ),
               ),
               child: Icon(icon, color: AppColors.ink.withValues(alpha: 0.85)),
             ),
@@ -504,12 +640,15 @@ class _SheetTile extends StatelessWidget {
               child: Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.ink.withValues(alpha: 0.35)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.ink.withValues(alpha: 0.35),
+            ),
           ],
         ),
       ),

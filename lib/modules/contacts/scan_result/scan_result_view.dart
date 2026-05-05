@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../../../core/models/parse_card_response.dart';
 import '../../../core/services/api.dart';
@@ -337,6 +338,33 @@ class _ScanResultViewState extends State<ScanResultView> {
       return _ParsedPhoneData(nationalNumber: '', isoCode: fallbackIso);
     }
 
+    // Prefer robust parsing (handles E.164, national formats, etc).
+    try {
+      final parsed = PhoneNumber.parse(value);
+      return _ParsedPhoneData(
+        nationalNumber: parsed.nsn,
+        isoCode: parsed.isoCode.name,
+      );
+    } catch (_) {
+      // Continue to fallback parsing.
+    }
+
+    // Try again using fallback ISO as region (useful for national numbers without +).
+    try {
+      final region = IsoCode.values.firstWhere(
+        (e) => e.name.toUpperCase() == fallbackIso.toUpperCase(),
+        orElse: () => IsoCode.IN,
+      );
+      final parsed = PhoneNumber.parse(value, destinationCountry: region);
+      return _ParsedPhoneData(
+        nationalNumber: parsed.nsn,
+        isoCode: parsed.isoCode.name,
+      );
+    } catch (_) {
+      // Continue to fallback parsing.
+    }
+
+    // Final fallback: infer country from dialing code digits.
     final digits = value.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) {
       return _ParsedPhoneData(nationalNumber: '', isoCode: fallbackIso);
@@ -347,8 +375,7 @@ class _ScanResultViewState extends State<ScanResultView> {
     for (final country in _countryService.getAll()) {
       final codeDigits = country.phoneCode.replaceAll(RegExp(r'\D'), '');
       if (codeDigits.isEmpty) continue;
-      if (digits.startsWith(codeDigits) &&
-          codeDigits.length > bestMatchLength) {
+      if (digits.startsWith(codeDigits) && codeDigits.length > bestMatchLength) {
         bestMatch = country;
         bestMatchLength = codeDigits.length;
       }

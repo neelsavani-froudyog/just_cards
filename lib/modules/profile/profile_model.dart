@@ -30,6 +30,11 @@ class ProfileData {
   final String? createdAt;
   final String? updatedAt;
   final String? companyName;
+  final String? designation;
+  final String? address;
+  final String? website;
+  final String? secondaryEmail;
+  final String? secondaryPhone;
 
   const ProfileData({
     required this.role,
@@ -41,6 +46,11 @@ class ProfileData {
     required this.createdAt,
     required this.updatedAt,
     required this.companyName,
+    required this.designation,
+    required this.address,
+    required this.website,
+    required this.secondaryEmail,
+    required this.secondaryPhone,
   });
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
@@ -54,7 +64,11 @@ class ProfileData {
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
       companyName: json['company_name']?.toString(),
+      designation: json['designation']?.toString(),
+      address: json['address']?.toString(),
+      website: json['website']?.toString(),
+      secondaryEmail: json['secondary_email']?.toString(),
+      secondaryPhone: json['secondary_phone']?.toString(),
     );
   }
 }
-
