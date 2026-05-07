@@ -89,7 +89,8 @@ class ProfileView extends GetView<ProfileController> {
                     title: 'Edit Profile',
                     onTap: () async {
                       await Get.toNamed(Routes.editProfile);
-                      await controller.fetchProfile(force: true);
+                      // Refresh without flashing the shimmer card.
+                      await controller.fetchProfile(force: false, silent: true);
                     },
                   ),
                 ]),
@@ -201,9 +202,6 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<ProfileController>(
-      initState: (state) {
-        controller.fetchProfile();
-      },
       builder: (controller) {
         if (controller.isLoading.value) {
           return const ProfileHeaderShimmerCard();
@@ -1207,12 +1205,12 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
       final pngBytes = byteData?.buffer.asUint8List();
       if (pngBytes == null || pngBytes.isEmpty) return;
 
-      final sheetBg =
-          Theme.of(context).bottomSheetTheme.backgroundColor ??
-          Theme.of(context).colorScheme.surface;
-      final background =
-          sheetBg.computeLuminance() < 0.40 ? Colors.white : sheetBg;
-      final flattened = await _flattenPngOnBackground(pngBytes, background);
+      // Flatten onto a solid background to avoid transparency being rendered
+      // as a darker shade in other apps (e.g. Gallery/Share targets).
+      final flattened = await _flattenPngOnBackground(
+        pngBytes,
+        AppColors.white,
+      );
 
       final dir = await getTemporaryDirectory();
       final file = File(
@@ -1243,13 +1241,13 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
+              color: Colors.white.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
               size: 14,
-              color: AppColors.ink.withValues(alpha: 0.78),
+              color: AppColors.ink.withValues(alpha: 0.86),
             ),
           ),
           const SizedBox(width: 10),
@@ -1331,245 +1329,203 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
             ),
             const SizedBox(height: 8),
             ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(12),
               child: RepaintBoundary(
                 key: _cardKey,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.18),
-                        AppColors.primary.withValues(alpha: 0.30),
-                        AppColors.primary.withValues(alpha: 0.52),
-                      ],
-                      stops: const [0.0, 0.62, 1.0],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.ink.withValues(alpha: 0.08),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.ink.withValues(alpha: 0.10),
-                        blurRadius: 22,
-                        offset: const Offset(0, 14),
+                child: Container(
+                  decoration: BoxDecoration(),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          AppColors.cardBackgroundLight,
+                          AppColors.cardBackground,
+                          AppColors.cardBackgroundDark,
+                        ],
                       ),
-                    ],
-                  ),
-                  child: AspectRatio(
-                    // Real-ish business card ratio (~3.5in x 2in => 1.75)
-                    aspectRatio: 7 / 4.4,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.white.withValues(alpha: 0.35),
-                                    Colors.white.withValues(alpha: 0.0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: -86,
-                          bottom: -96,
-                          child: Container(
-                            width: 230,
-                            height: 230,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.20),
-                                  AppColors.primary.withValues(alpha: 0.0),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: AspectRatio(
+                      // Real-ish business card ratio (~3.5in x 2in => 1.75)
+                      aspectRatio: 7 / 4.45,
+                      child: Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              999,
-                                            ),
-                                            border: Border.all(
-                                              color: AppColors.ink.withValues(
-                                                alpha: 0.08,
-                                              ),
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.ink.withValues(
-                                                  alpha: 0.08,
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(999),
+                                                  border: Border.all(
+                                                    color: AppColors.ink
+                                                        .withValues(alpha: 0.08),
+                                                  ),
                                                 ),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 6),
+                                                child: CircleAvatar(
+                                                  radius: 28,
+                                                  backgroundColor: AppColors
+                                                      .primary
+                                                      .withValues(alpha: 0.08),
+                                                  backgroundImage:
+                                                      avatarUrl.startsWith('http')
+                                                          ? NetworkImage(
+                                                            avatarUrl,
+                                                          )
+                                                          : null,
+                                                  child:
+                                                      avatarUrl.startsWith('http')
+                                                          ? null
+                                                          : Icon(
+                                                            Icons.person_rounded,
+                                                            size: 30,
+                                                            color: AppColors.ink
+                                                                .withValues(
+                                                                  alpha: 0.45,
+                                                                ),
+                                                          ),
+                                                ),
                                               ),
-                                            ],
-                                          ),
-                                          child: CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: AppColors.primary
-                                                .withValues(alpha: 0.08),
-                                            backgroundImage:
-                                                avatarUrl.startsWith('http')
-                                                    ? NetworkImage(avatarUrl)
-                                                    : null,
-                                            child:
-                                                avatarUrl.startsWith('http')
-                                                    ? null
-                                                    : Icon(
-                                                      Icons.person_rounded,
-                                                      size: 24,
-                                                      color: AppColors.ink
-                                                          .withValues(
-                                                            alpha: 0.45,
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 6,
+                                                  left: 10,
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      name.isNotEmpty
+                                                          ? name
+                                                          : '—',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      textAlign: TextAlign.center,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .titleLarge
+                                                          ?.copyWith(
+                                                            color: AppColors.ink,
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                            letterSpacing: 0.2,
                                                           ),
                                                     ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                name.isNotEmpty ? name : '—',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleSmall
-                                                    ?.copyWith(
-                                                      color: AppColors.ink,
-                                                      fontWeight:
-                                                          FontWeight.w900,
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      designation.isNotEmpty
+                                                          ? designation
+                                                          : '—',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      textAlign: TextAlign.center,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: AppColors.ink
+                                                                .withValues(
+                                                                  alpha: 0.62,
+                                                                ),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
                                                     ),
-                                              ),
-                                              if (designation.isNotEmpty ||
-                                                  company.isNotEmpty)
-                                                Text(
-                                                  [
-                                                    if (designation.isNotEmpty)
-                                                      designation,
-                                                    if (company.isNotEmpty)
-                                                      company,
-                                                  ].join(' • '),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall
-                                                      ?.copyWith(
-                                                        color: AppColors.ink
-                                                            .withValues(
-                                                              alpha: 0.62,
-                                                            ),
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                      ),
+                                                    const SizedBox(height: 1),
+                                                    Text(
+                                                      company.isNotEmpty
+                                                          ? company
+                                                          : '—',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      textAlign: TextAlign.center,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: AppColors.ink
+                                                                .withValues(
+                                                                  alpha: 0.62,
+                                                                ),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                    ),
+                                                  ],
                                                 ),
+                                              ),
                                             ],
                                           ),
+                                          SizedBox(height: 12),
+                                          _infoRow(
+                                            context,
+                                            icon: Icons.call_rounded,
+                                            text:
+                                                secondaryPhone.trim().isEmpty
+                                                    ? phone
+                                                    : '$phone, $secondaryPhone',
+                                          ),
+                                          _infoRow(
+                                            context,
+                                            icon: Icons.alternate_email_rounded,
+                                            text:
+                                                secondaryEmail.trim().isEmpty
+                                                    ? email
+                                                    : '$email, $secondaryEmail',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      children: [
+                                        SizedBox(
+                                          width: 76,
+                                          child: QrImageView(
+                                            data: vcf,
+                                            version: QrVersions.auto,
+                                            padding: EdgeInsets.zero,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _infoRow(
-                                      context,
-                                      icon: Icons.call_rounded,
-                                      text:
-                                          secondaryPhone.trim().isEmpty
-                                              ? phone
-                                              : '$phone, $secondaryPhone',
-                                    ),
-                                    _infoRow(
-                                      context,
-                                      icon: Icons.alternate_email_rounded,
-                                      text:
-                                          secondaryEmail.trim().isEmpty
-                                              ? email
-                                              : '$email, $secondaryEmail',
-                                    ),
-                                    _infoRow(
-                                      context,
-                                      icon: Icons.location_on_outlined,
-                                      text: address,
-                                    ),
-                                    _infoRow(
-                                      context,
-                                      icon: Icons.public_rounded,
-                                      text: website,
+                                       ],
                                     ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                children: [
-                                  Container(
-                                    width: 92,
-                                    height: 92,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.70,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: QrImageView(
-                                        data: vcf,
-                                        version: QrVersions.auto,
-                                        backgroundColor: Colors.white,
-                                      ),
-                                    ),
+                                if(website.trim().isNotEmpty)
+                                  _infoRow(
+                                    context,
+                                    icon: Icons.public_rounded,
+                                    text: website,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Scan',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelSmall?.copyWith(
-                                      color: AppColors.ink.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.3,
-                                    ),
+                                  if(address.trim().isNotEmpty)
+                                  _infoRow(
+                                    context,
+                                    icon: Icons.location_on_outlined,
+                                    text: address,
                                   ),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
