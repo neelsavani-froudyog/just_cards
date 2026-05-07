@@ -13,7 +13,7 @@ class ProfileController extends GetxController {
   final isLoading = false.obs;
   final isDeletingAccount = false.obs;
   final profileError = RxnString();
-  final profileMe = Rxn<ProfileMeResponse>();
+  Rxn<ProfileMeResponse> profileMe = Rxn<ProfileMeResponse>();
   DateTime? _lastProfileFetchAt;
 
   static const Duration profileCacheTtl = Duration(minutes: 2);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -201,7 +202,7 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ProfileController>(
       initState: (state) {
-         controller.fetchProfile();
+        controller.fetchProfile();
       },
       builder: (controller) {
         if (controller.isLoading.value) {
@@ -322,12 +323,14 @@ class _HeaderCard extends StatelessWidget {
 
 class _MyVCardQrFlow {
   static Future<void> open(ProfileController controller) async {
-    await controller.fetchProfile(silent: true, force: true);
     final data = controller.profileMe.value?.data;
 
     if (data != null && _hasAllRequiredProfileFields(data)) {
       await Get.dialog<void>(
-        _VCardQrDialog(vcf: _vCardFromProfile(data), title: data.fullName.trim()),
+        _VCardQrDialog(
+          vcf: _vCardFromProfile(data),
+          title: data.fullName.trim(),
+        ),
       );
       return;
     }
@@ -340,9 +343,12 @@ class _MyVCardQrFlow {
       emailSecondary: (data?.secondaryEmail ?? '').trim(),
       phone1CountryIso: 'IN',
       phone2CountryIso: 'IN',
-      phonePrimary: _MyVCardQrFlow._nationalFromE164((data?.phone ?? '').trim()),
-      phoneSecondary:
-          _MyVCardQrFlow._nationalFromE164((data?.secondaryPhone ?? '').trim()),
+      phonePrimary: _MyVCardQrFlow._nationalFromE164(
+        (data?.phone ?? '').trim(),
+      ),
+      phoneSecondary: _MyVCardQrFlow._nationalFromE164(
+        (data?.secondaryPhone ?? '').trim(),
+      ),
       address: (data?.address ?? '').trim(),
       website: (data?.website ?? '').trim(),
     );
@@ -554,7 +560,6 @@ class _VCardFormState {
 
 class _MyBusinessCardFlow {
   static Future<void> open(ProfileController controller) async {
-    await controller.fetchProfile(silent: true, force: true);
     final data = controller.profileMe.value?.data;
 
     if (data != null && _hasAllRequiredFields(data)) {
@@ -570,9 +575,12 @@ class _MyBusinessCardFlow {
       emailSecondary: (data?.secondaryEmail ?? '').trim(),
       phone1CountryIso: 'IN',
       phone2CountryIso: 'IN',
-      phonePrimary: _MyVCardQrFlow._nationalFromE164((data?.phone ?? '').trim()),
-      phoneSecondary:
-          _MyVCardQrFlow._nationalFromE164((data?.secondaryPhone ?? '').trim()),
+      phonePrimary: _MyVCardQrFlow._nationalFromE164(
+        (data?.phone ?? '').trim(),
+      ),
+      phoneSecondary: _MyVCardQrFlow._nationalFromE164(
+        (data?.secondaryPhone ?? '').trim(),
+      ),
       address: (data?.address ?? '').trim(),
       website: (data?.website ?? '').trim(),
     );
@@ -590,10 +598,7 @@ class _MyBusinessCardFlow {
           title: const Text('Missing fields'),
           content: Text('Please fill: ${missing.join(', ')}'),
           actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('OK'),
-            ),
+            TextButton(onPressed: () => Get.back(), child: const Text('OK')),
           ],
         ),
       );
@@ -624,9 +629,12 @@ class _MyBusinessCardFlow {
           emailSecondary: (data.secondaryEmail ?? '').trim(),
           phone1CountryIso: 'IN',
           phone2CountryIso: 'IN',
-          phonePrimary: _MyVCardQrFlow._nationalFromE164((data.phone ?? '').trim()),
-          phoneSecondary:
-              _MyVCardQrFlow._nationalFromE164((data.secondaryPhone ?? '').trim()),
+          phonePrimary: _MyVCardQrFlow._nationalFromE164(
+            (data.phone ?? '').trim(),
+          ),
+          phoneSecondary: _MyVCardQrFlow._nationalFromE164(
+            (data.secondaryPhone ?? '').trim(),
+          ),
           address: (data.address ?? '').trim(),
           website: (data.website ?? '').trim(),
         ),
@@ -978,55 +986,160 @@ class _VCardQrDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
+      backgroundColor: AppColors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    title.isNotEmpty ? title : 'My QR',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
-                    ),
-                  ),
+                const SizedBox(height: 30),
+                QrImageView(
+                  data: vcf,
+                  version: QrVersions.auto,
+                  size: 236,
+                  backgroundColor: Colors.white,
                 ),
-                IconButton(
-                  onPressed: () => Get.back(),
-                  icon: const Icon(Icons.close_rounded),
+                const SizedBox(height: 18),
+                const _ScanToSaveIllustration(),
+                const SizedBox(height: 14),
+                Text(
+                  'Scan to Save my Contact',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w900,
+                    height: 1.2,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.ink.withValues(alpha: 0.08),
+          ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => Get.back(),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.ink.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.ink.withValues(alpha: 0.82),
+                  ),
                 ),
               ),
-              child: QrImageView(
-                data: vcf,
-                version: QrVersions.auto,
-                size: 240,
-                backgroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanToSaveIllustration extends StatelessWidget {
+  const _ScanToSaveIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    final stroke = AppColors.ink.withValues(alpha: 0.86);
+    return SizedBox(
+      width: 92,
+      height: 62,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              border: Border.all(color: stroke, width: 2.4),
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            child: Container(
+              width: 18,
+              height: 3.2,
+              decoration: BoxDecoration(
+                color: stroke,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Scan to import my contact (vCard)',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.ink.withValues(alpha: 0.62),
-                fontWeight: FontWeight.w700,
+          ),
+          Positioned(
+            bottom: 7,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                border: Border.all(color: stroke, width: 2.4),
+                shape: BoxShape.circle,
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            left: 2,
+            top: 18,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: stroke,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: stroke,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: stroke,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 6,
+            child: Transform.rotate(
+              angle: -0.35,
+              child: Icon(Icons.pan_tool_alt_rounded, size: 34, color: stroke),
+            ),
+          ),
+          Positioned(
+            child: Icon(
+              Icons.person_rounded,
+              size: 22,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1053,11 +1166,33 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
   final GlobalKey _cardKey = GlobalKey();
   var _isSharing = false;
 
+  Future<Uint8List> _flattenPngOnBackground(
+    Uint8List pngBytes,
+    Color background,
+  ) async {
+    final codec = await ui.instantiateImageCodec(pngBytes);
+    final frame = await codec.getNextFrame();
+    final src = frame.image;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    final paint = ui.Paint()..isAntiAlias = true;
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, src.width.toDouble(), src.height.toDouble()),
+      ui.Paint()..color = background,
+    );
+    canvas.drawImage(src, ui.Offset.zero, paint);
+    final picture = recorder.endRecording();
+    final outImage = await picture.toImage(src.width, src.height);
+    final outData = await outImage.toByteData(format: ui.ImageByteFormat.png);
+    return outData!.buffer.asUint8List();
+  }
+
   Future<void> _shareCardImage(String vcf) async {
     if (_isSharing) return;
     setState(() => _isSharing = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await Future<void>.delayed(const Duration(milliseconds: 80));
       if (!mounted) return;
       final cardContext = _cardKey.currentContext;
       if (cardContext == null || !cardContext.mounted) return;
@@ -1072,11 +1207,18 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
       final pngBytes = byteData?.buffer.asUint8List();
       if (pngBytes == null || pngBytes.isEmpty) return;
 
+      final sheetBg =
+          Theme.of(context).bottomSheetTheme.backgroundColor ??
+          Theme.of(context).colorScheme.surface;
+      final background =
+          sheetBg.computeLuminance() < 0.40 ? Colors.white : sheetBg;
+      final flattened = await _flattenPngOnBackground(pngBytes, background);
+
       final dir = await getTemporaryDirectory();
       final file = File(
         '${dir.path}/business_card_${DateTime.now().millisecondsSinceEpoch}.png',
       );
-      await file.writeAsBytes(pngBytes, flush: true);
+      await file.writeAsBytes(flattened, flush: true);
 
       await Share.shareXFiles([XFile(file.path)]);
     } catch (_) {
@@ -1101,20 +1243,26 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppColors.ink.withValues(alpha: 0.06),
+              color: AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 14, color: AppColors.ink.withValues(alpha: 0.72)),
+            child: Icon(
+              icon,
+              size: 14,
+              color: AppColors.ink.withValues(alpha: 0.78),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               trimmed,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.ink.withValues(alpha: 0.82),
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
+                color: AppColors.ink.withValues(alpha: 0.82),
+                fontWeight: FontWeight.w700,
+                height: 1.18,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -1170,9 +1318,9 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                   child: Text(
                     'Your Digital Business Card',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
-                        ),
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -1192,127 +1340,236 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.14),
-                        AppColors.primary.withValues(alpha: 0.06),
+                        AppColors.primary.withValues(alpha: 0.18),
+                        AppColors.primary.withValues(alpha: 0.30),
+                        AppColors.primary.withValues(alpha: 0.52),
                       ],
+                      stops: const [0.0, 0.62, 1.0],
                     ),
-                    border: Border.all(color: AppColors.ink.withValues(alpha: 0.10)),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.ink.withValues(alpha: 0.08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.ink.withValues(alpha: 0.10),
+                        blurRadius: 22,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
                   ),
                   child: AspectRatio(
                     // Real-ish business card ratio (~3.5in x 2in => 1.75)
-                    aspectRatio: 7 / 4,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                    aspectRatio: 7 / 4.4,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.35),
+                                    Colors.white.withValues(alpha: 0.0),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: -86,
+                          bottom: -96,
+                          child: Container(
+                            width: 230,
+                            height: 230,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.20),
+                                  AppColors.primary.withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: AppColors.white.withValues(alpha: 0.65),
-                                      backgroundImage: avatarUrl.startsWith('http')
-                                          ? NetworkImage(avatarUrl)
-                                          : null,
-                                      child: avatarUrl.startsWith('http')
-                                          ? null
-                                          : Icon(
-                                              Icons.person_rounded,
-                                              size: 24,
-                                              color: AppColors.ink.withValues(alpha: 0.45),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              999,
                                             ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            name.isNotEmpty ? name : '—',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  color: AppColors.ink,
-                                                  fontWeight: FontWeight.w900,
+                                            border: Border.all(
+                                              color: AppColors.ink.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.ink.withValues(
+                                                  alpha: 0.08,
                                                 ),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
                                           ),
-                                          if (designation.isNotEmpty)
-                                            Text(
-                                              designation,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelSmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        AppColors.ink.withValues(alpha: 0.62),
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                            ),
-                                          if (company.isNotEmpty)
-                                            Text(
-                                              company,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelSmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        AppColors.ink.withValues(alpha: 0.62),
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                            ),
-                                        ],
-                                      ),
+                                          child: CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor: AppColors.primary
+                                                .withValues(alpha: 0.08),
+                                            backgroundImage:
+                                                avatarUrl.startsWith('http')
+                                                    ? NetworkImage(avatarUrl)
+                                                    : null,
+                                            child:
+                                                avatarUrl.startsWith('http')
+                                                    ? null
+                                                    : Icon(
+                                                      Icons.person_rounded,
+                                                      size: 24,
+                                                      color: AppColors.ink
+                                                          .withValues(
+                                                            alpha: 0.45,
+                                                          ),
+                                                    ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name.isNotEmpty ? name : '—',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      color: AppColors.ink,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                    ),
+                                              ),
+                                              if (designation.isNotEmpty ||
+                                                  company.isNotEmpty)
+                                                Text(
+                                                  [
+                                                    if (designation.isNotEmpty)
+                                                      designation,
+                                                    if (company.isNotEmpty)
+                                                      company,
+                                                  ].join(' • '),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.copyWith(
+                                                        color: AppColors.ink
+                                                            .withValues(
+                                                              alpha: 0.62,
+                                                            ),
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    _infoRow(
+                                      context,
+                                      icon: Icons.call_rounded,
+                                      text:
+                                          secondaryPhone.trim().isEmpty
+                                              ? phone
+                                              : '$phone, $secondaryPhone',
+                                    ),
+                                    _infoRow(
+                                      context,
+                                      icon: Icons.alternate_email_rounded,
+                                      text:
+                                          secondaryEmail.trim().isEmpty
+                                              ? email
+                                              : '$email, $secondaryEmail',
+                                    ),
+                                    _infoRow(
+                                      context,
+                                      icon: Icons.location_on_outlined,
+                                      text: address,
+                                    ),
+                                    _infoRow(
+                                      context,
+                                      icon: Icons.public_rounded,
+                                      text: website,
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                _infoRow(
-                                  context,
-                                  icon: Icons.call_rounded,
-                                  text: secondaryPhone.trim().isEmpty
-                                      ? phone
-                                      : '$phone, $secondaryPhone',
-                                ),
-                                _infoRow(
-                                  context,
-                                  icon: Icons.alternate_email_rounded,
-                                  text: secondaryEmail.trim().isEmpty
-                                      ? email
-                                      : '$email, $secondaryEmail',
-                                ),
-                                _infoRow(
-                                  context,
-                                  icon: Icons.location_on_outlined,
-                                  text: address,
-                                ),
-                                _infoRow(context, icon: Icons.public_rounded, text: website),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                children: [
+                                  Container(
+                                    width: 92,
+                                    height: 92,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.70,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: QrImageView(
+                                        data: vcf,
+                                        version: QrVersions.auto,
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Scan',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall?.copyWith(
+                                      color: AppColors.ink.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 82,
-                            height: 82,
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.70),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.ink.withValues(alpha: 0.10)),
-                            ),
-                            child: QrImageView(
-                              data: vcf,
-                              version: QrVersions.auto,
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1328,21 +1585,29 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                icon: _isSharing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.share_rounded),
+                icon:
+                    _isSharing
+                        ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Icon(Icons.share_rounded),
                 label: Text(
                   _isSharing ? 'Preparing…' : 'Share',
-                  style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.2),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ),
@@ -1352,7 +1617,6 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
     );
   }
 }
-
 
 class _HeaderActionIcon extends StatelessWidget {
   const _HeaderActionIcon({
