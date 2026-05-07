@@ -29,6 +29,11 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF);
   static const Color surface = white;
 
+
+  static const Color cardBackgroundDark = Color(0xFFecca70);
+  static const Color cardBackground = Color(0xFFf5e1af);
+  static const Color cardBackgroundLight = Color.fromARGB(255, 236, 231, 215);
+
   // App background (light theme)
   static const List<Color> appBackgroundGradient = <Color>[
     Color(0xFFFFFBF8),

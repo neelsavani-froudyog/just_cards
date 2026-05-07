@@ -208,6 +208,67 @@ class ManageEventView extends GetView<ManageEventController> {
                                       }),
                                     ],
                                   ),
+                                  Obx(() {
+                                    final notes =
+                                        controller.eventNotes.value.trim();
+                                    if (notes.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF5F7FB),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: AppColors.ink.withValues(
+                                              alpha: 0.08,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(
+                                              Icons.sticky_note_2_rounded,
+                                              size: 18,
+                                              color:
+                                                  AppColors.ink.withValues(
+                                                alpha: 0.58,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                notes,
+                                                maxLines: 4,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: AppColors.ink
+                                                          .withValues(
+                                                        alpha: 0.88,
+                                                      ),
+                                                      height: 1.25,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }),
                                 ],
                               ),
                             ),

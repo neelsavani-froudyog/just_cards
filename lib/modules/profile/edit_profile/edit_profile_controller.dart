@@ -15,6 +15,7 @@ import '../profile_controller.dart';
 import '../profile_model.dart';
 
 class EditProfileController extends GetxController {
+  ProfileController profileController = Get.find<ProfileController>();
   final fullNameController = TextEditingController();
   final companyNameController = TextEditingController();
   final designationController = TextEditingController();
@@ -212,6 +213,17 @@ class EditProfileController extends GetxController {
       return;
     }
 
+    if (companyName.trim().isEmpty) {
+      ToastService.error('Please enter your company name');
+      return;
+    }
+
+    if (designation.trim().isEmpty) {
+      ToastService.error('Please enter your designation');
+      return;
+    }
+
+
     isSaving.value = true;
     try {
       final avatarForSave = await _uploadProfilePhotoIfNeeded();
@@ -221,27 +233,55 @@ class EditProfileController extends GetxController {
         url: ApiUrl.createProfile,
         data: <String, dynamic>{
           'p_full_name': fullName,
-          'p_phone': phone.trim().isEmpty ? null : phone,
-          'p_avatar_url': avatarForSave.trim().isEmpty ? null : avatarForSave,
-          'p_company_name': companyName.trim().isEmpty ? null : companyName,
-          'p_designation': designation.isEmpty ? null : designation,
-          'p_website': website.isEmpty ? null : website,
-          'p_address': address.isEmpty ? null : address,
-          'p_secondary_email': secondaryEmail.isEmpty ? null : secondaryEmail,
+          'p_phone': phone.trim().isEmpty ? '' : phone,
+          'p_avatar_url': avatarForSave.trim().isEmpty ? '' : avatarForSave,
+          'p_company_name': companyName.trim().isEmpty ? '' : companyName,
+          'p_designation': designation.isEmpty ? '' : designation,
+          'p_website': website.isEmpty ? '' : website,
+          'p_address': address.isEmpty ? '' : address,
+          'p_secondary_email': secondaryEmail.isEmpty ? '' : secondaryEmail,
           'p_secondary_phone':
-              secondaryPhone.trim().isEmpty ? null : secondaryPhone,
+              secondaryPhone.trim().isEmpty ? '' : secondaryPhone,
         },
         showSuccessToast: true,
         successToastMessage: 'Profile updated',
         showErrorToast: true,
-        onSuccess: (_) {
+        onSuccess: (payload) async {
           _session.completeProfile(
             name: fullName,
             emailAddress: _session.email.value,
           );
-          try {
-            Get.find<ProfileController>().fetchProfile(force: true);
-          } catch (_) {}
+          final response = payload['response'];
+          if (response is! Map<String, dynamic>) {
+            profileController.profileError.value = 'Invalid profile response';
+            return;
+          }
+
+          // Some APIs return nested payloads like:
+          // { ok, message, data: { ok, data: { ...profile } } }
+          // Normalize to the shape expected by ProfileMeResponse.
+          Map<String, dynamic> normalized = response;
+          final outerData = response['data'];
+          if (outerData is Map) {
+            final innerData = outerData['data'];
+            if (innerData is Map) {
+              normalized = <String, dynamic>{
+                'ok': (response['ok'] ?? outerData['ok'] ?? true) == true,
+                'message': (response['message'] ?? '').toString(),
+                'data': Map<String, dynamic>.from(innerData),
+              };
+            } else if (outerData['ok'] != null || outerData['data'] != null) {
+              normalized = <String, dynamic>{
+                'ok': (response['ok'] ?? outerData['ok'] ?? true) == true,
+                'message': (response['message'] ?? '').toString(),
+                'data': Map<String, dynamic>.from(outerData),
+              };
+            }
+          }
+
+          final parsed = ProfileMeResponse.fromJson(normalized);
+          profileController.profileMe.value = parsed;
+          profileController.update();
           Get.back();
         },
         onError: (message) {

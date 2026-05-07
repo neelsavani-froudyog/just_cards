@@ -42,6 +42,7 @@ class HomeEventItem {
   final String? organizationId;
   final int membersCount;
   final String role;
+  final String notes;
   final String type;
   final String createdBy;
 
@@ -54,6 +55,7 @@ class HomeEventItem {
     required this.organizationId,
     required this.membersCount,
     required this.role,
+    required this.notes,
     required this.type,
     this.createdBy = '',
   });
@@ -74,6 +76,7 @@ class HomeEventItem {
       type: (json['type'] ?? '').toString(),
       createdBy: (json['created_by'] ?? json['createdBy'] ?? json['user_id'] ?? '')
           .toString(),
+      notes: (json['notes'] ?? '').toString(),
     );
   }
 

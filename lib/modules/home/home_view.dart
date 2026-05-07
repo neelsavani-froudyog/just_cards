@@ -1231,6 +1231,7 @@ class _EventCard extends StatelessWidget {
                 'membersCount': event.count,
                 'cardsCount': cardsCount,
                 'role': event.role,
+                'notes': event.notes,
               },
             ),
         splashColor: AppColors.primary.withValues(alpha: 0.12),
