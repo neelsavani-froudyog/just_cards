@@ -57,6 +57,8 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
   excel: ^4.0.6
   phone_numbers_parser: ^9.0.22
+  purchases_flutter: ^10.0.2
+  purchases_ui_flutter: ^10.0.2
   
 dev_dependencies:
   flutter_test:

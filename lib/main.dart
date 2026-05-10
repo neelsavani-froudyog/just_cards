@@ -9,6 +9,7 @@ import 'core/services/auth_session_service.dart';
 import 'core/services/create_contact_service.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/parse_card_service.dart';
+import 'core/services/revenuecat_service.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
 import 'routes/app_pages.dart';
@@ -31,6 +32,7 @@ Future<void> main() async {
   Get.put<ParseCardService>(ParseCardService(), permanent: true);
   Get.put<CreateContactService>(CreateContactService(), permanent: true);
   Get.put<ConnectivityService>(ConnectivityService(), permanent: true);
+  Get.put<RevenueCatService>(RevenueCatService(), permanent: true);
   runApp(const JustCardsApp());
 }
 

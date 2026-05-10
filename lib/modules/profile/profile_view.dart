@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -18,6 +18,7 @@ import '../../widgets/custom_text_field.dart';
 import 'profile_controller.dart';
 import 'profile_model.dart';
 import 'profile_shimmer_view.dart';
+import '../subscription/subscription_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -50,6 +51,14 @@ class ProfileView extends GetView<ProfileController> {
               sliver: SliverToBoxAdapter(
                 child: _HeaderCard(controller: controller),
               ),
+            ),
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(18, 0, 18, 12),
+              sliver: SliverToBoxAdapter(child: ProEntitlementBadge()),
+            ),
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(18, 0, 18, 8),
+              sliver: SliverToBoxAdapter(child: SubscriptionActionsCard()),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 6)),
             SliverPadding(
@@ -930,7 +939,7 @@ class _PhoneRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Country.tryParse(iso) ?? Country.tryParse('IN');
     final dial = '+${(c?.phoneCode ?? '91').trim()}';
-    final flag = c?.flagEmoji ?? '🇮🇳';
+    final flag = c?.flagEmoji ?? 'ðŸ‡®ðŸ‡³';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1412,7 +1421,7 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                                                     Text(
                                                       name.isNotEmpty
                                                           ? name
-                                                          : '—',
+                                                          : 'â€”',
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -1431,7 +1440,7 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                                                     Text(
                                                       designation.isNotEmpty
                                                           ? designation
-                                                          : '—',
+                                                          : 'â€”',
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -1452,7 +1461,7 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                                                     Text(
                                                       company.isNotEmpty
                                                           ? company
-                                                          : '—',
+                                                          : 'â€”',
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -1559,7 +1568,7 @@ class _BusinessCardSheetState extends State<_BusinessCardSheet> {
                         )
                         : const Icon(Icons.share_rounded),
                 label: Text(
-                  _isSharing ? 'Preparing…' : 'Share',
+                  _isSharing ? 'Preparingâ€¦' : 'Share',
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
@@ -1679,6 +1688,159 @@ class _SettingTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ProEntitlementBadge extends GetView<SubscriptionController> {
+  const ProEntitlementBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<SubscriptionController>(
+      builder: (controller) {
+        final isPro = controller.hasProAccess.value;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isPro ? const Color(0xFFE8F9EE) : const Color(0xFFFFF4E5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            isPro ? 'JustCards Pro Active' : 'Free Plan',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: isPro ? const Color(0xFF0D8A4E) : const Color(0xFFB54708),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SubscriptionActionsCard extends GetView<SubscriptionController> {
+  const SubscriptionActionsCard({super.key});
+
+  String _nextRenewalText(SubscriptionController controller) {
+    final rawDate = controller.customerInfo.value?.latestExpirationDate;
+    if (rawDate == null || rawDate.trim().isEmpty) return 'Auto-renews';
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed == null) return 'Auto-renews';
+    final local = parsed.toLocal();
+    return 'Renews on ${local.day}/${local.month}/${local.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<SubscriptionController>(
+      builder: (controller) {
+        final isPro = controller.hasProAccess.value;
+        final isBusy =
+            controller.isPurchasing.value || controller.isInitializing.value;
+        final packageCount = controller.availablePackages.length;
+        final activePlan = controller.activePlanName.value.trim();
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.ink.withValues(alpha: 0.06)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isPro ? 'JustCards Pro' : 'Unlock JustCards Pro',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (isPro && activePlan.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2FE),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Active Plan: $activePlan',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Text(
+                isPro
+                    ? _nextRenewalText(controller)
+                    : packageCount > 0
+                    ? 'Unlimited access is ready. Choose a plan in the paywall.'
+                    : 'Loading plans...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.ink.withValues(alpha: 0.68),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: isBusy ? null : controller.showPaywall,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isPro ? const Color(0xFF0D8A4E) : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    isPro ? 'Change or Upgrade Plan' : 'Upgrade to Pro',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              if (isPro) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: controller.isOpeningCustomerCenter.value
+                        ? null
+                        : controller.openCustomerCenter,
+                    child: const Text('Manage or Cancel Subscription'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Use Manage to change plan, cancel renewal, or review billing.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.ink.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed:
+                      controller.isRestoring.value ? null : controller.restorePurchases,
+                  child: const Text('Already purchased? Restore'),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
